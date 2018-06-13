@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+        "name": "Python",
+        "type": "python",
+        "request": "launch",
+        "pythonPath": "/usr/share/miniconda2/envs/mypy2/bin/python",
+        "program": "${file}",
+        "args": ["/home/jbishop/Pictures/cleary.png"],
+        "cwd": "${workspaceRoot}",
+        "debugOptions": [
+            "BreakOnSystemExitZero",
+            "RedirectOutput"]
+        }
+    ],
+    "compounds": []
+}

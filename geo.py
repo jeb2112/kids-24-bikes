@@ -15,11 +15,21 @@ def plotTubes(aimg,tubeset):
         cv2.line(aimg,tuple(pt1.astype(int)),tuple(pt2.astype(int)),(0,0,255),2)
     return(aimg)
 
+# redo function with just line segments in stead of normal lines
+# messy float/int/array/tuple problem. cv2 functions work with tuples of ints, but coordinate
+# calculations have to be arrays of floats. because only arrays can be cast back to ints for cv2.
+# coordinates of each tube in x1,y1,x2,y2
+# origin is cv2 top left
+def calcTubes2(tlines,wheels,chainrings):
+    frontwheel = np.array([wheels[0,0,0],wheels[0,1,1]])
+    # need to check order of wheels
+    backwheel = wheels[0,1,0:2]
+    bottombracket = chainring[0,0,0:2]
+
+
+
+
 def calcTubes(tangles,trhos,wheels,chainring):
-    # messy float/int/array/tuple problem. cv2 functions work with tuples of ints, but coordinate
-    # calculations have to be arrays of floats. because only arrays can be cast back to ints for cv2.
-    # coordinates of each tube in x1,y1,x2,y2
-    # origin is cv2 top left
     # convert normal angles back to bike convention:
     bangles = -(np.pi/2 - tangles)
     frontwheel = np.array([wheels[0,0,0],wheels[0,1,1]])
@@ -56,6 +66,18 @@ def pts2eq(((x1,y1),(x2,y2))):
     b = y1 - m * x1
     return [m,b]
 
+def eq2pts((m,b),(x1,x2)):
+    y1 = m*x1 + b
+    y2 = m*x2 + b
+    return ([x1,y1],[x2,y2])
+
+def plotFig(img):
+    global figNo
+    plt.figure(figNo)
+    plt.imshow(img)
+    plt.show(block=False)
+    figNo += 1
+
 def angle2coord(line):
     for rho,theta in line:
         a = np.cos(theta)
@@ -76,19 +98,9 @@ def houghLines(bimg,aimg):
     for i in range(0,2):
         gray = cv2.dilate(gray,kernel,iterations=3)
         gray = cv2.erode(gray,kernel,iterations=2)
-    # plt.imshow(gray,cmap="gray")
-    # plt.show()
-    # target set of angles: head tube, seat tube, down tube, top tube  
-    # conventional bike angles rotating from neg x to pos y are: (69,72,-47,-23)
-    # normal angles measured from pos x rotating to pos y, where pos y is down in cv2 image: theta+90
-    targetAngles = (159,162,43,67)
-    # hardcoded for cleary.  these need to scale for image resolution
-    targetRhos = (-300,-200,400,300)
+
     edges = cv2.Canny(gray,100,200,apertureSize=3,L2gradient=True)
-    plt.figure(figNo)
-    figNo = figNo + 1
-    plt.imshow(edges)
-    plt.show(block=False)
+    plotFig(edges)
 
     # line processing
     houghProcess='p'
@@ -97,18 +109,63 @@ def houghLines(bimg,aimg):
     # and hard-coded for cleary though.
         lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=50)
         if (lines is not None):
-        # plot raw lines detection
+            # plot raw lines detection
+            aimg2 = np.copy(aimg)
             for line in lines:
                 for x1,y1,x2,y2 in line:
-                    cv2.line(aimg,(x1,y1),(x2,y2),(0,0,255),2)
-            plt.figure(figNo)
-            plt.imshow(aimg)
-            plt.show()
-            figNo += 1
-        return(bimg,aimg,lines)
+                    cv2.line(aimg2,(x1,y1),(x2,y2),(0,0,255),2)
+            plotFig(aimg2)
+
+        # average matching pairs of lines
+        eqns = np.zeros((np.shape(lines)[0],2))
+        for i,line in enumerate(lines):
+            eqns[i,:] = pts2eq(((line[0,0:2]),(line[0,2:4])))
+
+        eq=None
+        avglines=None
+        while len(eqns)>0:
+            eqnset = np.where((np.abs(eqns[:,0]-eqns[0,0])<.02)) and np.where((np.abs(eqns[:,1]-eqns[0,1])<12))
+            if eq is None:
+                # need to check for equal sets of pairs if eqnset is odd length for better average
+                eq = np.reshape(np.mean(eqns[eqnset],axis=0),(1,2))
+                avglines = eq2pts(eq[0],(0,600))
+            else:
+                eq2 = np.reshape(np.mean(eqns[eqnset],axis=0),(1,2))
+                eq = np.append(eq,eq2,axis=0)
+                avglines = np.append(avglines,eq2pts(eq2[0],(0,600)),axis=0)
+            eqns = np.delete(eqns,eqnset,axis=0)
+
+        avglines = np.reshape(avglines,(len(eq),4))
+        # identificaton of tubes
+        # target set of angles: head tube, seat tube, down tube, top tube  
+        # conventional bike angles rotating from neg x to pos y are: (69,72,-47,-23)
+        targetAngles = np.array([68,73,-47,-23])
+        # corresponding target slopes of line segments:
+        targetSlopes = np.tan(targetAngles * np.pi/180)
+        dtL = avglines[np.abs(eq[:,0] - targetSlopes[2]).argmin()]
+        ttL = avglines[np.abs(eq[:,0] - targetSlopes[3]).argmin()]
+        stL = avglines[np.abs(eq[:,0] - targetSlopes[1]).argmin()]
+        htL = avglines[np.abs(eq[:,0] - targetSlopes[0]).argmin()]
+        rL = (htL,stL,dtL,ttL)
+        # plot raw lines detection
+        aimg2 = np.copy(aimg)
+        for Lline in rL:
+            # for some reason can't follow this syntax with the line array as did with tuples
+            #for x1,y1,x2,y2 in np.nditer(Lline):
+            #    cv2.line(aimg2,(x1,y1),(x2,y2),(0,0,255),2)
+            cv2.line(aimg2,tuple(Lline[0:2].astype(int)),tuple(Lline[2:4].astype(int)),(0,0,255),2)
+        plotFig(aimg2)
+    
+        return(bimg,aimg,rL)
 
     else:
 
+        # target set of angles: head tube, seat tube, down tube, top tube  
+        # conventional bike angles rotating from neg x to pos y are: (69,72,-47,-23)
+        # normal angles measured from pos x rotating to pos y, where pos y is down in cv2 image: theta+90
+        targetAngles = (159,162,43,67)
+        # hardcoded for cleary.  these need to scale for image resolution
+        targetRhos = (-300,-200,400,300)
         lines = cv2.HoughLines(edges,rho=1.0,theta=np.pi/180,threshold=60,srn=10,stn=10)
         if (lines is not None):
             for line in lines:
@@ -171,6 +228,7 @@ def houghLines(bimg,aimg):
         plt.show(block=False)
         print(rR)
 
+        # need to convert to linexy here
         return(bimg,aimg,rA,rR)
     
 
@@ -222,16 +280,12 @@ if __name__=='__main__':
     # cv2.imshow('Circles Image',houghCircleImage)
     # cv2.waitKey(1)
     #cv2.destroyAllWindows()
-    bimg,aimg2,tangles,trhos = houghLines(bimg,aimg2)
-    # houghLineImage = houghLinesP(houghCircleImage)
+    # modified this to return line coords instead of rho/theta normals
+    bimg,aimg2,tubelines = houghLines(bimg,aimg2)
     plt.figure(figNo)
     figNo += 1
-    blockTF=False
+    blockTF=True
     plt.imshow(aimg2)
     plt.show(block=blockTF)
-    tubeset = calcTubes(tangles,trhos,wheels,chainring)
-    plt.figure(figNo)
-    figNo += 1
-    plotTubes(aimg,tubeset)
-    plt.imshow(aimg)
-    plt.show(block=True)
+    # tubeset = calcTubes2(tubelines,wheels,chainring)
+    # plotTubes(aimg,tubeset)

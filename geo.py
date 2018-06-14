@@ -25,10 +25,26 @@ def calcTubes2(tlines,wheels,chainrings):
     # need to check order of wheels
     backwheel = wheels[0,1,0:2]
     bottombracket = chainring[0,0,0:2]
+    chainstay = np.array([[backwheel[0],backwheel[1]],[bottombracket[0],bottombracket[1]]])
+    # seat tube intersecting top tube
+    eq1 = pts2eq([tlines[3][0:2],tlines[3][2:4]])
+    eq2 = pts2eq([tlines[1][0:2],tlines[1][2:4]])
+    xint = (eq1[1]-eq2[1]) / (eq2[0] - eq1[0])
+    seattube = np.array([[bottombracket[0],bottombracket[1]],[xint,eq1[0]*xint+eq1[1]]])
+    # toptube intersecting head tube
+    eq2 = pts2eq([tlines[0][0:2],tlines[0][2:4]])
+    xint = (eq1[1]-eq2[1]) / (eq2[0] - eq1[0])
+    toptube = np.array([seattube[1],[xint,eq1[0]*xint+eq1[1]]])
+    # downtube intersecting head tube
+    eq1 = pts2eq([tlines[2][0:2],tlines[2][2:4]])
+    xint = (eq1[1]-eq2[1]) / (eq2[0] - eq1[0])
+    downtube = np.array([seattube[0],[xint,eq1[0]*xint+eq1[1]]])
+    # true length of headtube should be estimated from a line profile along the known axis
+    # picking up headset races or paint colour boundary
+    headtube = np.array([downtube[1],toptube[1]])
+    return(seattube,headtube,downtube,toptube)
 
-
-
-
+# original version with normals
 def calcTubes(tangles,trhos,wheels,chainring):
     # convert normal angles back to bike convention:
     bangles = -(np.pi/2 - tangles)
@@ -71,11 +87,11 @@ def eq2pts((m,b),(x1,x2)):
     y2 = m*x2 + b
     return ([x1,y1],[x2,y2])
 
-def plotFig(img):
+def plotFig(img,blockFlag=False):
     global figNo
     plt.figure(figNo)
     plt.imshow(img)
-    plt.show(block=False)
+    plt.show(block=blockFlag)
     figNo += 1
 
 def angle2coord(line):
@@ -282,10 +298,7 @@ if __name__=='__main__':
     #cv2.destroyAllWindows()
     # modified this to return line coords instead of rho/theta normals
     bimg,aimg2,tubelines = houghLines(bimg,aimg2)
-    plt.figure(figNo)
-    figNo += 1
-    blockTF=True
-    plt.imshow(aimg2)
-    plt.show(block=blockTF)
-    # tubeset = calcTubes2(tubelines,wheels,chainring)
-    # plotTubes(aimg,tubeset)
+    tubeset = calcTubes2(tubelines,wheels,chainring)
+    aimg2 = np.copy(aimg)
+    aimg2 = plotTubes(aimg2,tubeset)
+    plotFig(aimg2,True)

@@ -15,7 +15,7 @@ def plotTubes(aimg,tubeset):
         cv2.line(aimg,tuple(pt1.astype(int)),tuple(pt2.astype(int)),(0,0,255),2)
     return(aimg)
 
-# redo function with just line segments in stead of normal lines
+# redo function with just line segments from HoughP instead of normal rho,thetas
 # messy float/int/array/tuple problem. cv2 functions work with tuples of ints, but coordinate
 # calculations have to be arrays of floats. because only arrays can be cast back to ints for cv2.
 # coordinates of each tube in x1,y1,x2,y2
@@ -42,7 +42,7 @@ def calcTubes2(tlines,wheels,chainrings):
     # true length of headtube should be estimated from a line profile along the known axis
     # picking up headset races or paint colour boundary
     headtube = np.array([downtube[1],toptube[1]])
-    return(seattube,headtube,downtube,toptube)
+    return [seattube,headtube,downtube,toptube]
 
 # original version with normals
 def calcTubes(tangles,trhos,wheels,chainring):
@@ -74,7 +74,7 @@ def calcTubes(tangles,trhos,wheels,chainring):
     xint = (eq1[1]-eq2[1]) / (eq2[0] - eq1[0])
     forkhead = np.array([[frontwheel[0],frontwheel[1]],[xint,eq1[0]*xint+eq1[1]]])
     toptube[1] = forkhead[1]
-    return (chainstay,toptube,seattube,forkhead)
+    return [chainstay,toptube,seattube,forkhead]
     
 
 def pts2eq(((x1,y1),(x2,y2))):
@@ -271,6 +271,56 @@ def houghCircles(bimg,aimg):
             cv2.circle(aimg,(i[0],i[1]),2,(0,0,255),3)
     return bimg,aimg,wheels,chainring
 
+def findHeadTube(img,headtube):
+    rows,cols = np.shape(img)[0:2]
+    (m,b) = pts2eq([headtube[0],headtube[1]])
+    htA = np.arctan(m) * 180/np.pi
+    # point of rotation 
+    htx,hty = int(np.round(np.mean(headtube[:,0]))),int(np.round(np.mean(headtube[:,1])))
+    M = cv2.getRotationMatrix2D((htx,hty),htA-90,1)
+    rimg = cv2.warpAffine(img,M,(cols,rows))
+    # plotFig(rimg,True)
+    # extent of profile again hard-coded for cleary. but it should calculate to +/- 6cm or so
+    lrange = range(hty-25,hty+25)
+    htprofile = rimg[lrange,htx]
+    # fit spline to colour profiles
+    bxint = np.round(np.arange(lrange[0],lrange[-1],.1)*10)/10
+    bspl = np.zeros((len(bxint),3))
+    ypeaks=[]
+    for i in range(0,3):
+        # arbitrary smoothing factor
+        bsp = scipy.interpolate.splrep(lrange,htprofile[:,i],np.ones(len(lrange)),k=3,s=len(bxint))
+        bspl[:,i] = scipy.interpolate.splev(bxint,bsp,der=1)
+        ypeaks.append(bxint[list(peakutils.indexes(bspl[:,i],thres=0.5,min_dist=100))])
+
+    # create detection search ranges. 3cm above/below the headtube/topdowntube intersection points.
+    toprange = range(int(headtube[1,1])-5,int(headtube[1,1])-20,-1)
+    toprangeint = range(np.where(bxint==toprange[0])[0][0],np.where(bxint==toprange[-1])[0][0],-1)
+    botrange = range(int(headtube[0,1])+5,int(headtube[0,1]+20))
+    botrangeint = range(np.where(bxint==botrange[0])[0][0],np.where(bxint==botrange[-1])[0][0])
+    mbspl = np.mean(np.abs(bspl),axis=1)
+
+    # 0 index take the first peak in the derivative
+    toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.4,min_dist=10)[0]
+    botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=10)[0]+botrangeint[0] 
+    plt.figure(6)
+    plt.subplot(2,1,1)
+    plt.plot(lrange,htprofile)
+    plt.subplot(2,1,2)
+    plt.plot(bxint,np.mean(np.abs(bspl),axis=1))
+    plt.plot(bxint[botrangeint],mbspl[botrangeint],'r')
+    plt.plot(bxint[toprangeint],mbspl[toprangeint],'r')
+    plt.show(block=False)
+ 
+    # although these are scalars, still forms an array so dearray ti
+    # then after fixing the peak indexiing, they are scalars again
+    headtubetoplength = (headtube[1,1] - bxint[toppeak])
+    headtubebotlength = (bxint[botpeak] - headtube[0,1])
+    headtube[0] += np.array([np.cos(htA*np.pi/180)*headtubebotlength,np.sin(htA*np.pi/180)*headtubebotlength])
+    headtube[1] -= np.array([np.cos(htA*np.pi/180)*headtubetoplength,np.sin(htA*np.pi/180)*headtubetoplength])
+    return(headtube)
+
+
 if __name__=='__main__':
     filename = sys.argv[1]
     im = imageio.imread(filename)
@@ -299,6 +349,9 @@ if __name__=='__main__':
     # modified this to return line coords instead of rho/theta normals
     bimg,aimg2,tubelines = houghLines(bimg,aimg2)
     tubeset = calcTubes2(tubelines,wheels,chainring)
+    # improve head tube detection
+    aimg2 = np.copy(aimg)
+    tubeset[1] = findHeadTube(aimg2,tubeset[1])
     aimg2 = np.copy(aimg)
     aimg2 = plotTubes(aimg2,tubeset)
     plotFig(aimg2,True)

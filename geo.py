@@ -10,6 +10,92 @@ import scipy.interpolate
 
 figNo = 1
 
+class profilePhoto():
+    def __init__(self,filename):
+        self.rows = 0
+        self.cols = 0
+        self.filename = filename
+        self.imRGB = None
+        self.imGRAY = None
+        self.imEDGE = None
+        self.imANNO = None
+        self.imW = None
+        self.loadImage(self.filename)
+
+    def loadImage(self,filename):
+        im = imageio.imread(filename)
+        # if png/alpha, remove alpha
+        self.rows,self.cols = np.shape(im)[0:2]
+        if np.shape(im)[2]==4:
+            im = cv2.cvtColor(im,cv2.COLOR_BGRA2BGR)
+        self.imRGB = im 
+        self.imANNO = self.imRGB
+        self.imGRAY = cv2.cvtColor(self.imRGB,cv2.COLOR_BGR2GRAY)
+
+    def maskCircle(self,masks,target):
+        # masks. list of circles defined by centre point, radius
+        # target. target image
+        # have an extra 3 pixels hard-coded in here
+        for c in masks:
+            cv2.circle(target,(c[0],c[1]),int(c[2]+3.),255,-1)        
+        
+    def resetAnnotatedIm(self):
+        self.imANNO = self.imRGB
+
+class Tube():
+    def __init__(self):
+        # pt1 is leftmost point, pt2 rightmost
+        self.pt1 = [0,0]
+        self.pt2 = [0,0]
+        self.m = 0
+        self.b = 0
+        self.A = 0
+
+class Tire():
+    def __init__(self):
+        self.centre = [0,0]
+        self.rInner = 0
+        self.rOuter = 0
+
+class Ring():
+    def __init__(self):
+        self.centre = [0,0]
+
+class Fork():
+    def __init__(self):
+        self.type = 'suspension'
+        self.axle2crown = 0
+        self.offset = 0
+
+class Tubeset():
+    def __init__(self):
+        self.dt = Tube()
+        self.tt = Tube()
+        self.st = Tube()
+        self.ht = Tube()
+        self.cs = Tube()
+        self.ss = Tube()
+
+class Rider():
+    def __init__(self,anthro):
+        self.leg = anthro[0]
+        self.torso = anthro[1]
+        self.arm = anthro[2]
+
+class Geometry():
+    def __init__(self):
+        self.tubes = Tubeset()
+        self.fw = Wheel()
+        self.rw = Wheel()
+        self.cr = Ring()
+        self.fork = Fork()
+        self.trail = 0
+        self.standover = 0
+        self.rider = Rider()
+        self.com = 0
+        self.cob = 0
+
+
 def plotTubes(aimg,tubeset):
     for pt1,pt2 in tubeset:
         cv2.line(aimg,tuple(pt1.astype(int)),tuple(pt2.astype(int)),(0,255,0),2)
@@ -106,73 +192,87 @@ def angle2coord(line):
         y2 = float(y0 - 1000*(a))
     return[[x1,y1],[x2,y2]]
 
-def houghLines(bimg,aimg):
+def houghLines(bw,houghProcess='p'):
     global figNo
-    # gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-    gray = bimg
+    # bw = cv2.blur(bw,(5,5))
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
     for i in range(0,2):
-        gray = cv2.dilate(gray,kernel,iterations=3)
-        gray = cv2.erode(gray,kernel,iterations=2)
+        bw = cv2.dilate(bw,kernel,iterations=3)
+        bw = cv2.erode(bw,kernel,iterations=2)
 
-    edges = cv2.Canny(gray,100,200,apertureSize=3,L2gradient=True)
+    edges = cv2.Canny(bw,100,200,apertureSize=3,L2gradient=True)
     plotFig(edges)
 
     # line processing
-    houghProcess='p'
     if houghProcess=='p':
     # probabilistic works better for short segeements like head tube. these numbers are all fine tuned
     # and hard-coded for cleary though.
         lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=50)
         if (lines is not None):
             # plot raw lines detection
-            aimg2 = np.copy(aimg)
+            bw2 = np.copy(bw)
             for line in lines:
                 for x1,y1,x2,y2 in line:
-                    cv2.line(aimg2,(x1,y1),(x2,y2),(0,0,255),2)
-            plotFig(aimg2)
+                    cv2.line(bw2,(x1,y1),(x2,y2),(0,0,255),2)
+            plotFig(bw2)
 
-        # average matching pairs of lines
+        # average matching pairs of lines. this is not working very well for headtube, 
         eqns = np.zeros((np.shape(lines)[0],2))
         for i,line in enumerate(lines):
             eqns[i,:] = pts2eq(((line[0,0:2]),(line[0,2:4])))
 
-        eq=None
+        meqs=None
         avglines=None
         while len(eqns)>0:
-            eqnset = np.where((np.abs(eqns[:,0]-eqns[0,0])<.02)) and np.where((np.abs(eqns[:,1]-eqns[0,1])<12))
-            if eq is None:
-                # need to check for equal sets of pairs if eqnset is odd length for better average
-                eq = np.reshape(np.mean(eqns[eqnset],axis=0),(1,2))
-                avglines = eq2pts(eq[0],(0,600))
+            # find all equations matching the current first eqn in list. Using 5% as the matching threshold
+            eqnset1 = np.where(np.abs(eqns[:,0]-eqns[0,0])<np.abs(.05*eqns[0,0]))[0][0:]
+            # equal slope, equal offset. Using 1% to qualify as equal
+            eqnset1a =  eqnset1[np.where((np.abs(eqns[eqnset1,1]-eqns[0,1])<np.abs(0.01*eqns[0,1])))]
+            # equal slope, different offset but close enough to be a matchingline
+            eqnset1b = np.setdiff1d(eqnset1,eqnset1a)
+            # y intercept 10% as the threshold%
+            eqnset1b = eqnset1b[np.where(np.abs(eqns[eqnset1b,1]-eqns[0,1])<np.abs(0.1*eqns[0,1]))]
+            # equal slope, different offset
+            meq1 = np.mean(eqns[eqnset1a],axis=0)
+            if len(eqnset1b) > 0:
+                meq2 = np.mean(eqns[eqnset1b],axis=0)
+                meq = np.mean([meq1,meq2],axis=0)
             else:
-                eq2 = np.reshape(np.mean(eqns[eqnset],axis=0),(1,2))
-                eq = np.append(eq,eq2,axis=0)
-                avglines = np.append(avglines,eq2pts(eq2[0],(0,600)),axis=0)
-            eqns = np.delete(eqns,eqnset,axis=0)
+                meq = meq1
+            if meqs is None:
+                meqs = meq
+                avglines = eq2pts(meq,(0,600))
+            else:
+                meqs = np.append(meqs,meq,axis=0)
+                avglines = np.append(avglines,eq2pts(meq,(0,600)),axis=0)
+            # keep any unsused offsets at the current slope?
+            eqns = np.delete(eqns,eqnset1,axis=0)
+            # eqns = np.delete(eqns,eqnset1a,axis=0)
+            # eqns = np.delete(eqns,eqnset1b,axis=0)
 
-        avglines = np.reshape(avglines,(len(eq),4))
+        avglines = np.reshape(avglines,(len(meqs)/2,4))
+        meqs = np.reshape(meqs,(len(meqs)/2,2))
         # identificaton of tubes
         # target set of angles: head tube, seat tube, down tube, top tube  
         # conventional bike angles rotating from neg x to pos y are: (69,72,-47,-23)
         targetAngles = np.array([68,73,-47,-23])
         # corresponding target slopes of line segments:
         targetSlopes = np.tan(targetAngles * np.pi/180)
-        dtL = avglines[np.abs(eq[:,0] - targetSlopes[2]).argmin()]
-        ttL = avglines[np.abs(eq[:,0] - targetSlopes[3]).argmin()]
-        stL = avglines[np.abs(eq[:,0] - targetSlopes[1]).argmin()]
-        htL = avglines[np.abs(eq[:,0] - targetSlopes[0]).argmin()]
+        dtL = avglines[np.abs(meqs[:,0] - targetSlopes[2]).argmin()]
+        ttL = avglines[np.abs(meqs[:,0] - targetSlopes[3]).argmin()]
+        stL = avglines[np.abs(meqs[:,0] - targetSlopes[1]).argmin()]
+        htL = avglines[np.abs(meqs[:,0] - targetSlopes[0]).argmin()]
         rL = (htL,stL,dtL,ttL)
         # plot raw lines detection
-        aimg2 = np.copy(aimg)
+        # bw2 = np.copy(bw)
         for Lline in rL:
             # for some reason can't follow this syntax with the line array as did with tuples
             #for x1,y1,x2,y2 in np.nditer(Lline):
             #    cv2.line(aimg2,(x1,y1),(x2,y2),(0,0,255),2)
-            cv2.line(aimg2,tuple(Lline[0:2].astype(int)),tuple(Lline[2:4].astype(int)),(0,0,255),2)
-        plotFig(aimg2)
+            cv2.line(bw2,tuple(Lline[0:2].astype(int)),tuple(Lline[2:4].astype(int)),(255,0,0),2)
+        plotFig(bw2)
     
-        return(bimg,aimg,rL)
+        return(rL)
 
     else:
 
@@ -248,34 +348,35 @@ def houghLines(bimg,aimg):
         return(bimg,aimg,rA,rR)
     
 
-def houghCircles(bimg,aimg):
+def houghCircles(bw):
     # this preblur helps get rid of the apparent line in the middle of a tube
     # due to the reflection of light
-    bimg = cv2.blur(bimg,(5,5))
+    bwblur = cv2.blur(bw,(5,5))
     # not sure about final param1,2 choices yet
-    wheelsInner = cv2.HoughCircles(bimg,cv2.HOUGH_GRADIENT,
+    wheelsInner = cv2.HoughCircles(bwblur,cv2.HOUGH_GRADIENT,
         1,minDist=200,param1=70,param2=50,minRadius=40,maxRadius=120)
-    wheelsOuter = cv2.HoughCircles(bimg,cv2.HOUGH_GRADIENT,
+    wheelsOuter = cv2.HoughCircles(bwblur,cv2.HOUGH_GRADIENT,
         1,minDist=200,param1=50,param2=40,minRadius=80,maxRadius=200)
     wheels = np.concatenate((wheelsInner,wheelsOuter),axis=1)
-    if (wheels is not None):
-        # wheels = np.uint16(np.around(wheels))
-        for i in wheels[0,:]:
-            cv2.circle(aimg,(i[0],i[1]),i[2],(0,255,0),2)
-            cv2.circle(aimg,(i[0],i[1]),2,(0,0,255),3)
+    # if (wheels is not None):
+    #     # wheels = np.uint16(np.around(wheels))
+    #     for i in wheels[0,:]:
+    #         cv2.circle(aimg,(i[0],i[1]),i[2],(0,255,0),2)
+    #         cv2.circle(aimg,(i[0],i[1]),2,(0,0,255),3)P.imW
     # not sure of logic. is not None? 
     # if (circles!=None):
     # find chainring
-    chainring = cv2.HoughCircles(bimg,cv2.HOUGH_GRADIENT,
+    chainring = cv2.HoughCircles(bwblur,cv2.HOUGH_GRADIENT,
         1,minDist=200,param1=70,param2=50,minRadius=10,maxRadius=30)
-    if (chainring is not None):
-        # chainring = np.uint16(np.around(chainring))
-        for i in chainring[0,:]:
-            cv2.circle(aimg,(i[0],i[1]),i[2],(0,255,0),2)
-            cv2.circle(aimg,(i[0],i[1]),2,(0,0,255),3)
-    return bimg,aimg,wheels,chainring
+    # if (chainring is not None):
+    #     # chainring = np.uint16(np.around(chainring))
+    #     for i in chainring[0,:]:
+    #         cv2.circle(aimg,(i[0],i[1]),i[2],(0,255,0),2)
+    #         cv2.circle(aimg,(i[0],i[1]),2,(0,0,255),3)
+    return bwblur,wheels,chainring
 
 def findHeadTube(img,headtube):
+    global figNo
     rows,cols = np.shape(img)[0:2]
     (m,b) = pts2eq([headtube[0],headtube[1]])
     htA = np.arctan(m) * 180/np.pi
@@ -310,7 +411,8 @@ def findHeadTube(img,headtube):
     # and will be too high for any bikes that are black
     toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.4,min_dist=10)[0]
     botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=10)[0]+botrangeint[0] 
-    plt.figure(6)
+    plt.figure(figNo)
+    figNo+=1
     plt.subplot(2,1,1)
     plt.plot(lrange,htprofile)
     plt.subplot(2,1,2)
@@ -350,19 +452,22 @@ def calcStandover(t,w):
 
 if __name__=='__main__':
     filename = sys.argv[1]
-    im = imageio.imread(filename)
-    # interesting note. the .png file has alpha channel.
-    # suing cv2.line on rgba image, gives only white.
-    # have to remove the alpha to get the rgb color for line
-    aimg = cv2.cvtColor(im,cv2.COLOR_BGRA2BGR)
-    aimg2 = np.copy(aimg)
-    print(aimg.shape)
-    bimg = cv2.cvtColor(aimg,cv2.COLOR_BGR2GRAY)
-    bimg,aimg2,wheels,chainring = (houghCircles(bimg,aimg2))
+    P = profilePhoto(filename)
+    # aimg2 = np.copy(aimg)
+    bimg,wheels,chainring = houghCircles(P.imGRAY)
     # remove wheels from gray image to unclutter for line detect
-    cv2.circle(bimg,(wheels[0,0,0],wheels[0,0,1]),int(wheels[0,0,2]+25.),255,-1)
-    cv2.circle(bimg,(wheels[0,1,0],wheels[0,1,1]),int(wheels[0,1,2]+25.),255,-1)
-    cv2.circle(bimg,(chainring[0,0,0],chainring[0,0,1]),int(chainring[0,0,2]+5),255,-1)
+    P.imW = np.copy(P.imGRAY)
+    P.imW = cv2.blur(P.imW,(5,5))
+    cv2.circle(P.imW,(wheels[0,0,0],wheels[0,0,1]),int(wheels[0,0,2]+25.),255,-1)
+    cv2.circle(P.imW,(wheels[0,1,0],wheels[0,1,1]),int(wheels[0,1,2]+25.),255,-1)
+    cv2.circle(P.imW,(chainring[0,0,0],chainring[0,0,1]),int(chainring[0,0,2]+5),255,-1)
+
+    # create working image
+    # P.imW = np.copy(P.imGRAY)
+    # P.imW = cv2.blur(P.imW,(5,5))
+    # [0]have an extra dimension to get rid of here... also not able to reproduce head tube detection
+    # results of hard-coded masking above. very sensitive somehow.
+    # P.maskCircle(np.concatenate((wheels,chainring),axis=1)[0],P.imW)
 
     # built cv2 for imshow GTK UI support
     # but waitKey and destroyAllWindows are clunky use matplotlib for now
@@ -372,10 +477,10 @@ if __name__=='__main__':
     # cv2.waitKey(1)
     #cv2.destroyAllWindows()
     # modified this to return line coords instead of rho/theta normals
-    bimg,aimg2,tubelines = houghLines(bimg,aimg2)
+    tubelines = houghLines(P.imW)
     tubeset = calcTubes2(tubelines,wheels,chainring)
     # improve head tube detection
-    aimg2 = np.copy(aimg)
+    aimg2 = np.copy(P.imRGB)
     tubeset[1] = findHeadTube(aimg2,tubeset[1])
     # add fork, chainstay, seatstay
     tubeset.append( np.array([tubeset[1][0],wheels[0][0][0:2]]) )
@@ -388,6 +493,6 @@ if __name__=='__main__':
     print('trail = ',trail)
     standover = calcStandover(tubeset,wheels)
     print('standover = ',standover)
-    aimg2 = np.copy(aimg)
+    aimg2 = np.copy(P.imRGB)
     aimg2 = plotTubes(aimg2,tubeset)
     plotFig(aimg2,True)

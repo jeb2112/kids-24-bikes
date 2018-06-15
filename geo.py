@@ -12,10 +12,10 @@ figNo = 1
 
 def plotTubes(aimg,tubeset):
     for pt1,pt2 in tubeset:
-        cv2.line(aimg,tuple(pt1.astype(int)),tuple(pt2.astype(int)),(0,0,255),2)
+        cv2.line(aimg,tuple(pt1.astype(int)),tuple(pt2.astype(int)),(0,255,0),2)
     return(aimg)
 
-# redo function with just line segments from HoughP instead of normal rho,thetas
+# redo function with just line segments from HoughP instead of normal rho,thetas from Hough
 # messy float/int/array/tuple problem. cv2 functions work with tuples of ints, but coordinate
 # calculations have to be arrays of floats. because only arrays can be cast back to ints for cv2.
 # coordinates of each tube in x1,y1,x2,y2
@@ -252,8 +252,12 @@ def houghCircles(bimg,aimg):
     # this preblur helps get rid of the apparent line in the middle of a tube
     # due to the reflection of light
     bimg = cv2.blur(bimg,(5,5))
-    wheels = cv2.HoughCircles(bimg,cv2.HOUGH_GRADIENT,
-        1,minDist=200,param1=70,param2=50,minRadius=60,maxRadius=140)
+    # not sure about final param1,2 choices yet
+    wheelsInner = cv2.HoughCircles(bimg,cv2.HOUGH_GRADIENT,
+        1,minDist=200,param1=70,param2=50,minRadius=40,maxRadius=120)
+    wheelsOuter = cv2.HoughCircles(bimg,cv2.HOUGH_GRADIENT,
+        1,minDist=200,param1=50,param2=40,minRadius=80,maxRadius=200)
+    wheels = np.concatenate((wheelsInner,wheelsOuter),axis=1)
     if (wheels is not None):
         # wheels = np.uint16(np.around(wheels))
         for i in wheels[0,:]:
@@ -295,12 +299,15 @@ def findHeadTube(img,headtube):
 
     # create detection search ranges. 3cm above/below the headtube/topdowntube intersection points.
     toprange = range(int(headtube[1,1])-5,int(headtube[1,1])-20,-1)
+    # map search range from pixel units to the interpolated 0.1 pixel scale
     toprangeint = range(np.where(bxint==toprange[0])[0][0],np.where(bxint==toprange[-1])[0][0],-1)
     botrange = range(int(headtube[0,1])+5,int(headtube[0,1]+20))
     botrangeint = range(np.where(bxint==botrange[0])[0][0],np.where(bxint==botrange[-1])[0][0])
+    # average the three colour bands
     mbspl = np.mean(np.abs(bspl),axis=1)
 
-    # 0 index take the first peak in the derivative
+    # 0th index take the first peak in the derivative. note these thresholds are hard-coded
+    # and will be too high for any bikes that are black
     toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.4,min_dist=10)[0]
     botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=10)[0]+botrangeint[0] 
     plt.figure(6)
@@ -312,14 +319,34 @@ def findHeadTube(img,headtube):
     plt.plot(bxint[toprangeint],mbspl[toprangeint],'r')
     plt.show(block=False)
  
-    # although these are scalars, still forms an array so dearray ti
-    # then after fixing the peak indexiing, they are scalars again
     headtubetoplength = (headtube[1,1] - bxint[toppeak])
     headtubebotlength = (bxint[botpeak] - headtube[0,1])
     headtube[0] += np.array([np.cos(htA*np.pi/180)*headtubebotlength,np.sin(htA*np.pi/180)*headtubebotlength])
     headtube[1] -= np.array([np.cos(htA*np.pi/180)*headtubetoplength,np.sin(htA*np.pi/180)*headtubetoplength])
     return(headtube)
 
+def calcOffset(t):
+    # need to ensure all tubes are defined left/right. or the tubeset class has the hub points as well
+    (m,b) = pts2eq([t[1][0],t[1][1]])
+    htA = np.arctan(m) 
+    forkLength = np.sqrt(pow(t[4][1][0]-t[4][0][0],2)+pow(t[4][1][1]-t[4][0][1],2)) 
+    offsetAngle = np.arcsin( (t[4][1][0]-t[4][0][0]) / forkLength) + (htA-np.pi/2)
+    offset = forkLength * np.sin(offsetAngle)
+    return(offset)
+
+def calcTrail(t,w):
+    (m,b) = pts2eq([t[1][0],t[1][1]])
+    htA = np.arctan(m) 
+    wheelRadius = np.mean(w[0,2:4,2])
+    # top of head tube is currently point 1 instead of 0
+    trail = (wheelRadius+t[4][1][1]-t[1][1][1]) / np.sin(htA) * np.cos(htA) - (t[4][1][0]-t[1][1][0])
+    return(trail)
+
+def calcStandover(t,w):
+    wheelRadius = np.mean(w[0,2:4,2])
+    (m,b) = pts2eq([t[3][0],t[3][1]])
+    standover = t[0][0][1] - (m * t[0][0][0] + b) + wheelRadius
+    return(standover) 
 
 if __name__=='__main__':
     filename = sys.argv[1]
@@ -328,8 +355,6 @@ if __name__=='__main__':
     # suing cv2.line on rgba image, gives only white.
     # have to remove the alpha to get the rgb color for line
     aimg = cv2.cvtColor(im,cv2.COLOR_BGRA2BGR)
-    # python copy reference
-    # aimg2 = cv2.cvtColor(im,cv2.COLOR_BGRA2BGR)
     aimg2 = np.copy(aimg)
     print(aimg.shape)
     bimg = cv2.cvtColor(aimg,cv2.COLOR_BGR2GRAY)
@@ -340,7 +365,7 @@ if __name__=='__main__':
     cv2.circle(bimg,(chainring[0,0,0],chainring[0,0,1]),int(chainring[0,0,2]+5),255,-1)
 
     # built cv2 for imshow GTK UI support
-    # but waitKey and destroyAllWindows are so clunky why bother use matplotlib for now
+    # but waitKey and destroyAllWindows are clunky use matplotlib for now
     # cv2.startWindowThread()
     # cv2.namedWindow('Circles Image')
     # cv2.imshow('Circles Image',houghCircleImage)
@@ -352,6 +377,17 @@ if __name__=='__main__':
     # improve head tube detection
     aimg2 = np.copy(aimg)
     tubeset[1] = findHeadTube(aimg2,tubeset[1])
+    # add fork, chainstay, seatstay
+    tubeset.append( np.array([tubeset[1][0],wheels[0][0][0:2]]) )
+    tubeset.append( np.array([wheels[0][1][0:2],chainring[0][0][0:2]]) )
+    tubeset.append( np.array([wheels[0][1][0:2],tubeset[0][1]]) )
+
+    offset = calcOffset(tubeset)
+    print('offset =',offset)
+    trail = calcTrail(tubeset,wheels)
+    print('trail = ',trail)
+    standover = calcStandover(tubeset,wheels)
+    print('standover = ',standover)
     aimg2 = np.copy(aimg)
     aimg2 = plotTubes(aimg2,tubeset)
     plotFig(aimg2,True)

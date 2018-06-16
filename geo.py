@@ -35,9 +35,10 @@ class profilePhoto():
     def maskCircle(self,masks,target):
         # masks. list of circles defined by centre point, radius
         # target. target image
-        # have an extra 3 pixels hard-coded in here
+        # have an extra 5 pixels hard-coded in here, but the fits returned by hough though are inordinately sensitive 
+        # to this kludged number so further test needed.
         for c in masks:
-            cv2.circle(target,(c[0],c[1]),int(c[2]+4.),255,-1)        
+            cv2.circle(target,(c[0],c[1]),int(c[2]+5.),255,-1)        
         
     def resetAnnotatedIm(self):
         self.imANNO = self.imRGB
@@ -180,6 +181,14 @@ def plotFig(img,blockFlag=False):
     plt.show(block=blockFlag)
     figNo += 1
 
+def coord2angle(line):
+    for x1,y1,x2,y2 in line:
+        m = float(y2-y1) / float(x2-x1)
+        b = y1 - m*x1
+        theta = np.pi/2 - np.arctan(m)
+        rho = -b / (m*np.cos(theta) - np.sin(theta)) 
+        return(rho,theta)
+        
 def angle2coord(line):
     for rho,theta in line:
         a = np.cos(theta)
@@ -207,6 +216,9 @@ def houghLines(bw,aw,houghProcess='p'):
     if houghProcess=='p':
     # probabilistic works better for short segeements like head tube. these numbers are all fine tuned
     # and hard-coded for cleary though.
+    # 1. estimate of headset might be better by clipping the rigid fork exacttly at the headtube. or for suspension,
+    # using the fork too.
+    # 2. average line for the downtube in biased for the cleary example, can't see why the averaing doesn't worok
         lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=50)
         if (lines is not None):
             # plot raw lines detection
@@ -220,19 +232,22 @@ def houghLines(bw,aw,houghProcess='p'):
         # becuase it is non-linear.
         # try rho/theta instead
         eqns = np.zeros((np.shape(lines)[0],2))
+        rhotheta = np.zeros((np.shape(lines)[0],2))
         for i,line in enumerate(lines):
             eqns[i,:] = pts2eq(((line[0,0:2]),(line[0,2:4])))
+            rhotheta[i,:] = coord2angle(line)
 
         meqs=None
         avglines=None
         while len(eqns)>0:
-            # find all equations matching the current first eqn in list. Using 10% as the matching threshold
-            eqnset1 = np.where(np.abs(eqns[:,0]-eqns[0,0])<np.abs(.10*eqns[0,0]))[0][0:]
+            # find all equations matching the slope of current first eqn in list. Using 15% as the matching threshold
+            eqnset1 = np.where(np.abs(eqns[:,0]-eqns[0,0])<np.abs(.15*eqns[0,0]))[0][0:]
             # equal slope, equal offset. Using 2% to qualify as equal.
             eqnset1a =  eqnset1[np.where((np.abs(eqns[eqnset1,1]-eqns[0,1])<np.abs(0.01*eqns[0,1])))]
             # equal slope, different offset but close enough to be a matchingline
-            eqnset1b = np.setdiff1d(eqnset1,eqnset1a)
             # y intercept 10% as the threshold%. 10% too low. try 20%.
+            # if change to rhotheta then can identify by a length in actual pixels
+            eqnset1b = np.setdiff1d(eqnset1,eqnset1a)
             eqnset1b = eqnset1b[np.where(np.abs(eqns[eqnset1b,1]-eqns[0,1])<np.abs(0.2*eqns[0,1]))]
             # equal slope, different offset
             meq1 = np.mean(eqns[eqnset1a],axis=0)
@@ -246,10 +261,10 @@ def houghLines(bw,aw,houghProcess='p'):
                 avglines = eq2pts(meq,(0,600))
             else:
                 meqs = np.append(meqs,meq,axis=0)
-                avglines = np.append(avglines,eq2pts(meq,(0,600)),axis=0)
-            # keep any unsused offsets at the current slope? this delete using eqnset1a indicies is wrong compared to eqnset1.
-            # equset1a is an index into eqnset1, not eqns
+                avglines = np.append(avglines,eq2pts(meq,(200,400)),axis=0)
+            # throw out only the used offsets 
             eqns = np.delete(eqns,np.concatenate((eqnset1a,eqnset1b),axis=0),axis=0)
+            rhotheta = np.delete(rhotheta,np.concatenate((eqnset1a,eqnset1b),axis=0),axis=0)
 
         avglines = np.reshape(avglines,(len(meqs)/2,4))
         meqs = np.reshape(meqs,(len(meqs)/2,2))
@@ -456,18 +471,10 @@ if __name__=='__main__':
     P = profilePhoto(filename)
     # aimg2 = np.copy(aimg)
     bimg,wheels,chainring = houghCircles(P.imGRAY)
-    # remove wheels from gray image to unclutter for line detect
+    # create working image with wheels masked out to unclutter for line detect
     P.imW = np.copy(P.imGRAY)
     P.imW = cv2.blur(P.imW,(5,5))
-    cv2.circle(P.imW,(wheels[0,0,0],wheels[0,0,1]),int(wheels[0,0,2]+25.),255,-1)
-    cv2.circle(P.imW,(wheels[0,1,0],wheels[0,1,1]),int(wheels[0,1,2]+25.),255,-1)
-    cv2.circle(P.imW,(chainring[0,0,0],chainring[0,0,1]),int(chainring[0,0,2]+5),255,-1)
-
-    # create working image
-    P.imW = np.copy(P.imGRAY)
-    P.imW = cv2.blur(P.imW,(5,5))
-    # [0]have an extra dimension to get rid of here... also not able to reproduce head tube detection
-    # results of hard-coded masking above. very sensitive somehow.
+    # [0]have an extra dimension to get rid of here... 
     P.maskCircle(np.concatenate((wheels,chainring),axis=1)[0],P.imW)
 
     # built cv2 for imshow GTK UI support

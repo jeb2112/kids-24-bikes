@@ -37,7 +37,7 @@ class profilePhoto():
         # target. target image
         # have an extra 3 pixels hard-coded in here
         for c in masks:
-            cv2.circle(target,(c[0],c[1]),int(c[2]+3.),255,-1)        
+            cv2.circle(target,(c[0],c[1]),int(c[2]+4.),255,-1)        
         
     def resetAnnotatedIm(self):
         self.imANNO = self.imRGB
@@ -192,7 +192,7 @@ def angle2coord(line):
         y2 = float(y0 - 1000*(a))
     return[[x1,y1],[x2,y2]]
 
-def houghLines(bw,houghProcess='p'):
+def houghLines(bw,aw,houghProcess='p'):
     global figNo
     # bw = cv2.blur(bw,(5,5))
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
@@ -210,13 +210,15 @@ def houghLines(bw,houghProcess='p'):
         lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=50)
         if (lines is not None):
             # plot raw lines detection
-            bw2 = np.copy(bw)
+            bw2 = np.copy(aw)
             for line in lines:
                 for x1,y1,x2,y2 in line:
                     cv2.line(bw2,(x1,y1),(x2,y2),(0,0,255),2)
             plotFig(bw2)
 
-        # average matching pairs of lines. this is not working very well for headtube, 
+        # average matching pairs of lines. slope/intercept not working very well to select the matching pairs
+        # becuase it is non-linear.
+        # try rho/theta instead
         eqns = np.zeros((np.shape(lines)[0],2))
         for i,line in enumerate(lines):
             eqns[i,:] = pts2eq(((line[0,0:2]),(line[0,2:4])))
@@ -224,14 +226,14 @@ def houghLines(bw,houghProcess='p'):
         meqs=None
         avglines=None
         while len(eqns)>0:
-            # find all equations matching the current first eqn in list. Using 5% as the matching threshold
-            eqnset1 = np.where(np.abs(eqns[:,0]-eqns[0,0])<np.abs(.05*eqns[0,0]))[0][0:]
-            # equal slope, equal offset. Using 1% to qualify as equal
+            # find all equations matching the current first eqn in list. Using 10% as the matching threshold
+            eqnset1 = np.where(np.abs(eqns[:,0]-eqns[0,0])<np.abs(.10*eqns[0,0]))[0][0:]
+            # equal slope, equal offset. Using 2% to qualify as equal.
             eqnset1a =  eqnset1[np.where((np.abs(eqns[eqnset1,1]-eqns[0,1])<np.abs(0.01*eqns[0,1])))]
             # equal slope, different offset but close enough to be a matchingline
             eqnset1b = np.setdiff1d(eqnset1,eqnset1a)
-            # y intercept 10% as the threshold%
-            eqnset1b = eqnset1b[np.where(np.abs(eqns[eqnset1b,1]-eqns[0,1])<np.abs(0.1*eqns[0,1]))]
+            # y intercept 10% as the threshold%. 10% too low. try 20%.
+            eqnset1b = eqnset1b[np.where(np.abs(eqns[eqnset1b,1]-eqns[0,1])<np.abs(0.2*eqns[0,1]))]
             # equal slope, different offset
             meq1 = np.mean(eqns[eqnset1a],axis=0)
             if len(eqnset1b) > 0:
@@ -245,10 +247,9 @@ def houghLines(bw,houghProcess='p'):
             else:
                 meqs = np.append(meqs,meq,axis=0)
                 avglines = np.append(avglines,eq2pts(meq,(0,600)),axis=0)
-            # keep any unsused offsets at the current slope?
-            eqns = np.delete(eqns,eqnset1,axis=0)
-            # eqns = np.delete(eqns,eqnset1a,axis=0)
-            # eqns = np.delete(eqns,eqnset1b,axis=0)
+            # keep any unsused offsets at the current slope? this delete using eqnset1a indicies is wrong compared to eqnset1.
+            # equset1a is an index into eqnset1, not eqns
+            eqns = np.delete(eqns,np.concatenate((eqnset1a,eqnset1b),axis=0),axis=0)
 
         avglines = np.reshape(avglines,(len(meqs)/2,4))
         meqs = np.reshape(meqs,(len(meqs)/2,2))
@@ -463,11 +464,11 @@ if __name__=='__main__':
     cv2.circle(P.imW,(chainring[0,0,0],chainring[0,0,1]),int(chainring[0,0,2]+5),255,-1)
 
     # create working image
-    # P.imW = np.copy(P.imGRAY)
-    # P.imW = cv2.blur(P.imW,(5,5))
+    P.imW = np.copy(P.imGRAY)
+    P.imW = cv2.blur(P.imW,(5,5))
     # [0]have an extra dimension to get rid of here... also not able to reproduce head tube detection
     # results of hard-coded masking above. very sensitive somehow.
-    # P.maskCircle(np.concatenate((wheels,chainring),axis=1)[0],P.imW)
+    P.maskCircle(np.concatenate((wheels,chainring),axis=1)[0],P.imW)
 
     # built cv2 for imshow GTK UI support
     # but waitKey and destroyAllWindows are clunky use matplotlib for now
@@ -477,7 +478,7 @@ if __name__=='__main__':
     # cv2.waitKey(1)
     #cv2.destroyAllWindows()
     # modified this to return line coords instead of rho/theta normals
-    tubelines = houghLines(P.imW)
+    tubelines = houghLines(P.imW,P.imRGB)
     tubeset = calcTubes2(tubelines,wheels,chainring)
     # improve head tube detection
     aimg2 = np.copy(P.imRGB)

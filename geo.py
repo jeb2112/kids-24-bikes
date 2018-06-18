@@ -148,8 +148,12 @@ class profilePhoto():
                     # only one of two lines deteected for this tube. for now assume this is the head tube
                     # and the missing line is the left one. subract half the diameter of teh 1 1/2 head tube
                     # need cos(HTA) in here as well
-                    pt1,pt2 = eq2pts(meq1,(0,self.cols)) 
-                    meq = np.array(pts2eq(((pt1[0]-CM2PX(4)/2,pt1[1]),(pt2[0]-CM2PX(4)/2,pt2[1]))))
+                    if np.abs(meq1[0] - (2.5)) < 0.3:
+                        pt1,pt2 = eq2pts(meq1,(0,self.cols)) 
+                        meq = np.array(pts2eq(((pt1[0]-CM2PX(4)/2,pt1[1]),(pt2[0]-CM2PX(4)/2,pt2[1]))))
+                    else:
+                    # cujo24.png. eqnset1b is null for top tube, so average of eqnset1a alone is correct
+                        meq = meq1
                 if meqs is None:
                     meqs = meq
                     avglines = eq2pts(meq,(0,self.cols))
@@ -424,10 +428,11 @@ class Geometry():
         # top of head tube is currently point 1 instead of 0
         self.trail = (wheelRadius+self.fork.pt2[1]-t.tubes['ht'].pt2[1]) / np.sin(htA) * np.cos(htA) - (self.fork.pt2[0]-t.tubes['ht'].pt2[0])
 
+    # doesn't include top tube thickness!
     def calcStandover(self,t,w):
         wheelRadius = np.mean(w[2:4,2])
         m,b = pts2eq((t.tubes['tt'].pt1,t.tubes['tt'].pt2))
-        self.standover = t.tubes['st'].pt2[1] - (m * t.tubes['st'].pt2[0] + b) + wheelRadius
+        self.standover = np.mean([t.tubes['cs'].pt1[1],G.fork.pt2[1]]) - (m * t.tubes['st'].pt2[0] + b) + wheelRadius
 
     def plotTubes(self,aimg,tubeset):
         for tube in tubeset.tubes.keys():

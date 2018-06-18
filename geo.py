@@ -12,6 +12,10 @@ figNo = 1
 mmpx = 0
 def CM2PX(cm):
     return(int(np.round(cm/(mmpx/10))))
+def PX2CM(px):
+    return(px * mmpx/10.)
+def PX2MM(px):
+    return(px * mmpx/10.)
 
 class profilePhoto():
     def __init__(self,filename,mmpx):
@@ -45,12 +49,25 @@ class profilePhoto():
         bw = cv2.blur(bw,(5,5))
         # not sure about final param1,2 choices yet
         wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,
-            1,minDist=self.CM2PX(60),param1=self.CM2PX(22),param2=self.CM2PX(16),minRadius=self.CM2PX(13),maxRadius=self.CM2PX(38))
-        wheelsOuter = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,
-            1,minDist=self.CM2PX(60),param1=self.CM2PX(16),param2=self.CM2PX(13),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(60))
-        wheels = np.concatenate((wheelsInner,wheelsOuter),axis=1)
+            1,minDist=self.CM2PX(60),param1=self.CM2PX(22),param2=self.CM2PX(16),minRadius=self.CM2PX(13),maxRadius=self.CM2PX(30))
+        # place rear wheel first in list. note extra 1st dimension in output of HoughCircles
+        wheelsInner = wheelsInner[0,wheelsInner[0,:,0].argsort(),:]
+        # cleary.png
+        # wheelsOuter = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(60),param1=self.CM2PX(16),param2=self.CM2PX(13),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(60))
+        # cujo24.png
+        wheelsOuter = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(60),param1=self.CM2PX(10),param2=self.CM2PX(6),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(36))
+        wheelsOuter = wheelsOuter[0,wheelsOuter[0,:,0].argsort(),:]
+        # argsort indexing removed dummy 1st dimension 
+        wheels = np.concatenate((wheelsInner,wheelsOuter),axis=0)
         chainring = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,
-            1,minDist=self.CM2PX(60),param1=self.CM2PX(22),param2=self.CM2PX(16),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(10))
+            1,minDist=self.CM2PX(60),param1=self.CM2PX(22),param2=self.CM2PX(16),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(10))[0]
+        for c in wheels:
+            cv2.circle(bw,(c[0],c[1]),int(c[2]),255,2)
+        for c in chainring:
+            cv2.circle(bw,(c[0],c[1]),int(c[2]),255,2)
+        plotFig(bw,False)
+        # plt.show()        
+        
         return wheels,chainring
 
     def maskCircle(self,masks,target):
@@ -84,18 +101,18 @@ class profilePhoto():
         # 1. estimate of headset might be better by clipping the rigid fork exacttly at the headtube. or for suspension,
         # using the fork too.
         # 2. average line for the downtube in biased for the cleary example, can't see why the averaing doesn't worok
-            lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=50)
+            # cleary lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=CM2PX(15.75))
+            lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=CM2PX(8.5))
             if (lines is not None):
                 # plot raw lines detection
                 bw2 = np.copy(aw)
                 for line in lines:
                     for x1,y1,x2,y2 in line:
-                        cv2.line(bw2,(x1,y1),(x2,y2),(0,0,255),2)
+                        cv2.line(bw2,(x1,y1),(x2,y2),(0,0,255),1)
                 plotFig(bw2)
 
-            # average matching pairs of lines. slope/intercept not working very well to select the matching pairs
-            # becuase it is non-linear.
-            # try rho/theta instead
+            # average matching pairs of lines. slope/intercept might not be ideal to select the matching pairs
+            # becuase non-linear. try rho/theta?
             eqns = np.zeros((np.shape(lines)[0],2))
             rhotheta = np.zeros((np.shape(lines)[0],2))
             for i,line in enumerate(lines):
@@ -107,7 +124,15 @@ class profilePhoto():
             while len(eqns)>0:
                 # find all equations matching the slope of current first eqn in list. Using 15% as the matching threshold
                 eqnset1 = np.where(np.abs(eqns[:,0]-eqns[0,0])<np.abs(.15*eqns[0,0]))[0][0:]
+                # plot raw lines detection
+                bw2 = np.copy(aw)
+                for line in lines[eqnset1]:
+                    for x1,y1,x2,y2 in line:
+                        cv2.line(bw2,(x1,y1),(x2,y2),(0,0,255),2)
+                # plotFig(bw2)
+                # plt.show()
                 # equal slope, equal offset. Using 2% to qualify as equal.
+                # this logic may still work but no good for tapered tubes. cujo24
                 eqnset1a =  eqnset1[np.where((np.abs(eqns[eqnset1,1]-eqns[0,1])<np.abs(0.01*eqns[0,1])))]
                 # equal slope, different offset but close enough to be a matchingline
                 # y intercept 10% as the threshold%. 10% too low. try 20%.
@@ -120,7 +145,11 @@ class profilePhoto():
                     meq2 = np.mean(eqns[eqnset1b],axis=0)
                     meq = np.mean([meq1,meq2],axis=0)
                 else:
-                    meq = meq1
+                    # only one of two lines deteected for this tube. for now assume this is the head tube
+                    # and the missing line is the left one. subract half the diameter of teh 1 1/2 head tube
+                    # need cos(HTA) in here as well
+                    pt1,pt2 = eq2pts(meq1,(0,self.cols)) 
+                    meq = np.array(pts2eq(((pt1[0]-CM2PX(4)/2,pt1[1]),(pt2[0]-CM2PX(4)/2,pt2[1]))))
                 if meqs is None:
                     meqs = meq
                     avglines = eq2pts(meq,(0,self.cols))
@@ -130,6 +159,7 @@ class profilePhoto():
                 # throw out only the used offsets 
                 eqns = np.delete(eqns,np.concatenate((eqnset1a,eqnset1b),axis=0),axis=0)
                 rhotheta = np.delete(rhotheta,np.concatenate((eqnset1a,eqnset1b),axis=0),axis=0)
+                lines = np.delete(lines,np.concatenate((eqnset1a,eqnset1b),axis=0),axis=0)
 
             avglines = np.reshape(avglines,(len(meqs)/2,4))
             meqs = np.reshape(meqs,(len(meqs)/2,2))
@@ -251,7 +281,8 @@ class Tubeset():
         self.tubes = dict(dt=Tube(),tt=Tube(),st=Tube(),ht=Tube(),cs=Tube(),ss=Tube())
         # target set of angles: head tube, seat tube, down tube, top tube  
         # conventional bike angles rotating from neg x to pos y are: (69,72,-47,-23)
-        self.targetAngles = np.array([68,73,-47,-23])
+        # cujo24. downtube slope>-47 so it picked the stem angle. either filter out stem line before or lower target
+        self.targetAngles = np.array([68,73,-55,-23])
 
     def assignTubeLines(self,avglines,meqs):
         # corresponding target slopes of line segments:
@@ -296,11 +327,14 @@ class Tubeset():
         rows,cols = np.shape(img)[0:2]
         m,b = pts2eq([self.tubes['ht'].pt1,self.tubes['ht'].pt2])
         htA = np.arctan(m) * 180/np.pi
-        # point of rotation 
+        # point of rotation. could be the average of the 1st pass head tube pts, if they are evenly placed
+        # but some times, the downtube will curve at the join, making the lower head tube pt2
+        # artificially high. meanwhile the top tube will likely never curve at the join.
+        # therefore probably should use only the top point, and skew the search range accordingly.
         htx,hty = np.round(np.mean([self.tubes['ht'].pt1,self.tubes['ht'].pt2],axis=0)).astype(int)
         M = cv2.getRotationMatrix2D((htx,hty),htA-90,1)
         rimg = cv2.warpAffine(img,M,(cols,rows))
-        lrange = range(hty-CM2PX(8),hty+CM2PX(8))
+        lrange = range(hty-CM2PX(10),hty+CM2PX(10))
         htprofile = rimg[lrange,htx]
         # fit spline to colour profiles
         bxint = np.round(np.arange(lrange[0],lrange[-1],.1)*10)/10
@@ -314,20 +348,22 @@ class Tubeset():
             # ypeaks.append(bxint[list(peakutils.indexes(bspl[:,i],thres=0.5,min_dist=CM2PX(30)))])
 
         # create detection search ranges. 3cm above/below the headtube/topdowntube intersection points.
-        toprange = range(int(self.tubes['ht'].pt1[1])-CM2PX(2.2),int(self.tubes['ht'].pt1[1])-CM2PX(6.3),-1)
+        toprange = range(int(self.tubes['ht'].pt1[1])-CM2PX(0.2),int(self.tubes['ht'].pt1[1])-CM2PX(6.3),-1)
         # map search range from pixel units to the interpolated 0.1 pixel scale
         toprangeint = range(np.where(bxint==toprange[0])[0][0],np.where(bxint==toprange[-1])[0][0],-1)
-        botrange = range(int(self.tubes['ht'].pt2[1])+CM2PX(2.2),int(self.tubes['ht'].pt2[1]+CM2PX(6.3)))
+        botrange = range(int(self.tubes['ht'].pt2[1])+CM2PX(0.2),int(self.tubes['ht'].pt2[1]+CM2PX(9.3)))
         botrangeint = range(np.where(bxint==botrange[0])[0][0],np.where(bxint==botrange[-1])[0][0])
         # average the three colour bands
         mbspl = np.mean(np.abs(bspl),axis=1)
 
-        # 0th index take the first peak in the derivative. note these thresholds are hard-coded
+        # for top peak take 0th index the first peak in the derivative. 
+        # for bottom peak, take 2nd index 3rd peak, allowing two peaks for the cable housing
+        # should be able to ignore 1 with min_dist but didn't work? or more smoothing in the splines.
+        # note these thresholds 0.4 are still hard-coded
         # and will be too high for any bikes that are black
         toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.4,min_dist=CM2PX(3))[0]
-        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(3))[0]+botrangeint[0] 
+        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(1))[2]+botrangeint[0] 
         plt.figure(figNo)
-        figNo+=1
         plt.subplot(2,1,1)
         plt.plot(lrange,htprofile)
         plt.subplot(2,1,2)
@@ -335,6 +371,7 @@ class Tubeset():
         plt.plot(bxint[botrangeint],mbspl[botrangeint],'r')
         plt.plot(bxint[toprangeint],mbspl[toprangeint],'r')
         plt.show(block=False)
+        figNo = figNo + 1
     
         headtubetoplength = self.tubes['ht'].pt1[1] - bxint[toppeak]
         headtubebotlength = bxint[botpeak] - self.tubes['ht'].pt2[1]
@@ -383,12 +420,12 @@ class Geometry():
     def calcTrail(self,t,w):
         m,b = pts2eq((t.tubes['ht'].pt1,t.tubes['ht'].pt2))
         htA = np.arctan(m) 
-        wheelRadius = np.mean(w[0,2:4,2])
+        wheelRadius = np.mean(w[2:4,2])
         # top of head tube is currently point 1 instead of 0
         self.trail = (wheelRadius+self.fork.pt2[1]-t.tubes['ht'].pt2[1]) / np.sin(htA) * np.cos(htA) - (self.fork.pt2[0]-t.tubes['ht'].pt2[0])
 
     def calcStandover(self,t,w):
-        wheelRadius = np.mean(w[0,2:4,2])
+        wheelRadius = np.mean(w[2:4,2])
         m,b = pts2eq((t.tubes['tt'].pt1,t.tubes['tt'].pt2))
         self.standover = t.tubes['st'].pt2[1] - (m * t.tubes['st'].pt2[0] + b) + wheelRadius
 
@@ -444,15 +481,16 @@ if __name__=='__main__':
     G = Geometry()
     # aimg2 = np.copy(aimg)
     wheels,G.chainring = P.houghCircles(P.imGRAY)
-    G.fw.inner = wheels[0][0]
-    G.rw.inner = wheels[0][1]
-    G.fw.outer = wheels[0][2]
-    G.rw.outer = wheels[0][3]
+    # note sort. back wheel  returned first
+    G.fw.inner = wheels[1]
+    G.rw.inner = wheels[0]
+    G.fw.outer = wheels[3]
+    G.rw.outer = wheels[2]
     # create working image with wheels masked out to unclutter for line detect
     P.imW = np.copy(P.imGRAY)
     P.imW = cv2.blur(P.imW,(5,5))
     # [0]have an extra dimension to get rid of here... 
-    P.maskCircle(np.concatenate((wheels,G.chainring),axis=1)[0],P.imW)
+    P.maskCircle(np.concatenate((wheels,G.chainring),axis=0),P.imW)
 
     # built cv2 for imshow GTK UI support
     # but waitKey and destroyAllWindows are clunky use matplotlib for now
@@ -473,18 +511,19 @@ if __name__=='__main__':
     # improve head tube detection
     P.imW = np.copy(P.imRGB)
     tubeset.extendHeadTube(P.imW)
-    tubeset.addStays(wheels[0][1][0:2])
+
+    tubeset.addStays(wheels[0][0:2])
     # add fork, chainstay, seatstay
     G.fork.pt1 = tubeset.tubes['ht'].pt2
-    G.fork.pt2 = wheels[0][0][0:2]
+    G.fork.pt2 = wheels[1][0:2]
     G.fork.axle2crown = np.sqrt(pow(G.fork.pt1[0]-G.fork.pt2[0],2.0)+pow(G.fork.pt1[1]-G.fork.pt2[1],2.0))
     
     G.fork.calcOffset(tubeset)
-    print('offset =',G.fork.offset)
+    print(('offset = %.1f mm' % PX2MM(G.fork.offset)))
     G.calcTrail(tubeset,wheels)
-    print('trail = ',G.trail)
+    print(('trail = %.1f mm' % PX2MM(G.trail)))
     G.calcStandover(tubeset,wheels)
-    print('standover = ',G.standover)
+    print(('standover %.1f cm' % PX2CM(G.standover)))
 
     P.imW = np.copy(P.imRGB)
     P.imw = G.plotTubes(P.imW,tubeset)

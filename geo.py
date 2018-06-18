@@ -39,6 +39,9 @@ class profilePhoto():
         self.rows,self.cols = np.shape(im)[0:2]
         if np.shape(im)[2]==4:
             im = cv2.cvtColor(im,cv2.COLOR_BGRA2BGR)
+        # may need this reverse?
+        # else:
+        #     im = cv2.cvtColor(im,cv2.COLOR_RGB2BGR)
         self.imRGB = im 
         self.imANNO = self.imRGB
         self.imGRAY = cv2.cvtColor(self.imRGB,cv2.COLOR_BGR2GRAY)
@@ -46,26 +49,43 @@ class profilePhoto():
     def houghCircles(self,bw):
         # this preblur helps get rid of the apparent line in the middle of a tube
         # due to the reflection of light
+        # cleary,cujo24,AceLTD
         bw = cv2.blur(bw,(5,5))
+        # AceLTD. merely converting the hard-coded 5x5 kernel from cleary to same equivalent size broke it
+        # reverting to 5x5, still had more difficulty with this image and cujo or cleary for the circles
+        # bw = cv2.blur(bw,(CM2PX(1.6),CM2PX(1.6)))
+        # try simply binarizing the image? seemed like a good idea but param2 had to get even smaller to detect
+        # anything, and the detections were anywhere but the correct spot. maybe need to reblur again?
+        # ret,bw = cv2.threshold(bw,240,255,cv2.THRESH_BINARY)
+        # plotFig(bw,False,cmap="gray")
+        # plt.show()        
         # not sure about final param1,2 choices yet
-        wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,
-            1,minDist=self.CM2PX(60),param1=self.CM2PX(22),param2=self.CM2PX(16),minRadius=self.CM2PX(13),maxRadius=self.CM2PX(30))
+        # cleary,cujo24
+        # wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,
+        #     1,minDist=self.CM2PX(60),param1=self.CM2PX(22),param2=self.CM2PX(16),minRadius=self.CM2PX(13),maxRadius=self.CM2PX(30))
+        # AceLTD
+        wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # place rear wheel first in list. note extra 1st dimension in output of HoughCircles
         wheelsInner = wheelsInner[0,wheelsInner[0,:,0].argsort(),:]
         # cleary.png
         # wheelsOuter = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(60),param1=self.CM2PX(16),param2=self.CM2PX(13),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(60))
         # cujo24.png
-        wheelsOuter = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(60),param1=self.CM2PX(10),param2=self.CM2PX(6),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(36))
+        # wheelsOuter = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(60),param1=self.CM2PX(10),param2=self.CM2PX(6),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(36))
+        # AceLTD 1.2 seemed to make a big difference compared to 1.0? or was it dropping param1 way down to 4
+        wheelsOuter = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(40))
         wheelsOuter = wheelsOuter[0,wheelsOuter[0,:,0].argsort(),:]
         # argsort indexing removed dummy 1st dimension 
         wheels = np.concatenate((wheelsInner,wheelsOuter),axis=0)
-        chainring = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,
-            1,minDist=self.CM2PX(60),param1=self.CM2PX(22),param2=self.CM2PX(16),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(10))[0]
+        # cleary,cujo24
+        # chainring = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,
+        #     1,minDist=self.CM2PX(60),param1=self.CM2PX(22),param2=self.CM2PX(16),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(10))[0]
+        # AceLTD
+        chainring = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(60),param1=self.CM2PX(10),param2=self.CM2PX(6),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(10))[0]
         for c in wheels:
-            cv2.circle(bw,(c[0],c[1]),int(c[2]),255,2)
+            cv2.circle(bw,(c[0],c[1]),int(c[2]),255,5)
         for c in chainring:
-            cv2.circle(bw,(c[0],c[1]),int(c[2]),255,2)
-        plotFig(bw,False)
+            cv2.circle(bw,(c[0],c[1]),int(c[2]),255,5)
+        plotFig(bw,False,cmap="gray")
         # plt.show()        
         
         return wheels,chainring
@@ -119,6 +139,8 @@ class profilePhoto():
                 eqns[i,:] = pts2eq(((line[0,0:2]),(line[0,2:4])))
                 rhotheta[i,:] = coord2angle(line)
 
+            # cujo24.png. saddle is partially picked up. from photo cujo saddle appears to be an adult size 26cm
+            # can add a check for saddle length? saddle length isn't tabulated by vendors
             meqs=None
             avglines=None
             while len(eqns)>0:
@@ -339,7 +361,9 @@ class Tubeset():
         M = cv2.getRotationMatrix2D((htx,hty),htA-90,1)
         rimg = cv2.warpAffine(img,M,(cols,rows))
         lrange = range(hty-CM2PX(10),hty+CM2PX(10))
-        htprofile = rimg[lrange,htx]
+        # AceLTD. the central profile overlapped some welds which broke the detection.
+        # bias the profile to the right away from the seat/down gusset
+        htprofile = rimg[lrange,htx+CM2PX(0.2)]
         # fit spline to colour profiles
         bxint = np.round(np.arange(lrange[0],lrange[-1],.1)*10)/10
         bspl = np.zeros((len(bxint),3))
@@ -451,12 +475,23 @@ def eq2pts((m,b),(x1,x2)):
     y2 = m*x2 + b
     return ([x1,y1],[x2,y2])
 
-def plotFig(img,blockFlag=False):
+def plotFig(img,blockFlag=False,cmap=None):
     global figNo
     plt.figure(figNo)
-    plt.imshow(img)
+    if cmap is not None:
+        plt.imshow(img,cmap=cmap)
+    else:
+        plt.imshow(img)
     plt.show(block=blockFlag)
     figNo += 1
+
+def plotLn(lines,blockFlag=False):
+    global figNo
+    plt.figure(figNo)
+    plt.plot(lines)
+    plt.show(block=blockFlag)
+    figNo += 1
+    
 
 def coord2angle(line):
     for x1,y1,x2,y2 in line:

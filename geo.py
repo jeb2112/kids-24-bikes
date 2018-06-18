@@ -9,11 +9,15 @@ import peakutils
 import scipy.interpolate
 
 figNo = 1
+mmpx = 0
+def CM2PX(cm):
+    return(int(np.round(cm/(mmpx/10))))
 
 class profilePhoto():
-    def __init__(self,filename):
+    def __init__(self,filename,mmpx):
         self.rows = 0
         self.cols = 0
+        self.mmpx = mmpx # mm per pixel 
         self.filename = filename
         self.imRGB = None
         self.imGRAY = None
@@ -21,6 +25,9 @@ class profilePhoto():
         self.imANNO = None
         self.imW = None
         self.loadImage(self.filename)
+
+    def CM2PX(self,cm):
+        return(int(np.round(cm/(self.mmpx/10.))))
 
     def loadImage(self,filename):
         im = imageio.imread(filename)
@@ -38,21 +45,23 @@ class profilePhoto():
         bw = cv2.blur(bw,(5,5))
         # not sure about final param1,2 choices yet
         wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,
-            1,minDist=200,param1=70,param2=50,minRadius=40,maxRadius=120)
+            1,minDist=self.CM2PX(60),param1=self.CM2PX(22),param2=self.CM2PX(16),minRadius=self.CM2PX(13),maxRadius=self.CM2PX(38))
         wheelsOuter = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,
-            1,minDist=200,param1=50,param2=40,minRadius=80,maxRadius=200)
+            1,minDist=self.CM2PX(60),param1=self.CM2PX(16),param2=self.CM2PX(13),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(60))
         wheels = np.concatenate((wheelsInner,wheelsOuter),axis=1)
         chainring = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,
-            1,minDist=200,param1=70,param2=50,minRadius=10,maxRadius=30)
+            1,minDist=self.CM2PX(60),param1=self.CM2PX(22),param2=self.CM2PX(16),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(10))
         return wheels,chainring
 
     def maskCircle(self,masks,target):
         # masks. list of circles defined by centre point, radius
         # target. target image
         # have an extra 5 pixels hard-coded in here, but the fits returned by hough though are inordinately sensitive 
-        # to this kludged number so further test needed.
+        # to this kludged number so further test needed. had to increase it to 6 for some reason on the same
+        # cleary dataset after CM2PX function added to houghCircles and detected circles for masking changed ever so slightly.
+        # this behaviour is too sensitive
         for c in masks:
-            cv2.circle(target,(c[0],c[1]),int(c[2]+5.),255,-1)        
+            cv2.circle(target,(c[0],c[1]),int(c[2]+self.CM2PX(2)),255,-1)        
         
     def resetAnnotatedIm(self):
         self.imANNO = self.imRGB
@@ -114,17 +123,16 @@ class profilePhoto():
                     meq = meq1
                 if meqs is None:
                     meqs = meq
-                    avglines = eq2pts(meq,(0,600))
+                    avglines = eq2pts(meq,(0,self.cols))
                 else:
                     meqs = np.append(meqs,meq,axis=0)
-                    avglines = np.append(avglines,eq2pts(meq,(200,400)),axis=0)
+                    avglines = np.append(avglines,eq2pts(meq,(0,self.cols)),axis=0)
                 # throw out only the used offsets 
                 eqns = np.delete(eqns,np.concatenate((eqnset1a,eqnset1b),axis=0),axis=0)
                 rhotheta = np.delete(rhotheta,np.concatenate((eqnset1a,eqnset1b),axis=0),axis=0)
 
             avglines = np.reshape(avglines,(len(meqs)/2,4))
             meqs = np.reshape(meqs,(len(meqs)/2,2))
-
         
             return(avglines,meqs)
 
@@ -202,7 +210,6 @@ class profilePhoto():
             # need to convert to return a linexy here
             return(bimg,aimg,rA,rR)
 
-
 class Tube():
     def __init__(self):
         # pt1 is leftmost point, pt2 rightmost
@@ -254,7 +261,6 @@ class Tubeset():
             self.tubes[tube].pt1 = avglines[np.abs(meqs[:,0] - targetSlopes[i]).argmin()][0:2]
             self.tubes[tube].pt2 = avglines[np.abs(meqs[:,0] - targetSlopes[i]).argmin()][2:4]
 
-    # redo function with just line segments from HoughP instead of normal rho,thetas from Hough
     # messy float/int/array/tuple problem. cv2 functions work with tuples of ints, but coordinate
     # calculations have to be arrays of floats. because only arrays can be cast back to ints for cv2.
     # coordinates of each tube in x1,y1,x2,y2
@@ -294,9 +300,7 @@ class Tubeset():
         htx,hty = np.round(np.mean([self.tubes['ht'].pt1,self.tubes['ht'].pt2],axis=0)).astype(int)
         M = cv2.getRotationMatrix2D((htx,hty),htA-90,1)
         rimg = cv2.warpAffine(img,M,(cols,rows))
-        # plotFig(rimg,True)
-        # extent of profile again hard-coded for cleary. but it should calculate to +/- 6cm or so
-        lrange = range(hty-25,hty+25)
+        lrange = range(hty-CM2PX(8),hty+CM2PX(8))
         htprofile = rimg[lrange,htx]
         # fit spline to colour profiles
         bxint = np.round(np.arange(lrange[0],lrange[-1],.1)*10)/10
@@ -306,21 +310,22 @@ class Tubeset():
             # arbitrary smoothing factor
             bsp = scipy.interpolate.splrep(lrange,htprofile[:,i],np.ones(len(lrange)),k=3,s=len(bxint))
             bspl[:,i] = scipy.interpolate.splev(bxint,bsp,der=1)
-            ypeaks.append(bxint[list(peakutils.indexes(bspl[:,i],thres=0.5,min_dist=100))])
+            # decided not to use the indivdual colour traces for now
+            # ypeaks.append(bxint[list(peakutils.indexes(bspl[:,i],thres=0.5,min_dist=CM2PX(30)))])
 
         # create detection search ranges. 3cm above/below the headtube/topdowntube intersection points.
-        toprange = range(int(self.tubes['ht'].pt1[1])-7,int(self.tubes['ht'].pt1[1])-20,-1)
+        toprange = range(int(self.tubes['ht'].pt1[1])-CM2PX(2.2),int(self.tubes['ht'].pt1[1])-CM2PX(6.3),-1)
         # map search range from pixel units to the interpolated 0.1 pixel scale
         toprangeint = range(np.where(bxint==toprange[0])[0][0],np.where(bxint==toprange[-1])[0][0],-1)
-        botrange = range(int(self.tubes['ht'].pt2[1])+7,int(self.tubes['ht'].pt2[1]+20))
+        botrange = range(int(self.tubes['ht'].pt2[1])+CM2PX(2.2),int(self.tubes['ht'].pt2[1]+CM2PX(6.3)))
         botrangeint = range(np.where(bxint==botrange[0])[0][0],np.where(bxint==botrange[-1])[0][0])
         # average the three colour bands
         mbspl = np.mean(np.abs(bspl),axis=1)
 
         # 0th index take the first peak in the derivative. note these thresholds are hard-coded
         # and will be too high for any bikes that are black
-        toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.4,min_dist=10)[0]
-        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=10)[0]+botrangeint[0] 
+        toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.4,min_dist=CM2PX(3))[0]
+        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(3))[0]+botrangeint[0] 
         plt.figure(figNo)
         figNo+=1
         plt.subplot(2,1,1)
@@ -434,7 +439,8 @@ def angle2coord(line):
 
 if __name__=='__main__':
     filename = sys.argv[1]
-    P = profilePhoto(filename)
+    mmpx = float(sys.argv[2])
+    P = profilePhoto(filename,mmpx=mmpx)
     G = Geometry()
     # aimg2 = np.copy(aimg)
     wheels,G.chainring = P.houghCircles(P.imGRAY)
@@ -459,6 +465,9 @@ if __name__=='__main__':
     avglines,meqs = P.houghLines(P.imW,P.imRGB)
     tubeset = Tubeset()
     tubeset.assignTubeLines(avglines,meqs)
+
+    P.imW=np.copy(P.imRGB)
+    tubeset.plotTubes(P.imW)
     tubeset.calcTubes()
 
     # improve head tube detection
@@ -470,13 +479,13 @@ if __name__=='__main__':
     G.fork.pt2 = wheels[0][0][0:2]
     G.fork.axle2crown = np.sqrt(pow(G.fork.pt1[0]-G.fork.pt2[0],2.0)+pow(G.fork.pt1[1]-G.fork.pt2[1],2.0))
     
-    P.imW = np.copy(P.imRGB)
-    P.imw = G.plotTubes(P.imW,tubeset)
-    plotFig(P.imw,True)
-
     G.fork.calcOffset(tubeset)
     print('offset =',G.fork.offset)
     G.calcTrail(tubeset,wheels)
     print('trail = ',G.trail)
     G.calcStandover(tubeset,wheels)
     print('standover = ',G.standover)
+
+    P.imW = np.copy(P.imRGB)
+    P.imw = G.plotTubes(P.imW,tubeset)
+    plotFig(P.imw,True)

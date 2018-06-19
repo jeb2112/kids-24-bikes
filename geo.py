@@ -305,6 +305,28 @@ class Tube():
         self.rho = 0
         self.theta = 0
 
+    def setpts(self,pt1,pt2):
+        self.pt1 = pt1
+        self.pt2 = pt2
+        self.m,self.b = pts2eq((pt1,pt2))
+        self.A = np.arctan(self.m)
+        # list() unarrays the np.array, while [] retains it
+        self.rho,self.theta = coord2angle([np.concatenate((pt1,pt2),axis=0)])
+
+    def seteqn(self,m,b):
+        self.m = m
+        self.b = b
+        self.pt1,self.pt2 = eq2pts((m,b),(self.pt1[0],self.pt2[0]))
+        self.A = np.arctan(self.m)
+        # list() unarrays the np.array, while [] retains it
+        self.rho,self.theta = coord2angle([np.concatenate((self.pt1,self.pt2),axis=0)])
+
+    def y(self,x):
+        return(self.m * x + self.b)
+
+    def x(self,y):
+        return( (y - self.b) / self.m)
+
 class Tire():
     def __init__(self):
         self.centre = [0,0]
@@ -324,11 +346,8 @@ class Fork():
         self.pt2 = [0,0]
 
     def calcOffset(self,t):
-        # need to ensure all tubes are defined left/right. or the tubeset class has the hub points as well
-        m,b = pts2eq([t.tubes['ht'].pt1,t.tubes['ht'].pt2])
-        htA = np.arctan(m) 
-        print('head angle %.1f' % (htA*180/np.pi))
-        offsetAngle = np.arcsin( (self.pt2[0]-self.pt1[0]) / self.axle2crown) + (htA-np.pi/2)
+        # convention is pt1 is to the left of pt2
+        offsetAngle = np.arcsin( (self.pt2[0]-self.pt1[0]) / self.axle2crown) + (t.tubes['ht'].A-np.pi/2)
         self.offset = self.axle2crown * np.sin(offsetAngle)
 
 class Tubeset():
@@ -345,62 +364,38 @@ class Tubeset():
     def assignTubeLines(self,avglines,meqs):
 
         for tube in ['ht','st','dt','tt']:
-            self.tubes[tube].pt1 = avglines[np.abs(meqs[:,0] - self.targetSlopes[tube]).argmin()][0:2]
-            self.tubes[tube].pt2 = avglines[np.abs(meqs[:,0] - self.targetSlopes[tube]).argmin()][2:4]
+            self.tubes[tube].setpts(avglines[np.abs(meqs[:,0] - self.targetSlopes[tube]).argmin()][0:2],
+                                    avglines[np.abs(meqs[:,0] - self.targetSlopes[tube]).argmin()][2:4])
 
     # average the slope of existing tube with correction 
     def modifyTubeLines(self,avglines,meqs,tube):
 
-        m,b = pts2eq((self.tubes[tube].pt1,self.tubes[tube].pt2))
         targ = np.abs(meqs[:,0] - self.targetSlopes[tube]).argmin()
-        m2 = np.mean([m,meqs[targ,0]])
+        m2 = np.mean([self.tubes[tube].m,meqs[targ,0]])
         # calculate new b modified line. could use average of pt1,pt2
         b2 = self.tubes[tube].pt1[1] - m2*self.tubes[tube].pt1[0]
-        pts = eq2pts((m2,b2),(self.tubes[tube].pt1[0],self.tubes[tube].pt2[0]))
-        self.tubes[tube].pt1 = np.array(pts[0])
-        self.tubes[tube].pt2 = np.array(pts[1])
+        self.tubes[tube].seteqn(m2,b2)
         
     # messy float/int/array/tuple problem. cv2 functions work with tuples of ints, but coordinate
     # calculations have to be arrays of floats. because only arrays can be cast back to ints for cv2.
     # coordinates of each tube in x1,y1,x2,y2
     # origin is cv2 top left
     def calcTubes(self):
-        # seat tube intersecting top tube
-        eq1 = pts2eq((self.tubes['st'].pt1,self.tubes['st'].pt2))
-        eq2 = pts2eq((self.tubes['tt'].pt1,self.tubes['tt'].pt2))
-        xint = (eq1[1]-eq2[1]) / (eq2[0] - eq1[0])
-        self.tubes['st'].pt1 = np.array([xint,eq1[0]*xint+eq1[1]])
-        self.tubes['tt'].pt1 = np.array([xint,eq1[0]*xint+eq1[1]])
-        # toptube intersecting head tube
-        eq1 = pts2eq((self.tubes['tt'].pt1,self.tubes['tt'].pt2))
-        eq2 = pts2eq((self.tubes['ht'].pt1,self.tubes['ht'].pt2))
-        xint = (eq1[1]-eq2[1]) / (eq2[0] - eq1[0])
-        self.tubes['ht'].pt1 = np.array([xint,eq1[0]*xint+eq1[1]])
-        self.tubes['tt'].pt2 = np.array([xint,eq1[0]*xint+eq1[1]])
-        # headtube intersecting down tube
-        eq1 = pts2eq((self.tubes['dt'].pt1,self.tubes['dt'].pt2))
-        eq2 = pts2eq((self.tubes['ht'].pt1,self.tubes['ht'].pt2))
-        xint = (eq1[1]-eq2[1]) / (eq2[0] - eq1[0])
-        self.tubes['ht'].pt2 = np.array([xint,eq1[0]*xint+eq1[1]])
-        self.tubes['dt'].pt2 = np.array([xint,eq1[0]*xint+eq1[1]])
-        # seattube intersecting down tube
-        eq1 = pts2eq((self.tubes['dt'].pt1,self.tubes['dt'].pt2))
-        eq2 = pts2eq((self.tubes['st'].pt1,self.tubes['st'].pt2))
-        xint = (eq1[1]-eq2[1]) / (eq2[0] - eq1[0])
-        self.tubes['st'].pt2 = np.array([xint,eq1[0]*xint+eq1[1]])
-        self.tubes['dt'].pt1 = np.array([xint,eq1[0]*xint+eq1[1]])
+        # note convention is pt1 is lower value of x than pt2
+        for t1,t2,pt1,pt2 in [('st','tt','pt1','pt1'),('tt','ht','pt2','pt1'),('dt','ht','pt2','pt2'),('dt','st','pt1','pt2')]:
+            xint = ( self.tubes[t1].b-self.tubes[t2].b ) / ( self.tubes[t2].m - self.tubes[t1].m )
+            setattr(self.tubes[t1],pt1,np.array([xint,self.tubes[t1].y(xint)]))
+            setattr(self.tubes[t2],pt2,np.array([xint,self.tubes[t2].y(xint)]))
 
     def extendHeadTube(self,img):
         global figNo
         rows,cols = np.shape(img)[0:2]
-        m,b = pts2eq([self.tubes['ht'].pt1,self.tubes['ht'].pt2])
-        htA = np.arctan(m) * 180/np.pi
         # point of rotation. could be the average of the 1st pass head tube pts, if they are evenly placed
         # but some times, the downtube will curve at the join, making the lower head tube pt2
         # artificially high. meanwhile the top tube will likely never curve at the join.
         # therefore probably should use only the top point, and skew the search range accordingly.
         htx,hty = np.round(np.mean([self.tubes['ht'].pt1,self.tubes['ht'].pt2],axis=0)).astype(int)
-        M = cv2.getRotationMatrix2D((htx,hty),htA-90,1)
+        M = cv2.getRotationMatrix2D((htx,hty),self.tubes['ht'].A*180/np.pi-90,1)
         rimg = cv2.warpAffine(img,M,(cols,rows))
         lrange = range(hty-CM2PX(10),hty+CM2PX(10))
         # AceLTD. the central profile overlapped some welds which broke the detection.
@@ -450,8 +445,8 @@ class Tubeset():
     
         headtubetoplength = self.tubes['ht'].pt1[1] - bxint[toppeak]
         headtubebotlength = bxint[botpeak] - self.tubes['ht'].pt2[1]
-        self.tubes['ht'].pt2 += np.array([np.cos(htA*np.pi/180)*headtubebotlength,np.sin(htA*np.pi/180)*headtubebotlength])
-        self.tubes['ht'].pt1 -= np.array([np.cos(htA*np.pi/180)*headtubetoplength,np.sin(htA*np.pi/180)*headtubetoplength])
+        self.tubes['ht'].pt2 += np.array([np.cos(self.tubes['ht'].A)*headtubebotlength,np.sin(self.tubes['ht'].A)*headtubebotlength])
+        self.tubes['ht'].pt1 -= np.array([np.cos(self.tubes['ht'].A)*headtubetoplength,np.sin(self.tubes['ht'].A)*headtubetoplength])
 
     def addStays(self,rearhub):
         # need to check order of wheels
@@ -483,6 +478,7 @@ class Geometry():
         self.rw = Tire()
         self.cr = Ring()
         self.fork = Fork()
+        self.params = dict(trail=0,standover=0,com=0,cob=0,htA=0,stA=0,tt=0,bbdrop=0,rc=0,fc=0,stack=0,reach=0,ht=0,wheelbase=0)
         self.trail = 0
         self.standover = 0
         self.com = 0
@@ -493,17 +489,13 @@ class Geometry():
         return
 
     def calcTrail(self,t,w):
-        m,b = pts2eq((t.tubes['ht'].pt1,t.tubes['ht'].pt2))
-        htA = np.arctan(m) 
-        wheelRadius = np.mean(w[2:4,2])
-        # top of head tube is currently point 1 instead of 0
-        self.trail = (wheelRadius+self.fork.pt2[1]-t.tubes['ht'].pt2[1]) / np.sin(htA) * np.cos(htA) - (self.fork.pt2[0]-t.tubes['ht'].pt2[0])
+        R = np.mean(w[2:4,2])
+        self.trail = (R+self.fork.pt2[1]-t.tubes['ht'].pt2[1]) / np.sin(t.tubes['ht'].A) * np.cos(t.tubes['ht'].A) - (self.fork.pt2[0]-t.tubes['ht'].pt2[0])
 
     # doesn't include top tube thickness!
     def calcStandover(self,t,w):
-        wheelRadius = np.mean(w[2:4,2])
-        m,b = pts2eq((t.tubes['tt'].pt1,t.tubes['tt'].pt2))
-        self.standover = np.mean([t.tubes['cs'].pt1[1],G.fork.pt2[1]]) - (m * t.tubes['st'].pt2[0] + b) + wheelRadius
+        R = np.mean(w[2:4,2])
+        self.standover = np.mean([t.tubes['cs'].pt1[1],G.fork.pt2[1]]) - (t.tubes['tt'].m * t.tubes['st'].pt2[0] + t.tubes['tt'].b) + R
 
     def plotTubes(self,aimg,tubeset):
         for tube in tubeset.tubes.keys():

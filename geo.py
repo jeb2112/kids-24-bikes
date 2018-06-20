@@ -7,6 +7,7 @@ import cv2
 import matplotlib.pyplot as plt
 import peakutils
 import scipy.interpolate
+import collections
 
 figNo = 1
 mmpx = 0
@@ -47,8 +48,8 @@ class profilePhoto():
         self.imGRAY = cv2.cvtColor(self.imRGB,cv2.COLOR_BGR2GRAY)
 
     def houghCircles(self,bw):
-        # this preblur helps get rid of the apparent line in the middle of a tube
-        # due to the reflection of light
+        # this preblur maybe helps get rid of the apparent line in the middle of a tube
+        # due to the reflection of light but this hasn't been investigated much yet
         # cleary,cujo24,AceLTD
         bw = cv2.blur(bw,(5,5))
         # AceLTD. merely converting the hard-coded 5x5 kernel from cleary to same equivalent size broke it
@@ -138,8 +139,9 @@ class profilePhoto():
         # for wheel only
         else:
             edges = cv2.Canny(bw,150,200,apertureSize=3,L2gradient=True)
-        plotFig(edges)
-        plt.show()
+        # plotFig(edges,False)
+        plotFigCV(edges)
+        # plt.show(block=__debug__)
 
         # line processing
         if houghProcess=='p':
@@ -157,7 +159,7 @@ class profilePhoto():
                     for x1,y1,x2,y2 in line:
                         cv2.line(bw2,(x1,y1),(x2,y2),(0,0,255),CM2PX(0.5))
                 plotFig(bw2,False)
-                plt.show()
+                plt.show(block=__debug__)
 
             # average matching pairs of lines. slope/intercept might not be ideal to select the matching pairs
             # becuase non-linear. try rho/theta?
@@ -237,7 +239,7 @@ class profilePhoto():
                         cv2.line(aimg,tuple(linexy[0]),tuple(linexy[1]),(0,0,255),2)
                     plt.figure(figNo)
                     plt.imshow(aimg)
-                    plt.show()
+                    plt.show(block=__debug__)
                     figNo += 1
                 
             angles = lines[:,0,1]
@@ -266,7 +268,7 @@ class profilePhoto():
             plt.hist(angles,bins=90)
             plt.plot(bxint,bspl)
             plt.plot(bxint[peakIndexes],bspl[peakIndexes],'r+')
-            plt.show(block=False)
+            plt.show(block=__debug__)
 
             # fit the rhos histogram
             h,b = np.histogram(rhos,bins=90,range=(-np.shape(aimg)[0],np.shape(aimg)[0]))
@@ -288,7 +290,7 @@ class profilePhoto():
             plt.subplot(2,1,2)
             plt.hist(rhos,bins=90)
             plt.plot(bxint,bspl)
-            plt.show(block=False)
+            plt.show(block=__debug__)
             print(rR)
 
             # need to convert to return a linexy here
@@ -302,6 +304,7 @@ class Tube():
         self.m = 0
         self.b = 0
         self.A = 0
+        self.len = 0
         self.rho = 0
         self.theta = 0
 
@@ -312,15 +315,19 @@ class Tube():
         self.A = np.arctan(self.m)
         # list() unarrays the np.array, while [] retains it
         self.rho,self.theta = coord2angle([np.concatenate((pt1,pt2),axis=0)])
+        self.len = self.l()
 
     def seteqn(self,m,b):
         self.m = m
         self.b = b
         self.pt1,self.pt2 = eq2pts((m,b),(self.pt1[0],self.pt2[0]))
         self.A = np.arctan(self.m)
-        # list() unarrays the np.array, while [] retains it
         self.rho,self.theta = coord2angle([np.concatenate((self.pt1,self.pt2),axis=0)])
+        self.len = self.l()
 
+    def l(self):
+        return(np.sqrt(pow(self.pt1[0]-self.pt2[0],2) + pow(self.pt1[1]-self.pt2[1],2)))
+    
     def y(self,x):
         return(self.m * x + self.b)
 
@@ -328,10 +335,10 @@ class Tube():
         return( (y - self.b) / self.m)
 
 class Tire():
-    def __init__(self):
-        self.centre = [0,0]
-        self.rInner = 0
-        self.rOuter = 0
+    def __init__(self,c=[0,0],rI=0,rO=0):
+        self.centre = c
+        self.rInner = rI
+        self.rOuter = rO
 
 class Ring():
     def __init__(self):
@@ -440,7 +447,7 @@ class Tubeset():
         plt.plot(bxint[toprangeint],mbspl[toprangeint],'r')
         plt.plot(bxint[toppeak],mbspl[toppeak],'r+')
         plt.plot(bxint[botpeak],mbspl[botpeak],'r+')
-        plt.show(block=False)
+        plt.show(block=__debug__)
         figNo = figNo + 1
     
         headtubetoplength = self.tubes['ht'].pt1[1] - bxint[toppeak]
@@ -473,35 +480,65 @@ class Rider():
 
 class Geometry():
     def __init__(self):
-        self.tubes = Tubeset()
+        self.T = Tubeset()
         self.fw = Tire()
         self.rw = Tire()
         self.cr = Ring()
         self.fork = Fork()
-        self.params = dict(trail=0,standover=0,com=0,cob=0,htA=0,stA=0,tt=0,bbdrop=0,rc=0,fc=0,stack=0,reach=0,ht=0,wheelbase=0)
-        self.trail = 0
-        self.standover = 0
-        self.com = 0
-        self.cob = 0
+        self.params = dict(trail=0,standover=0,com=0,cob=0,htA=0,stA=0,toptube=0,bbdrop=0,rearcentre=0,frontcentre=0,stack=0,reach=0,headtube=0,wheelbase=0)
 
     def addRider(self,anthro):
         self.rider = Rider(anthro)
         return
 
-    def calcTrail(self,t,w):
-        R = np.mean(w[2:4,2])
-        self.trail = (R+self.fork.pt2[1]-t.tubes['ht'].pt2[1]) / np.sin(t.tubes['ht'].A) * np.cos(t.tubes['ht'].A) - (self.fork.pt2[0]-t.tubes['ht'].pt2[0])
+# for centre of mass calculation
+# coords$stem <- c(coords$htXtt[1]+geo$stem/10 * cos(geo$stemA + pi/2-geo$HA),
+#                    coords$htXtt[2]+geo$stem/10 * sin(geo$stemA + pi/2-geo$HA))
+#   coords$saddle <- c(coords$BB[1]+cos(geo$SA)*geo$crank.length-cos(geo$SA)*anthro$leg*0.883,
+#                      coords$BB[2]-sin(geo$SA)*geo$crank.length + sin(geo$SA)*anthro$leg*0.883)
+#   saddle2bar <- sqrt((coords$stem[1]-coords$saddle[1])^2 + (coords$stem[2]-coords$saddle[2])^2)
+#   # given seat and bar, find the angle of the torso. add torso curvature option
+#   A_torso = acos((saddle2bar^2+anthro$torso^2-anthro$arm^2)/(2*saddle2bar*anthro$torso))
+#   # shoulder at the apex of torso arm triangle
+#   coords$shldr <- c(coords$saddle[1]+anthro$torso*cos(A_torso),coords$saddle[2]+anthro$torso*sin(A_torso)) 
 
+    def calcParams(self):
+
+        # this should already be a mean value
+        R = np.mean([self.fw.rOuter,self.rw.rOuter])
+        self.params['trail'] = (R+self.fork.pt2[1]-self.T.tubes['ht'].pt2[1]) / np.sin(self.T.tubes['ht'].A) * np.cos(self.T.tubes['ht'].A) - (self.fork.pt2[0]-self.T.tubes['ht'].pt2[0])
+        self.params['reach'] = self.T.tubes['ht'].pt1[0] - self.T.tubes['st'].pt2[0]
+        self.params['stack'] = self.T.tubes['st'].pt2[1] - self.T.tubes['ht'].pt1[1]
+        self.params['bbdrop'] = self.T.tubes['st'].pt2[1] - self.fw.centre[1]
+        self.params['htA'] = self.T.tubes['ht'].A
+        self.params['stA'] = self.T.tubes['st'].A
+        self.params['toptube'] = self.T.tubes['ht'].pt1[0] - self.T.tubes['st'].x(self.T.tubes['ht'].pt1[0])
+        self.params['headtube'] = self.T.tubes['ht'].len
+        self.params['frontcentre'] = self.fw.centre[0] - self.T.tubes['st'].pt2[0]
+        self.params['rearcentre'] = self.T.tubes['st'].pt2[0] - self.rw.centre[0]
+        self.params['chainstay'] = self.T.tubes['cs'].len
+        self.params['wheelbase'] = self.fw.centre[0] - self.rw.centre[0]
     # doesn't include top tube thickness!
-    def calcStandover(self,t,w):
-        R = np.mean(w[2:4,2])
-        self.standover = np.mean([t.tubes['cs'].pt1[1],G.fork.pt2[1]]) - (t.tubes['tt'].m * t.tubes['st'].pt2[0] + t.tubes['tt'].b) + R
+        self.params['standover'] = np.mean([self.T.tubes['cs'].pt1[1],self.fork.pt2[1]]) - (self.T.tubes['tt'].m * self.T.tubes['st'].pt2[0] + self.T.tubes['tt'].b) + R
+        self.params['cob'] = self.params['frontcentre'] - self.params['wheelbase']/2
+        # self.params['com'] =  self.calcCom()
+
+    def printParams(self):
+        for param in self.params.keys():
+            print('%s = %.1f' % (param,self.params[param]))
 
     def plotTubes(self,aimg,tubeset):
         for tube in tubeset.tubes.keys():
             cv2.line(aimg,tuple(tubeset.tubes[tube].pt1.astype(int)),tuple(tubeset.tubes[tube].pt2.astype(int)),(0,255,0),CM2PX(0.6))
         cv2.line(aimg,tuple(self.fork.pt1.astype(int)),tuple(self.fork.pt2.astype(int)),(0,0,255),CM2PX(0.6))
         return(aimg)
+
+    # def calcCom(self):
+    #     com_leg = c((coords$BB[1]-coords$saddle[1])/2+coords$saddle[1],(coords$saddle[2]-coords$BB[2])/2+coords$BB[2])
+    #     com_torso = c((coords$shldr[1]-coords$saddle[1]/2)+coords$saddle[1],(coords$shldr[2]-coords$saddle[2])/2+coords$saddle[2])
+    #     com_arm = c((coords$stem[1]-coords$shldr[1])/2+coords$shldr[1],(coords$shldr[2]-coords$stem[2])/2+coords$stem[2])
+    #     com <- c((com_leg[1]*anthro$leg + com_torso[1]*anthro$torso + com_arm[1]*anthro$arm)/sum(anthro),
+    #             (com_leg[2]*anthro$leg + com_torso[2]*anthro$torso + com_arm[2]*anthro$arm)/sum(anthro))
    
 
 def pts2eq(((x1,y1),(x2,y2))):
@@ -521,8 +558,21 @@ def plotFig(img,blockFlag=False,cmap=None):
         plt.imshow(img,cmap=cmap)
     else:
         plt.imshow(img)
+    # not sure of usage of plt.ion(). it may be contra-indicated by show()?
+    # plt.ion()
+    # plt.show()
+    # plt.pause(.001)
+    # input('press to continue')
     plt.show(block=blockFlag)
     figNo += 1
+
+def plotFigCV(img):
+    # try cv2 instead?
+    # cv2.startWindowThread()
+    cv2.namedWindow('Circles Image')
+    cv2.imshow('Circles Image',img)
+    cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
 def plotLn(lines,blockFlag=False):
     global figNo
@@ -597,7 +647,7 @@ if __name__=='__main__':
     P.imW = imW3
     ret,P.imW = cv2.threshold(P.imW,100,255,cv2.THRESH_TOZERO_INV)
     plotFig(P.imW,cmap="gray")
-    plt.show()
+    plt.show(block=__debug__)
     avglines,meqs = P.houghLines(P.imW,P.imRGB,edgeprocess='wheel')
     tubeset.modifyTubeLines(avglines,meqs,'ht')
 
@@ -606,17 +656,17 @@ if __name__=='__main__':
     tubeset.extendHeadTube(P.imW)
 
     tubeset.addStays(wheels[0][0:2])
+    G.T = tubeset
+    G.rw = Tire(np.mean(wheels[0:4:2],axis=0)[0:2],wheels[0,2],wheels[2,2])
+    G.fw = Tire(np.mean(wheels[1:5:2],axis=0)[0:2],wheels[1,2],wheels[3,2])
     # add fork, chainstay, seatstay
     G.fork.pt1 = tubeset.tubes['ht'].pt2
     G.fork.pt2 = np.mean(wheels[1:4:2],axis=0)[0:2]
     G.fork.axle2crown = np.sqrt(pow(G.fork.pt1[0]-G.fork.pt2[0],2.0)+pow(G.fork.pt1[1]-G.fork.pt2[1],2.0))
-    
     G.fork.calcOffset(tubeset)
     print(('offset = %.1f mm' % PX2MM(G.fork.offset)))
-    G.calcTrail(tubeset,wheels)
-    print(('trail = %.1f mm' % PX2MM(G.trail)))
-    G.calcStandover(tubeset,wheels)
-    print(('standover %.1f cm' % PX2CM(G.standover)))
+    G.calcParams()
+    G.printParams()
 
     P.imW = np.copy(P.imRGB)
     P.imw = G.plotTubes(P.imW,tubeset)

@@ -139,8 +139,8 @@ class profilePhoto():
         # for wheel only
         else:
             edges = cv2.Canny(bw,150,200,apertureSize=3,L2gradient=True)
-        # plotFig(edges,False)
-        plotFigCV(edges)
+        plotFig(edges,False)
+        # plotFigCV(edges)
         # plt.show(block=__debug__)
 
         # line processing

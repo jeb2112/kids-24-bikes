@@ -22,10 +22,11 @@ description: >- # this means to ignore newlines until "baseurl:"
 # github_username:  jeb2112
 
 # Build settings
-# markdown: kramdown
+markdown: kramdown
 theme: jekyll-theme-slate
-# plugins:
-#   - jekyll-feed
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
 
 # Exclude from processing.
 # The following items will not be processed, by default. Create a custom list

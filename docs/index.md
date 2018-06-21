@@ -1,10 +1,6 @@
 ---
 layout: default
 title: homepage
-output: 
-  html_document:
-    includes:
-       in_header: analytics.html
 ---
 Introduction
 ============

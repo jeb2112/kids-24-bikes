@@ -22,7 +22,7 @@ url: "https://jeb2112.github.io/kids-24-bikes" # the base hostname & protocol fo
 github_username:  jeb2112
 
 # Build settings
-markdown: kramdown
+# markdown: kramdown
 theme: jekyll-theme-slate
 # plugins:
 #   - jekyll-feed

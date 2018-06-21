@@ -11,13 +11,11 @@ The raw data for the bikes are located in a [google sheet](https://docs.google.c
 
 The comparisons are currently being done in two forms, geometry and price/weight regressions.
 
-Geometry
---------
+### Geometry ###
 
 Bicycle geometry has 10 or 11 different parameters, not all of which are independent. Traditionally, the values of these parameters are tabulated by manufacturers, and are compared by buyers to help understand sizing and fit. As a 10 parameter space though, this is not actually that easy to do. 
 
-Price/Weight Regression
------------------------
+### Price/Weight Regression ###
 
 Bicycle weight has long been a key factor in selecting a performance mountain bike, along with the price. Despite the importance of the price-weight relationship, bicycle manufacturers have traditionally been loathe to reveal weight information, and yet there shouldn't really be any magic to it. Weight ought to be a very straightforward function of the quality of the components and frame that make up the bike, with price being the measure of quality. If that is true, then it should be possible to construct useful multi-variate regressions for price and weight. 
 

@@ -22,7 +22,7 @@ description: >- # this means to ignore newlines until "baseurl:"
 # github_username:  jeb2112
 
 # Build settings
-# google_analytics: UA-76971449-2
+google_analytics: UA-76971449-2
 markdown: kramdown
 theme: jekyll-theme-slate
 plugins:

@@ -3,49 +3,29 @@
 
 @import "{{ site.theme }}";
 
-largeimg {
-  position: relative;
-  margin: 0 auto;
-  max-width: 512px;
-  padding: 5px;
-  margin: 10px 0 10px 0;
-  border: 1px solid #ebebeb;
-
-  box-shadow: 0 0 5px #ebebeb;
-  -webkit-box-shadow: 0 0 5px #ebebeb;
-  -moz-box-shadow: 0 0 5px #ebebeb;
-  -o-box-shadow: 0 0 5px #ebebeb;
-  -ms-box-shadow: 0 0 5px #ebebeb;
-}
-
-p largeimg {
-  display: inline;
-  margin: 0;
-  padding: 0;
-  vertical-align: middle;
-  text-align: center;
-  border: none;
-}
-
+/* for full width figure extending past right margin */
 .innerwide {
   position: relative;
   max-width: 1024px;
   padding: 20px 0px;
-  margin: 0 auto;
+  margin: 20px 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,.5); 
 }
 
+/* for regular figure extending past right margin and text wrap to left */
 .innerwideright {
   float: right;
 /*  position: relative; */ 
   max-width: 1024px;
   padding: 0px 20px;
-  margin-left: auto;  
+  margin-left: 20px;  
   margin-right: 0; 
+  box-shadow: 0 0 10px rgba(0,0,0,.5); 
 }
-
-.container {
-    width: 1024px;
-    height: 256px;
+/* wider paragraph to accomodate .innerwideright */
+.pwide {
+    width: 768px;
+    margin: 10px 0 15px 0;
 }
 
 /* resize images */
@@ -53,17 +33,12 @@ p largeimg {
     width: 100%;
     height: auto;
 }
-
 .innerwideright img {
     width: 100%;
     height: auto;
 }
 
-.pwide {
-    width: 768px;
-    margin: 10px 0 15px 0;
-}
-
+/* for banner image */
 #banner_left {
   display: block;
   position: absolute;
@@ -79,21 +54,4 @@ p largeimg {
   border-bottom-left-radius: 2px;
   border-bottom-right-radius: 2px;
 }
-/*  background: url('/images/clearythumb.png') #0090ff no-repeat 95% 50%; */
 
-a2 {
-  text-decoration: none;
-  color: #0F79D0;
-  text-shadow: none;
-
-  transition: color 0.5s ease;
-  transition: text-shadow 0.5s ease;
-  -webkit-transition: color 0.5s ease;
-  -webkit-transition: text-shadow 0.5s ease;
-  -moz-transition: color 0.5s ease;
-  -moz-transition: text-shadow 0.5s ease;
-  -o-transition: color 0.5s ease;
-  -o-transition: text-shadow 0.5s ease;
-  -ms-transition: color 0.5s ease;
-  -ms-transition: text-shadow 0.5s ease;
-}

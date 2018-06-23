@@ -34,6 +34,15 @@ p largeimg {
   margin: 0 auto;
 }
 
+.innerwideright {
+  float: right;
+/*  position: relative; */ 
+  max-width: 1024px;
+  padding: 0px 20px;
+  margin-left: auto;  
+  margin-right: 0; 
+}
+
 .container {
     width: 1024px;
     height: 256px;
@@ -43,6 +52,16 @@ p largeimg {
 .innerwide img {
     width: 100%;
     height: auto;
+}
+
+.innerwideright img {
+    width: 100%;
+    height: auto;
+}
+
+.pwide {
+    width: 768px;
+    margin: 10px 0 15px 0;
 }
 
 #banner_left {

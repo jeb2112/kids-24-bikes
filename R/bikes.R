@@ -319,11 +319,11 @@ ws = "2018"
 # range form give unique column name error for some but not all merged cells
 # use of check.names=TRUE is partly the solution
 # wasn't able to get 1st column interpreted as row names here
-main.range = "d3:ch35"
+main.range = "d3:ci35"
 rnames.range = "a4:a35"
-price.range = "d41:bt41"
-model.anchor1 = "CV5"
-model.anchor2 = "DA5"
+price.range = "d41:bu41"
+model.anchor1 = "CW5"
+model.anchor2 = "DB5"
 
 body_measure <- data.frame(leg=76,torso=50,arm=60)
 

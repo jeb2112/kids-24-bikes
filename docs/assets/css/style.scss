@@ -3,40 +3,65 @@
 
 @import "{{ site.theme }}";
 
+
 /* for full width figure extending past right margin */
-.innerwide {
-  position: relative;
-  max-width: 1024px;
-  padding: 20px 0px;
-  margin: 20px 10px;
-  box-shadow: 0 0 10px rgba(0,0,0,.5); 
+/* hard-coded img size here need to fix */
+.wideimage {
+    width: 982px ;
+    height: auto;
+    margin: 0px 0px;
+    padding: 0px 0px;
+    box-shadow: 0 0 10px rgba(0,0,0,.5);
+
+    .image-caption {
+        color: #000000; 
+        margin-top: 0px;
+	margin-left: 40px;
+    }
+
 }
 
 /* for regular figure extending past right margin and text wrap to left */
-.innerwideright {
-  float: right;
-/*  position: relative; */ 
-  max-width: 1024px;
+
+.rightimg {
+  float:right;  
+  clear:both;
+  width: 70% ;
+  margin: 0px -250px 10px 30px ;
   padding: 0px 20px;
-  margin-left: 20px;  
-  margin-right: 0; 
   box-shadow: 0 0 10px rgba(0,0,0,.5); 
+    .image-caption {
+        color: #000000; 
+        margin-top: 0px;
+	margin-left: 40px;
+    }
 }
-/* wider paragraph to accomodate .innerwideright */
-.pwide {
-    width: 768px;
-    margin: 10px 0 15px 0;
+/* said on floattutorial needed to get the wrap to work but didn't seem to need it...?
+.rightimage:before {
+  content: '' ;
+  display:block;
+  float: right;
+  height: 200px;
+
+}	     
+*/
+
+/* override from theme for max-width param */
+img {
+  position: relative;
+  margin: 0 auto; 
+  max-width: 1024px;
+  padding: 5px;
+  margin: 10px 0 10px 0;
+  border: 1px solid #ebebeb; 
+
+  box-shadow: 0 0 5px #ebebeb;
+  -webkit-box-shadow: 0 0 5px #ebebeb;
+  -moz-box-shadow: 0 0 5px #ebebeb;
+  -o-box-shadow: 0 0 5px #ebebeb;
+  -ms-box-shadow: 0 0 5px #ebebeb; 
 }
 
-/* resize images */
-.innerwide img {
-    width: 100%;
-    height: auto;
-}
-.innerwideright img {
-    width: 100%;
-    height: auto;
-}
 
 /* for banner image */
 #banner_left {

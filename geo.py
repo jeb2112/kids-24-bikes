@@ -16,7 +16,7 @@ def CM2PX(cm):
 def PX2CM(px):
     return(px * mmpx/10.)
 def PX2MM(px):
-    return(px * mmpx/10.)
+    return(px * mmpx)
 def DEG2RAD(d):
     return(d * np.pi/180)
 def RAD2DEG(r):
@@ -68,7 +68,9 @@ class profilePhoto():
         # cleary,cujo24
         # wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,
         #     1,minDist=self.CM2PX(60),param1=self.CM2PX(22),param2=self.CM2PX(16),minRadius=self.CM2PX(13),maxRadius=self.CM2PX(30))
-        # AceLTD
+        # AceLTD...Alite-24
+        # wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
+        # Creig-24. had to downsample image out of memory, have to scale mmpx accordingly though 0.803 now
         wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # place rear wheel first in list. note extra 1st dimension in output of HoughCircles
         wheelsInner = wheelsInner[0,wheelsInner[0,:,0].argsort(),:]
@@ -128,7 +130,7 @@ class profilePhoto():
         self.imANNO = self.imRGB
 
     # main lines detection
-    def houghLines(self,bw,aw,houghProcess='p',edgeprocess='bike'):
+    def houghLines(self,bw,aw,houghProcess='p',edgeprocess='bike',minlength=6.5):
         global figNo
         # bw = cv2.blur(bw,(5,5))
         # this sort of morphing might help flatten out smaller details like spokes and cables?? needs work
@@ -157,7 +159,10 @@ class profilePhoto():
         # using the fork too.
         # 2. average line for the downtube in biased for the cleary example, can't see why the averaing doesn't worok
             # cleary lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=CM2PX(15.75))
-            lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=CM2PX(8.5))
+            # AceLTD-Alite-24
+            # lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=CM2PX(8.5))
+            # Creig-24 seem to miss the headtube so try 6.5. and stxdt at bottom bracket could be constrained by chainring
+            lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=CM2PX(minlength))
             if (lines is not None):
                 # plot raw lines detection
                 bw2 = np.copy(aw)
@@ -330,6 +335,8 @@ class Tube():
         self.m = m
         self.b = b
         self.pt1,self.pt2 = eq2pts((m,b),(self.pt1[0],self.pt2[0]))
+        self.pt1 = np.array(self.pt1)
+        self.pt2 = np.array(self.pt2)
         self.A = np.arctan(self.m)
         self.rho,self.theta = coord2angle([np.concatenate((self.pt1,self.pt2),axis=0)])
         self.len = self.l()
@@ -365,6 +372,7 @@ class Fork():
         # convention is pt1 is to the left of pt2
         offsetAngle = np.arcsin( (self.pt2[0]-self.pt1[0]) / self.axle2crown) + (t.tubes['ht'].A-np.pi/2)
         self.offset = self.axle2crown * np.sin(offsetAngle)
+        print(('offset = %.1f cm' % PX2CM(self.offset)))
 
 class Tubeset():
     def __init__(self):
@@ -384,10 +392,13 @@ class Tubeset():
                                     avglines[np.abs(meqs[:,0] - self.targetSlopes[tube]).argmin()][2:4])
 
     # average the slope of existing tube with correction 
-    def modifyTubeLines(self,avglines,meqs,tube):
+    def modifyTubeLines(self,avglines,meqs,tube,op='mean'):
 
         targ = np.abs(meqs[:,0] - self.targetSlopes[tube]).argmin()
-        m2 = np.mean([self.tubes[tube].m,meqs[targ,0]])
+        if op=='mean':
+            m2 = np.mean([self.tubes[tube].m,meqs[targ,0]])
+        elif op=='replace':
+            m2 = meqs[targ,0]
         # calculate new b modified line. could use average of pt1,pt2
         b2 = self.tubes[tube].pt1[1] - m2*self.tubes[tube].pt1[0]
         self.tubes[tube].seteqn(m2,b2)
@@ -474,11 +485,15 @@ class Tubeset():
     def plotTubes(self,aimg,linew=2):
         # plot raw lines detection
         # bw2 = np.copy(bw)
+        rows,cols = np.shape(aimg)[0:2]
         for tube in ['ht','st','dt','tt']:
             # for some reason can't follow this syntax with the line array as did with tuples
             #for x1,y1,x2,y2 in np.nditer(Lline):
             #    cv2.line(aimg2,(x1,y1),(x2,y2),(0,0,255),2)
-            cv2.line(aimg,tuple(self.tubes[tube].pt1.astype(int)),tuple(self.tubes[tube].pt2.astype(int)),(255,0,0),linew)
+            pt1 = np.array([0,self.tubes[tube].y(0)])
+            pt2 = np.array([cols,self.tubes[tube].y(cols)])
+            # cv2.line(aimg,tuple(self.tubes[tube].pt1.astype(int)),tuple(self.tubes[tube].pt2.astype(int)),(255,0,0),linew)
+            cv2.line(aimg,tuple(pt1.astype(int)),tuple(pt2.astype(int)),(255,0,0),linew)
         plotFig(aimg)
 
 class Rider():
@@ -558,6 +573,7 @@ def pts2eq(((x1,y1),(x2,y2))):
     b = y1 - m * x1
     return [m,b]
 
+# this should probably return array not list
 def eq2pts((m,b),(x1,x2)):
     y1 = m*x1 + b
     y2 = m*x2 + b
@@ -651,20 +667,28 @@ if __name__=='__main__':
 
     # attempt to process the fork for refinement of head tube angle
     P.imW = np.copy(P.imGRAY)
-    P.imW = cv2.blur(P.imW,(5,5))
+    # P.imW = cv2.blur(P.imW,(5,5))
+    # Creig-24 . try more blur more spoke suppression, suppression of graphic/printing
+    P.imW = cv2.blur(P.imW,(15,15))
     imW2 = np.copy(P.imW)
     # [0]have an extra dimension to get rid of here... 
     P.selectCircle(wheels[1],P.imW)
     imW3 = imW2 - P.imW
     P.imW = imW3
+    # 100 threshold helps get rid of spokes
     ret,P.imW = cv2.threshold(P.imW,100,255,cv2.THRESH_TOZERO_INV)
     plotFig(P.imW,cmap="gray")
     plt.show(block=not __debug__)
-    avglines,meqs = P.houghLines(P.imW,P.imRGB,edgeprocess='wheel')
-    tubeset.modifyTubeLines(avglines,meqs,'ht')
+    avglines,meqs = P.houghLines(P.imW,P.imRGB,edgeprocess='fork',minlength=8.5)
+    # tubeset.modifyTubeLines(avglines,meqs,'ht',op='mean')
+    # Creig-24.  head tube estimate not good enough use fork only
+    tubeset.modifyTubeLines(avglines,meqs,'ht',op='replace')
+    P.imW=np.copy(P.imRGB)
+    tubeset.plotTubes(P.imW)
 
     # improve head tube detection
     P.imW = np.copy(P.imRGB)
+    # Creig-24. fails because brake cable is below the bottom of tube. need an extra check on tube profile perpendicular
     tubeset.extendHeadTube(P.imW)
 
     tubeset.addStays(np.mean(wheels[0:4:2],axis=0)[0:2])
@@ -676,7 +700,6 @@ if __name__=='__main__':
     G.fork.pt2 = np.mean(wheels[1:4:2],axis=0)[0:2]
     G.fork.axle2crown = np.sqrt(pow(G.fork.pt1[0]-G.fork.pt2[0],2.0)+pow(G.fork.pt1[1]-G.fork.pt2[1],2.0))
     G.fork.calcOffset(tubeset)
-    print(('offset = %.1f mm' % PX2MM(G.fork.offset)))
     G.calcParams()
     G.printParams()
 

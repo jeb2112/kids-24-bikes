@@ -38,8 +38,8 @@ plotprint <- function(plot.obj,filename,width,height,todrive=FALSE) {
     # but, no idea how to add the filename to the existing png device, so turn if off and set a new one
     dev.off(dev.list()['png'])
   } 
-  # create new png device
-  png(file = sprintf('/home/jbishop/src/R/%s.png',filename),width=width,height=height)
+  # create new png device. hard-coded directory here
+  png(file = sprintf('%s/src/python/geo/R/%s.png',Sys.getenv("HOME"),filename),width=width,height=height)
   if (is.ggplot(plot.obj)) {
     plot(plot.obj)
   } else if (is.grob(plot.obj)) {
@@ -55,9 +55,9 @@ plotprint <- function(plot.obj,filename,width,height,todrive=FALSE) {
     # another problem. if the file doesn't exist, the drive_get can't return a name to test. just test for length
     # if (drive.get$name == 'weight-price.png') { 
     if (length(drive.get$name > 0)) {
-      drive_update(sprintf('%s.png',filename),sprintf('/home/jbishop/src/R/%s.png',filename))
+      drive_update(sprintf('%s.png',filename),sprintf('%s/src/python/geo/R/%s.png',Sys.getenv("HOME"),filename))
     } else {
-      drive_upload(sprintf('/home/jbishop/src/R/%s.png',filename),sprintf('%s.png',filename))
+      drive_upload(sprintf('%s/src/python/geo/R/%s.png',Sys.getenv("HOME"),filename),sprintf('%s.png',filename))
     }
   }
 }
@@ -740,7 +740,7 @@ if (PLOT.PRINT) {
 }
 
 # upload predicted weight to  spreadsheet
-GS_UPLOAD_PRED=FALSE
+GS_UPLOAD_PRED=TRUE
 if (GS_UPLOAD_PRED) {
   for (i in seq(1,length(set.noweight))) {
     ii = set.noweight[i]+3
@@ -752,7 +752,7 @@ if (GS_UPLOAD_PRED) {
       col.letter = sprintf('B%s',toupper(letters[ii-52])) 
     }
     print(c(cip.noweight$predict.lm.model.B1..newdata...df.noweight.[i],sprintf('%s7',col.letter)))
-    gs_edit_cells(ss=ss,ws=ws,input=sprintf('*%2.1f*',cip.noweight$predict.lm.model.B1..newdata...df.noweight.[i]),anchor=sprintf("%s7",col.letter))
+    gs_edit_cells(ss=ss,ws=ws,input=sprintf('*%2.1f*',cip.noweight$fit[i]),anchor=sprintf("%s7",col.letter))
     
   }
   

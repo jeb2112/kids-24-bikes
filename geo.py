@@ -57,11 +57,13 @@ class profilePhoto():
     def houghCircles(self,bw):
         # this preblur maybe helps get rid of the apparent line in the middle of a tube
         # due to the reflection of light but this hasn't been investigated much yet
-        # cleary,cujo24,AceLTD
-        bw = cv2.blur(bw,(5,5))
+        # cleary,cujo24,AceLTD up to charger
+        # bw1 = cv2.blur(bw,(5,5))
         # AceLTD. merely converting the hard-coded 5x5 kernel from cleary to same equivalent size broke it
         # reverting to 5x5, still had more difficulty with this image and cujo or cleary for the circles
-        # bw = cv2.blur(bw,(CM2PX(1.6),CM2PX(1.6)))
+        # fluid. switch to separate blurring for wheel/chainring. better tread outer detection this way
+        bw1 = cv2.blur(bw,(CM2PX(1.6),CM2PX(1.6)))
+        bw2 = cv2.blur(bw,(5,5))
         # try simply binarizing the image? seemed like a good idea but param2 had to get even smaller to detect
         # anything, and the detections were anywhere but the correct spot. maybe need to reblur again?
         # ret,bw = cv2.threshold(bw,240,255,cv2.THRESH_BINARY)
@@ -74,7 +76,7 @@ class profilePhoto():
         # AceLTD...Alite-24
         # wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # Creig-24. had to downsample image out of memory, have to scale mmpx accordingly though 0.803 now
-        wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
+        wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # place rear wheel first in list. note extra 1st dimension in output of HoughCircles
         wheelsInner = wheelsInner[0,wheelsInner[0,:,0].argsort(),:]
         # cleary.png
@@ -84,7 +86,7 @@ class profilePhoto():
         # AceLTD 1.2 seemed to make a big difference compared to 1.0? or was it dropping param1 way down to 4
         # wheelsOuter = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(40))
         # Bayview. further drop of param1 down to 3 required. that fixed the outerwheels, but lost the headtube!
-        wheelsOuter = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(40))
+        wheelsOuter = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(40))
         wheelsOuter = wheelsOuter[0,wheelsOuter[0,:,0].argsort(),:]
         # argsort indexing removed dummy 1st dimension 
         wheels = np.concatenate((wheelsInner,wheelsOuter),axis=0)
@@ -94,7 +96,9 @@ class profilePhoto():
         # AceLTD
         # chainring = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(60),param1=self.CM2PX(10),param2=self.CM2PX(6),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(10))[0]
         # alite-24. this reduced minDist detects couple dozen, to pick up the chainring.
-        chainring = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(10))[0]
+        # chainring = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(10))[0]
+        # fluid - didn't pick up the chairing or outer diameter properly
+        chainring = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(8))[0]
         # BAYVIEW. use wheel hubs to select chainring circle of more than 1 detected
         if len(chainring[0])>1:
             wx,wy = np.mean(wheels[:,0:2],axis=0)
@@ -121,7 +125,7 @@ class profilePhoto():
         # AceLTD 2cm
         # BAYVIEW 3cm requried to get the headtube
         for c in masks:
-            cv2.circle(target,(c[0],c[1]),int(c[2]+self.CM2PX(2)),255,-1)        
+            cv2.circle(target,(c[0],c[1]),int(c[2]+self.CM2PX(0)),255,-1)        
 
     def maskRect(self,masks,target):
         # masks. list of rects defined by top left point, bottom right
@@ -196,8 +200,7 @@ class profilePhoto():
 
         # line processing
         if houghProcess=='p':
-        # probabilistic works better for short segments like head tube. these numbers are all fine tuned
-        # and hard-coded for cleary though.
+        # probabilistic works better for short segments like head tube.
         # 1. estimate of headset might be better by clipping the rigid fork exacttly at the headtube. or for suspension,
         # using the fork too.
         # 2. average line for the downtube in biased for the cleary example, can't see why the averaing doesn't worok
@@ -214,6 +217,8 @@ class profilePhoto():
                         cv2.line(bw2,(x1,y1),(x2,y2),(0,0,255),CM2PX(0.2))
                 plotFig(bw2,False)
                 plt.show(block=not __debug__)
+            else:
+                print('No edges detected')
 
             # average matching pairs of lines. slope/intercept might not be ideal to select the matching pairs
             # becuase non-linear. try rho/theta?
@@ -368,10 +373,10 @@ class Fork(Tube):
 
         plotFig(imW,cmap="gray")
         plt.show(block= not __debug__)
-        # up to Creig-24.
+        # up to Creig-24. charger
         # avglines,meqs = P.houghLines(imW,P.imRGB,edgeprocess='fork',minlength=7.5)
-        # charger. had to reduce minlength due to angles on the lower tube
-        avglines,meqs = P.houghLines(imW,P.imRGB,edgeprocess='fork',minlength=7.5)
+        # fluid had to reduce minlength 
+        avglines,meqs = P.houghLines(imW,P.imRGB,edgeprocess='fork',minlength=6.0)
         return(meqs)
 
 
@@ -379,6 +384,7 @@ class Tubeset():
     def __init__(self):
         self.tubes = dict(dt=Tube(),tt=Tube(),st=Tube(),ht=Tube(),cs=Tube(),ss=Tube())
         self.targets = dict(ht=Tube())
+        # this will replace targetAngles, targetSLopes
         self.targets['ht'].A = DEG2RAD(70)
         # target set of angles: head tube, seat tube, down tube, top tube  
         # conventional bike angles rotating from neg x to pos y are: (69,72,-47,-23)
@@ -388,7 +394,7 @@ class Tubeset():
         for key in self.targetAngles.keys():
             self.targetSlopes[key] = np.tan(self.targetAngles[key] * np.pi/180)
 
-    # three main tubes can be reliably assigned by slope alone
+    # three main tubes can be assigned by slope alone
     def assignTubeLines(self,avglines,meqs,tubes):
 
         for tube in tubes:
@@ -436,7 +442,7 @@ class Tubeset():
         b2 = self.tubes[tube].pt1[1] - m2*self.tubes[tube].pt1[0]
         self.tubes[tube].seteqn(m2,b2)
         
-    # messy float/int/array/tuple problem. cv2 functions work with tuples of ints, but coordinate
+    # float/int/array/tuple problem. cv2 functions work with tuples of ints, but coordinate
     # calculations have to be arrays of floats. because only arrays can be cast back to ints for cv2.
     # coordinates of each tube in x1,y1,x2,y2
     # origin is cv2 top left
@@ -519,8 +525,6 @@ class Tubeset():
 
     def plotTubes(self,aimg,linew=2):
         # plot raw lines detection
-        # bw2 = np.copy(bw)
-        # rows,cols = np.shape(aimg)[0:2]
         for tube in ['ht','st','dt','tt']:
             # for some reason can't follow this syntax with the line array as did with tuples
             #for x1,y1,x2,y2 in np.nditer(Lline):
@@ -579,7 +583,7 @@ class Geometry():
         self.params['rearcentre'] = PX2CM(self.T.tubes['st'].pt2[0] - self.rw.centre[0])
         self.params['chainstay'] = PX2CM(self.T.tubes['cs'].l())
         self.params['wheelbase'] = PX2CM(self.fw.centre[0] - self.rw.centre[0])
-    # doesn't include top tube thickness!
+        # doesn't include top tube radius yet
         self.params['standover'] = PX2CM(np.mean([self.T.tubes['cs'].pt1[1],self.fork.pt2[1]]) - (self.T.tubes['tt'].m * self.T.tubes['st'].pt2[0] + self.T.tubes['tt'].b) + R)
         self.params['cob'] = self.params['frontcentre'] - self.params['wheelbase']/2
         # self.params['com'] =  self.calcCom()
@@ -629,11 +633,12 @@ def plotFig(img,blockFlag=False,cmap=None):
     plt.show(block=blockFlag)
     figNo += 1
 
-def plotFigCV(img):
-    # try cv2 instead?
+# CV graphics do work with pause for keypad that way plt.ion() was supposed to
+def plotFigCV(img,title="Fig"):
+    # this should work but doesn't
     # cv2.startWindowThread()
-    cv2.namedWindow('Circles Image')
-    cv2.imshow('Circles Image',img)
+    cv2.namedWindow(title)
+    cv2.imshow(title,img)
     cv2.waitKey(0)
     # cv2.destroyAllWindows()
 
@@ -643,7 +648,6 @@ def plotLn(lines,blockFlag=False):
     plt.plot(lines)
     plt.show(block=blockFlag)
     figNo += 1
-    
 
 def coord2angle(line):
     for x1,y1,x2,y2 in line:
@@ -681,16 +685,10 @@ if __name__=='__main__':
     P.imW = np.copy(P.imGRAY)
     P.imW = cv2.blur(P.imW,(5,5))
     # [0]have an extra dimension to get rid of here... 
-    P.maskCircle(np.concatenate((wheels,G.chainring),axis=0),P.imW)
+    # P.maskCircle(np.concatenate((wheels,G.chainring),axis=0),P.imW)
+    P.maskCircle(np.reshape(np.append(G.rw.centre,G.rw.rOuter),(1,3)),P.imW)
+    P.maskCircle(G.chainring,P.imW)
     P.maskRect([(G.rw.centre[0],0,G.chainring[0][0],G.rw.centre[1]-G.rw.rOuter)],P.imW)
-
-    # built cv2 for imshow GTK UI support
-    # but waitKey and destroyAllWindows are clunky use matplotlib for now
-    # cv2.startWindowThread()
-    # cv2.namedWindow('Circles Image')
-    # cv2.imshow('Circles Image',houghCircleImage)
-    # cv2.waitKey(1)
-    #cv2.destroyAllWindows()
 
     # try preliminary thresh to eliminate paint graphic effects
     ret,P.imW = cv2.threshold(P.imW,240,255,cv2.THRESH_BINARY)
@@ -707,7 +705,7 @@ if __name__=='__main__':
 
     P.imW=np.copy(P.imRGB)
     G.T.plotTubes(P.imW)
-    plt.show(block=not __debug__)
+    plt.show(block= not __debug__)
 
     # set the tubes lengths according to intersections
     G.T.calcTubes()
@@ -728,11 +726,9 @@ if __name__=='__main__':
     G.T.extendHeadTube(P.imW)
 
     # add fork, chainstay, seatstay
-    # G.T.addStays(np.mean(wheels[0:4:2],axis=0)[0:2])
     G.T.addStays(G.rw.centre)
     G.fork.pt1 = G.T.tubes['ht'].pt2
     G.fork.pt2 = G.fw.centre
-    # np.mean(wheels[1:4:2],axis=0)[0:2]
     G.fork.axle2crown = G.fork.l()
     G.fork.calcOffset(G.T.tubes['ht'])
     G.calcParams()

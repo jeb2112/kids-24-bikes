@@ -76,7 +76,9 @@ class profilePhoto():
         # AceLTD...Alite-24
         # wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # Creig-24. had to downsample image out of memory, have to scale mmpx accordingly though 0.803 now
-        wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
+        # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
+        # DYNAMITE_24. 
+        wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(8),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # place rear wheel first in list. note extra 1st dimension in output of HoughCircles
         wheelsInner = wheelsInner[0,wheelsInner[0,:,0].argsort(),:]
         # cleary.png
@@ -113,7 +115,7 @@ class profilePhoto():
         plotFig(bw,False,cmap="gray")
         plt.show(block = not __debug__)        
         
-        return wheels,chainring
+        return wheels,chainring[0]
 
     def maskCircle(self,masks,target):
         # masks. list of circles defined by centre point, radius
@@ -166,13 +168,16 @@ class profilePhoto():
         # plt.show(block=__debug__)
 
         lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=CM2PX(minlength))
-        if (lines is not None):
-            # plot raw lines detection
-            for line in lines:
-                for x1,y1,x2,y2 in line:
-                    cv2.line(bw,(x1,y1),(x2,y2),(0,0,255),CM2PX(0.2))
-            plotFig(bw,False)
-            plt.show(block=not __debug__)
+
+        # todo. arrange all lines with pt1[0]<pt2[0]
+
+        # if (lines is not None):
+        #     # plot raw lines detection
+        #     for line in lines:
+        #         for x1,y1,x2,y2 in line:
+        #             cv2.line(bw,(x1,y1),(x2,y2),(0,0,255),CM2PX(0.2))
+        #     plotFig(bw,False,cmap="gray")
+        #     plt.show(block=not __debug__)
         return(lines)
 
 
@@ -196,7 +201,7 @@ class profilePhoto():
             edges = cv2.Canny(bw,150,200,apertureSize=3,L2gradient=True)
         plotFig(edges,False)
         # plotFigCV(edges)
-        # plt.show(block=__debug__)
+        plt.show(block= __debug__)
 
         # line processing
         if houghProcess=='p':
@@ -216,7 +221,7 @@ class profilePhoto():
                     for x1,y1,x2,y2 in line:
                         cv2.line(bw2,(x1,y1),(x2,y2),(0,0,255),CM2PX(0.2))
                 plotFig(bw2,False)
-                plt.show(block=not __debug__)
+                plt.show(block= __debug__)
             else:
                 print('No edges detected')
 
@@ -313,6 +318,8 @@ class Tube():
     def seteqn(self,m,b):
         self.m = m
         self.b = b
+        if self.pt2[0]==0:
+            self.pt2[0]=cols
         self.pt1,self.pt2 = eq2pts((m,b),(self.pt1[0],self.pt2[0]))
         self.pt1 = np.array(self.pt1)
         self.pt2 = np.array(self.pt2)
@@ -337,15 +344,16 @@ class Tube():
     def x(self,y):
         return( (y - self.b) / self.m)
 
-class Tire():
-    def __init__(self,c=[0,0],rI=0,rO=0):
+class Circle():
+    def __init__(self,c=[0,0],r=0):
         self.centre = c
+        self.R = r
+
+class Tire(Circle):
+    def __init__(self,c=[0,0],rI=0,rO=0):
+        Circle.__init__(self,c)
         self.rInner = rI
         self.rOuter = rO
-
-class Ring():
-    def __init__(self):
-        self.centre = [0,0]
 
 class Fork(Tube):
     def __init__(self):
@@ -359,7 +367,7 @@ class Fork(Tube):
         self.offset = self.axle2crown * np.sin(offsetAngle)
         print(('offset = %.1f cm' % PX2CM(self.offset)))
 
-    def findForkLines(self,imW,wheel):
+    def findForkLines(self,imW,wheel,minlength):
         # try to fill in light-colored paint with a preliminary thresh
         ret,imW = cv2.threshold(imW,250,255,cv2.THRESH_BINARY)
         # im = cv2.blur(im,(5,5))
@@ -376,16 +384,17 @@ class Fork(Tube):
         # up to Creig-24. charger
         # avglines,meqs = P.houghLines(imW,P.imRGB,edgeprocess='fork',minlength=7.5)
         # fluid had to reduce minlength 
-        avglines,meqs = P.houghLines(imW,P.imRGB,edgeprocess='fork',minlength=6.0)
-        return(meqs)
+        avglines,meqs = P.houghLines(imW,P.imRGB,edgeprocess='fork',minlength=minlength)
+        return(avglines,meqs)
 
 
 class Tubeset():
     def __init__(self):
         self.tubes = dict(dt=Tube(),tt=Tube(),st=Tube(),ht=Tube(),cs=Tube(),ss=Tube())
-        self.targets = dict(ht=Tube())
+        self.targets = dict(ht=Tube(),st=Tube())
         # this will replace targetAngles, targetSLopes
         self.targets['ht'].A = DEG2RAD(70)
+        self.targets['st'].A = DEG2RAD(72)
         # target set of angles: head tube, seat tube, down tube, top tube  
         # conventional bike angles rotating from neg x to pos y are: (69,72,-47,-23)
         # cujo24. downtube slope>-47 so it picked the stem angle. either filter out stem line before or lower target
@@ -415,6 +424,59 @@ class Tubeset():
         self.tubes['ht'].rho = self.tubes['ht'].rho - CM2PX(1.75*2.54/2)
         self.tubes['ht'].setrhotheta(self.tubes['ht'].rho,self.tubes['ht'].theta)
 
+    # match closest lines to seat tube target. lines not checked yet for same convention pt1[0]<pt2[0]
+    def assignSeatTubeLine(self,lines):
+        # 1 line only. shift the line to pass through bottom bracket. not done yet.
+        if len(lines)==1:
+            self.tubes['st'].setpts(lines[0:2],lines[2:4])
+            self.tubes['st'].rho = self.targets['st'].rho
+            self.tubes['st'].setrhotheta(self.tubes['st'].rho,self.tubes['st'].theta)
+        else:
+            md=np.zeros(len(lines))
+            for i,line in enumerate(lines):
+                line = line[0] # have an extra dimension to get rid of here
+                d1 = np.sqrt(pow(line[0]-self.targets['st'].pt1[0],2)+pow(line[1]-self.targets['st'].pt1[1],2))
+                d2 = np.sqrt(pow(line[2]-self.targets['st'].pt2[0],2)+pow(line[3]-self.targets['st'].pt2[1],2))
+                md[i] = np.mean([d1,d2])
+            # sort lines on distance
+            lines = lines[md.argsort()]
+            md = md[md.argsort()]
+            # iterate and accumulate lines for 1st or 2nd edge or break
+            t=Tube()
+            rt1 = np.zeros((1,2))
+            rt2 = np.zeros((1,2))
+            for i,line in enumerate(lines):
+                line=line[0]
+                t.setpts(line[0:2],line[2:4])
+                if np.abs(t.rho - self.targets['st'].rho) > CM2PX(4):
+                    break
+                else:
+                    if t.rho < self.targets['st'].rho:
+                        rt1 = np.concatenate((rt1,np.reshape(np.array([t.rho,t.theta]),(1,2))),axis=0)
+                    else:
+                        rt2 = np.concatenate((rt2,np.reshape(np.array([t.rho,t.theta]),(1,2))),axis=0)
+            if len(rt1)>1:
+                rt1 = np.mean(rt1[1:],axis=0)
+            else:
+                rt1 = None
+            if len(rt2) > 1:
+                rt2 = np.mean(rt2[1:],axis=0)
+            else:
+                rt2 = None
+            if rt1 is not None and rt2 is not None:
+                rt = np.mean((rt1,rt2),axis=0)
+                self.tubes['st'].setrhotheta(rt[0],rt[1])
+            else:
+                if rt2 is None:
+                    t.setrhotheta(rt1[0],rt1[1])
+                    b = t.m * self.targets['st'].pt2[0] - self.targets['st'].pt2[1]
+                    self.tubes['st'].seteqn(t.m,b)
+                if rt1 is None:
+                    t.setrhotheta(rt2[0],rt2[1])
+                    b = self.targets['st'].pt2[1] - t.m * self.targets['st'].pt2[0]
+                    self.tubes['st'].seteqn(t.m,b)
+
+
     def createHeadTubeTarget(self,fw,type='susp'):
         if type=='susp':
             travel = CM2PX(6.5)
@@ -429,6 +491,15 @@ class Tubeset():
         self.targets['ht'].pt2 = (fw.centre[0]-(axle2crown) * np.cos(self.targets['ht'].A),
                                 fw.centre[1]- (axle2crown)*np.sin(self.targets['ht'].A))
 
+    # try to mask only the seat, not the seatpost. add seatpost detection to this
+    def creatSeatTubeTarget(self,cr):
+        length = CM2PX(12)
+
+        pt1 = (cr.centre[0]-(cr.R + length) * np.cos(self.targets['st'].A),
+                                cr.centre[1]- (cr.R + length)*np.sin(self.targets['st'].A))
+        pt2 = (cr.centre[0]-(cr.R) * np.cos(self.targets['st'].A),
+                                cr.centre[1]- (cr.R)*np.sin(self.targets['st'].A))
+        self.targets['st'].setpts(pt1,pt2)
 
     # average the slope of existing tube with correction 
     def modifyTubeLines(self,meqs,tube,op='mean'):
@@ -546,7 +617,7 @@ class Geometry():
         self.T = Tubeset()
         self.fw = Tire()
         self.rw = Tire()
-        self.cr = Ring()
+        self.cr = Circle()
         self.fork = Fork()
         self.paramlist = ['toptube','frontcentre','chainstay','rearcentre','reach','stack',
                         'bbdrop','headtube','htA','stA','standover','wheelbase','com','trail']
@@ -642,12 +713,12 @@ def plotFigCV(img,title="Fig"):
     cv2.waitKey(0)
     # cv2.destroyAllWindows()
 
-def plotLn(lines,blockFlag=False):
-    global figNo
-    plt.figure(figNo)
-    plt.plot(lines)
-    plt.show(block=blockFlag)
-    figNo += 1
+def plotLines(bw,lines,blockFlag=False):
+    # plot raw lines detection
+    for line in lines:
+        for x1,y1,x2,y2 in line:
+            cv2.line(bw,(x1,y1),(x2,y2),(0,0,255),CM2PX(0.2))
+    plotFig(bw,blockFlag)
 
 def coord2angle(line):
     for x1,y1,x2,y2 in line:
@@ -675,11 +746,12 @@ if __name__=='__main__':
     mmpx = float(sys.argv[2])
     P = profilePhoto(filename,mmpx=mmpx)
     G = Geometry()
-    wheels,G.chainring = P.houghCircles(P.imGRAY)
+    wheels,chainring = P.houghCircles(P.imGRAY)
     # note sort. back wheel  returned first
     # decided not to use outer radius in hub estimation becuase tread pattern sometimes throws it off
     G.rw = Tire(np.mean(wheels[0:4:4],axis=0)[0:2],wheels[0,2],wheels[2,2])
     G.fw = Tire(np.mean(wheels[1:5:4],axis=0)[0:2],wheels[1,2],wheels[3,2])
+    G.cr = Circle(chainring[0:2],chainring[2])
 
     # create working image with wheels masked out to unclutter for line detect
     P.imW = np.copy(P.imGRAY)
@@ -687,17 +759,26 @@ if __name__=='__main__':
     # [0]have an extra dimension to get rid of here... 
     # P.maskCircle(np.concatenate((wheels,G.chainring),axis=0),P.imW)
     P.maskCircle(np.reshape(np.append(G.rw.centre,G.rw.rOuter),(1,3)),P.imW)
-    P.maskCircle(G.chainring,P.imW)
-    P.maskRect([(G.rw.centre[0],0,G.chainring[0][0],G.rw.centre[1]-G.rw.rOuter)],P.imW)
+    P.maskCircle(np.reshape(np.append(G.cr.centre,G.cr.R),(1,3)),P.imW)
+    # try to save more of the seatpost here 
+    P.maskRect([(G.rw.centre[0],0,G.cr.centre[0],G.rw.centre[1]-G.rw.rOuter)],P.imW)
 
     # try preliminary thresh to eliminate paint graphic effects
     ret,P.imW = cv2.threshold(P.imW,240,255,cv2.THRESH_BINARY)
     G.T = Tubeset()
-    # start with main tubes
+    # start with main tubes. old method.
     avglines,meqs = P.houghLines(P.imW,P.imRGB,minlength=8.5)
-    G.T.assignTubeLines(avglines,meqs,['st','tt','dt'])
-    # next:  mask out everything to the left of the tt/dt intersection
+    G.T.assignTubeLines(avglines,meqs,['tt','dt'])
 
+    # todo: create ROI with seat tube only
+    # find seat tube. new method
+    lines = P.houghLinesS(P.imW,minlength=10)
+    P.imW = np.copy(P.imRGB)
+    plotLines(P.imW,lines,False)
+    G.T.creatSeatTubeTarget(G.cr)
+    G.T.assignSeatTubeLine(lines)
+
+    # todo:  head tube ROI. mask out everything to the left of the tt/dt intersection
     # find head tube
     lines = P.houghLinesS(P.imW,minlength=4)
     G.T.createHeadTubeTarget(G.fw,type='susp')
@@ -712,7 +793,7 @@ if __name__=='__main__':
 
     # process the fork for refinement of head tube angle
     P.imW = np.copy(P.imGRAY)
-    meqs = G.fork.findForkLines(P.imW,G.fw)
+    lines,meqs = G.fork.findForkLines(P.imW,G.fw,minlength=5)
     G.T.modifyTubeLines(meqs,'ht',op='mean')
     # Creig-24. charger. head tube estimate not good enough use fork only
     # G.T.modifyTubeLines(avglines,meqs,'ht',op='replace')

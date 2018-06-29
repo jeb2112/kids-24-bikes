@@ -201,7 +201,7 @@ class profilePhoto():
             edges = cv2.Canny(bw,150,200,apertureSize=3,L2gradient=True)
         plotFig(edges,False)
         # plotFigCV(edges)
-        plt.show(block= __debug__)
+        plt.show(block= not __debug__)
 
         # line processing
         if houghProcess=='p':
@@ -221,7 +221,7 @@ class profilePhoto():
                     for x1,y1,x2,y2 in line:
                         cv2.line(bw2,(x1,y1),(x2,y2),(0,0,255),CM2PX(0.2))
                 plotFig(bw2,False)
-                plt.show(block= __debug__)
+                plt.show(block= not __debug__)
             else:
                 print('No edges detected')
 
@@ -421,7 +421,7 @@ class Tubeset():
         selected = lines[md.argmin()][0]
         self.tubes['ht'].setpts(selected[0:2],selected[2:4])
         # adjust line by half the diamter of headtube. need a proper measuremment for this
-        self.tubes['ht'].rho = self.tubes['ht'].rho - CM2PX(1.75*2.54/2)
+        self.tubes['ht'].rho = self.tubes['ht'].rho - CM2PX(1.25*2.54/2)
         self.tubes['ht'].setrhotheta(self.tubes['ht'].rho,self.tubes['ht'].theta)
 
     # match closest lines to seat tube target. lines not checked yet for same convention pt1[0]<pt2[0]
@@ -523,6 +523,21 @@ class Tubeset():
             xint = ( self.tubes[t1].b-self.tubes[t2].b ) / ( self.tubes[t2].m - self.tubes[t1].m )
             setattr(self.tubes[t1],pt1,np.array([xint,self.tubes[t1].y(xint)]))
             setattr(self.tubes[t2],pt2,np.array([xint,self.tubes[t2].y(xint)]))
+        # check for curved down tube
+        if self.tubes['dt'].pt2[1] < self.tubes['tt'].pt2[1]:
+            xint = ( self.tubes['tt'].b-self.tubes['dt'].b ) / ( self.tubes['dt'].m - self.tubes['tt'].m )
+            self.tubes['dt'].pt2[0]= xint - CM2PX(4)
+            self.tubes['dt'].pt2[1] = self.tubes['dt'].y(self.tubes['dt'].pt2[0])
+            self.tubes['gt'] = Tube()
+            # y intercept for gusset tube, using the point of truncation
+            b = self.tubes['dt'].pt2[1] - self.tubes['tt'].m*self.tubes['dt'].pt2[0]
+            self.tubes['gt'].seteqn(self.tubes['tt'].m,b)
+            self.tubes['gt'].pt1 = np.array([xint-CM2PX(4),self.tubes['gt'].y(xint-CM2PX(4))])
+            xint = ( self.tubes['ht'].b-self.tubes['gt'].b ) / ( self.tubes['gt'].m - self.tubes['ht'].m )
+            self.tubes['gt'].pt2 = np.array([xint,self.tubes['gt'].y(xint)])
+            # recalculate the head tubes point 2
+            self.tubes['ht'].pt2 = np.array([xint,self.tubes['ht'].y(xint)])
+        return
 
     def extendHeadTube(self,img):
         global figNo
@@ -554,7 +569,9 @@ class Tubeset():
         # map search range from pixel units to the interpolated 0.1 pixel scale
         toprangeint = range(np.where(bxint==toprange[0])[0][0],np.where(bxint==toprange[-1])[0][0],-1)
         # BAYVIEW reduced botrange from 9.3 to 9 because it was overranging lrange defined above.
-        botrange = range(int(self.tubes['ht'].pt2[1])+CM2PX(0.2),int(self.tubes['ht'].pt2[1]+CM2PX(9.0)))
+        # botrange = range(int(self.tubes['ht'].pt2[1])+CM2PX(0.2),int(self.tubes['ht'].pt2[1]+CM2PX(9.0)))
+        # DYNAMITE_24 - reduced botrange again because of range error
+        botrange = range(int(self.tubes['ht'].pt2[1])+CM2PX(0.2),int(self.tubes['ht'].pt2[1]+CM2PX(6.0)))
         botrangeint = range(np.where(bxint==botrange[0])[0][0],np.where(bxint==botrange[-1])[0][0])
         # average the three colour bands
         mbspl = np.mean(np.abs(bspl),axis=1)
@@ -791,12 +808,15 @@ if __name__=='__main__':
     # set the tubes lengths according to intersections
     G.T.calcTubes()
 
-    # process the fork for refinement of head tube angle
+    # process the fork for refinement of head tube angle. 
     P.imW = np.copy(P.imGRAY)
     lines,meqs = G.fork.findForkLines(P.imW,G.fw,minlength=5)
-    G.T.modifyTubeLines(meqs,'ht',op='mean')
+    G.T.modifyTubeLines(meqs,'ht',op='replace')
     # Creig-24. charger. head tube estimate not good enough use fork only
     # G.T.modifyTubeLines(avglines,meqs,'ht',op='replace')
+
+    # recalc after modfication 
+    G.T.calcTubes()
 
     P.imW=np.copy(P.imRGB)
     G.T.plotTubes(P.imW)

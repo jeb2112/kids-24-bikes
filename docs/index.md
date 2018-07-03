@@ -5,7 +5,7 @@ title: homepage
 Introduction
 ============
 
-This repository is for some python and R code I wrote to make comparisons between different kids' mountain bikes that are available in North America this year. There are for 2018 a number of dozen bikes now available in the 24" wheel size at a price and quality level suitable for real trail riding. In addition, there are 26" wheel sized bikes coming to market, as well as extra-small sized 27.5" wheel bikes. Choosing a bike out of this assortment has become potentially more time consuming, although quite frankly most kids will be happy with any new bike. Nevertheless for those about to shop, you may find some of these comparisons to be of use.  
+This is some python and R code I wrote to make comparisons between different kids' mountain bikes that are available in North America this year. There are for 2018 a number of dozen bikes now available in the 24" wheel size at a price and quality level suitable for real trail riding. In addition, there are 26" wheel sized bikes coming to market, as well as extra-small sized 27.5" wheel bikes. Choosing a bike out of this assortment has become potentially more time consuming, although quite frankly most kids will be happy with any new bike. Nevertheless for those about to shop, you may find some of these comparisons to be of use.  
 
 The raw data for the bikes are located in a [google sheet](https://docs.google.com/spreadsheets/d/e/2PACX-1vRSF9BGnPRchnG9e03NIUNLRIOMxwb9amKUxtODxs9wmmkaxg-9D3_5CZkkis2YIDANWPUJVNnHRxYS/pubhtml)
 

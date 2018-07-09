@@ -82,8 +82,10 @@ class profilePhoto():
         # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # DYNAMITE_24. 
         # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(8),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
-        # exceed. black background 
-        wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
+        # exceed. ewoc
+        # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
+        # frog62. never did pick up  the front inner correctly.
+        wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.CM2PX(90),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # place rear wheel first in list. note extra 1st dimension in output of HoughCircles
         wheelsInner = wheelsInner[0,wheelsInner[0,:,0].argsort(),:]
         # cleary.png
@@ -118,7 +120,7 @@ class profilePhoto():
         for c in chainring:
             cv2.circle(bw3,(c[0],c[1]),int(c[2]),255,5)
         plotFig(bw3,False,cmap="gray",title='houghCircle: wheel detection')
-        plt.show(block = not __debug__)        
+        plt.show(block =  not __debug__)        
         
         return wheels,chainring[0]
 
@@ -166,7 +168,7 @@ class profilePhoto():
         # for wheel only
         else:
             edges = cv2.Canny(bw,150,200,apertureSize=3,L2gradient=True)
-        plotFig(edges,False)
+        plotFig(edges,False,title="houghLinesS")
         plt.show(block=not __debug__)
         # plotFigCV(edges)
         # plt.show(block=__debug__)
@@ -600,8 +602,9 @@ class Tubeset():
                 bsp = scipy.interpolate.splrep(hrange,hprofile[:,i],np.ones(len(hrange)),k=3,s=len(bxint))
                 bspl[:,i] = scipy.interpolate.splev(bxint,bsp,der=1)
             mbspl = np.mean(np.abs(bspl),axis=1)
-            peaks = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(1))
-            # two max peaks should be the main edges. will need silhouette image here though
+            # this min dist should select the desired two peaks
+            peaks = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(3)*10)
+            # two max peaks should be the main edges if not the only ones selected. may need silhouette image here though
             hpeaks[:,i1] = np.sort(peaks[mbspl[peaks].argsort()][::-1][0:2])
             hedge[:,i1] = bxint[hpeaks[:,i1].astype(int)]
             hcentre[i1] = np.mean(hedge[:,i1],axis=0)
@@ -813,12 +816,12 @@ def plotFigCV(img,title="Fig"):
     cv2.waitKey(0)
     # cv2.destroyAllWindows()
 
-def plotLines(bw,lines,blockFlag=False):
+def plotLines(bw,lines,blockFlag=False,title=None):
     # plot raw lines detection
     for line in lines:
         for x1,y1,x2,y2 in line:
             cv2.line(bw,(x1,y1),(x2,y2),(0,0,255),CM2PX(0.1))
-    plotFig(bw,blockFlag)
+    plotFig(bw,blockFlag,title=title)
 
 def coord2angle(line):
     for x1,y1,x2,y2 in line:
@@ -867,20 +870,24 @@ if __name__=='__main__':
     ret,P.imW = cv2.threshold(P.imW,240,255,cv2.THRESH_BINARY)
     G.T = Tubeset()
     # start with main tubes. old method.
-    avglines,meqs = P.houghLines(P.imW,P.imRGB,minlength=8.5)
+    # avglines,meqs = P.houghLines(P.imW,P.imRGB,minlength=8.5)
+    # frog62. increase min length
+    avglines,meqs = P.houghLines(P.imW,P.imRGB,minlength=12.5)
     G.T.assignTubeLines(avglines,meqs,['tt','dt'])
 
     # todo: create ROI with seat tube only
     # find seat tube. new method
     lines = P.houghLinesS(P.imW,minlength=10)
     P.imW = np.copy(P.imRGB)
-    plotLines(P.imW,lines,False)
+    plotLines(P.imW,lines,False,title="seat tube line detection")
     G.T.createSeatTubeTarget(G.cr)
     G.T.assignSeatTubeLine(lines)
 
     # todo:  head tube ROI. mask out everything to the left of the tt/dt intersection
     # find head tube
     lines = P.houghLinesS(P.imW,minlength=4)
+    P.imW = np.copy(P.imRGB)
+    plotLines(P.imW,lines,False,title="head tube line detection")
     G.T.createHeadTubeTarget(G.fw,type='susp')
     G.T.assignHeadTubeLine(lines)
 

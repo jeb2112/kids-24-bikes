@@ -191,9 +191,11 @@ class profilePhoto():
         # cleary, cujo24, AceLTD
         # edges = cv2.Canny(bw,100,200,apertureSize=3,L2gradient=True)
         # BAYVIEW - reduce slightly due to lightyellow graphic that doesn't generate enough gradient in gray-scale
+        # ewoc - bg=236. changed to 255 in gimp, but could change all the hard-coded fills here to P.bg
         if edgeprocess=='bike':
-            if P.bg == 255:
+            if P.bg > 200:
                 edges = cv2.Canny(bw,95,190,apertureSize=3,L2gradient=True)
+        # filtering on the black background didn't work, had to use gimp
             elif P.bg == 0:
                 edges = cv2.Canny(bw,1,2,apertureSize=7,L2gradient=True)
         # for wheel only
@@ -232,6 +234,9 @@ class profilePhoto():
             for i,line in enumerate(lines):
                 eqns[i,:] = pts2eq(((line[0,0:2]),(line[0,2:4])))
                 rhotheta[i,:] = coord2angle(line)
+
+            # remove any with m=0
+            eqns = eqns[np.abs(eqns[:,0])>0.01]
 
             # cujo24.png. saddle is partially picked up. from photo cujo saddle appears to be an adult size 26cm
             # can add a check for saddle length? saddle length isn't tabulated by vendors
@@ -569,6 +574,49 @@ class Tubeset():
             self.tubes['ht'].pt2 = np.array([xint,self.tubes['ht'].y(xint)])
         return
 
+    # use first estimate of head tube to improve by measuring tube width at the top and bottom
+    # this may end up replacing the use of findForkLines
+    def measureHeadTube(self,img):
+        global figNo
+        plt.figure(figNo)
+         
+        hpeaks = np.zeros((2,2))
+        hedge = np.zeros((2,2))
+        hcentre = np.zeros(2)
+        for i1 in range(0,2):
+            if i1==0:
+                htx,hty = self.tubes['ht'].pt1
+            else:
+                htx,hty = self.tubes['ht'].pt2
+            M = cv2.getRotationMatrix2D((htx,hty),self.tubes['ht'].A*180/np.pi-90,1)
+            rimg = cv2.warpAffine(img,M,(cols,rows))
+            hrange = range(int(htx)-CM2PX(3),int(htx)+CM2PX(3))
+            hprofile = rimg[int(hty),hrange]
+ 
+            bxint = np.round(np.arange(hrange[0],hrange[-1],.1)*10)/10
+            bspl = np.zeros((len(bxint),3))
+            for i in range(0,3):
+                # arbitrary smoothing factor
+                bsp = scipy.interpolate.splrep(hrange,hprofile[:,i],np.ones(len(hrange)),k=3,s=len(bxint))
+                bspl[:,i] = scipy.interpolate.splev(bxint,bsp,der=1)
+            mbspl = np.mean(np.abs(bspl),axis=1)
+            peaks = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(1))
+            # two max peaks should be the main edges. will need silhouette image here though
+            hpeaks[:,i1] = np.sort(peaks[mbspl[peaks].argsort()][::-1][0:2])
+            hedge[:,i1] = bxint[hpeaks[:,i1].astype(int)]
+            hcentre[i1] = np.mean(hedge[:,i1],axis=0)
+
+            plt.subplot(2,1,i1+1)
+            plt.plot(bxint,mbspl)
+            plt.plot(hrange,hprofile)
+            plt.plot(bxint[hpeaks[:,i1].astype(int)],mbspl[hpeaks[:,i1].astype(int)],'r+')
+
+        # should de-rotate the point here actually to correct the y-value
+        self.tubes['ht'].setpts(np.array([hcentre[0],self.tubes['ht'].pt1[1]]),np.array([hcentre[1],self.tubes['ht'].pt2[1]]))
+        plt.show(block= not __debug__)
+        figNo = figNo + 1
+    
+
     def extendHeadTube(self,img):
         global figNo
         # rows,cols = np.shape(img)[0:2]
@@ -615,7 +663,9 @@ class Tubeset():
         # charger - reduced threshold
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[2]+botrangeint[0] 
         # exceed - reduced threshold
-        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
+        # ewoc - cable created 3 peaks. more blur.
+        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[3]+botrangeint[0]
         # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.4,min_dist=CM2PX(3))[0]
         # BAYVIEW - reduced threshold
         toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.3,min_dist=CM2PX(3))[0]
@@ -858,6 +908,9 @@ if __name__=='__main__':
     P.imW = np.copy(P.imRGB)
     # Creig-24. slight error because brake cable is below the bottom of tube. need an extra check on tube profile perpendicular
     G.T.extendHeadTube(P.imW)
+
+    # with head tube approximately correct, redo the head angle estimate with better measurement.
+    G.T.measureHeadTube(P.imW)
 
     # add fork, chainstay, seatstay
     G.T.addStays(G.rw.centre)

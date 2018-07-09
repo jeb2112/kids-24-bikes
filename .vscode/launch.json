@@ -7,7 +7,7 @@
         "request": "launch",
         "pythonPath": "/usr/share/miniconda2/envs/mypy2/bin/python",
         "program": "${file}",
-        "args": ["/home/jbishop/Pictures/Frog62.png","0.94"],
+        "args": ["/home/jbishop/Pictures/riprock.png","0.81"],
         "cwd": "${workspaceRoot}",
         "debugOptions": [
             "BreakOnSystemExitZero",

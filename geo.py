@@ -74,18 +74,17 @@ class profilePhoto():
         # plt.show()        
         # not sure about final param1,2 choices yet
         # cleary,cujo24
-        # wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,
-        #     1,minDist=self.CM2PX(60),param1=self.CM2PX(22),param2=self.CM2PX(16),minRadius=self.CM2PX(13),maxRadius=self.CM2PX(30))
+        # wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(60),param1=self.CM2PX(22),param2=self.CM2PX(16),minRadius=self.CM2PX(13),maxRadius=self.CM2PX(30))
         # AceLTD...Alite-24
         # wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # Creig-24. had to downsample image out of memory, have to scale mmpx accordingly though 0.803 now
         # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
-        # DYNAMITE_24. 
-        # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(8),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
+        # DYNAMITE_24. riprock
+        wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(8),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # exceed. ewoc
         # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # frog62. never did pick up  the front inner correctly.
-        wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.CM2PX(90),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
+        # wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.CM2PX(90),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # place rear wheel first in list. note extra 1st dimension in output of HoughCircles
         wheelsInner = wheelsInner[0,wheelsInner[0,:,0].argsort(),:]
         # cleary.png
@@ -237,8 +236,10 @@ class profilePhoto():
                 eqns[i,:] = pts2eq(((line[0,0:2]),(line[0,2:4])))
                 rhotheta[i,:] = coord2angle(line)
 
-            # remove any with m=0
+            # remove any with m=0 or NaN
             eqns = eqns[np.abs(eqns[:,0])>0.01]
+            eqns = eqns[~np.isnan(eqns[:,0]),:]
+            rhotheta = rhotheta[~np.isnan(rhotheta[:,0]),:]
 
             # cujo24.png. saddle is partially picked up. from photo cujo saddle appears to be an adult size 26cm
             # can add a check for saddle length? saddle length isn't tabulated by vendors
@@ -384,8 +385,8 @@ class Fork(Tube):
         print(('offset = %.1f cm' % PX2CM(self.offset)))
 
     def findForkLines(self,imW,wheel,minlength):
-        # try to fill in light-colored paint with a preliminary thresh
-        if P.bg == 255:
+        # try to fill in light-colored paint with a preliminary thresh. hardcoded at 250 for now
+        if P.bg > 250:
             ret,imW = cv2.threshold(imW,250,255,cv2.THRESH_BINARY)
         elif P.bg == 0:
             ret,imW = cv2.threshold(imW,250,255,cv2.THRESH_BINARY)
@@ -497,7 +498,7 @@ class Tubeset():
             else:
                 if rt2 is None:
                     t.setrhotheta(rt1[0],rt1[1])
-                    b = t.m * self.targets['st'].pt2[0] - self.targets['st'].pt2[1]
+                    b = self.targets['st'].pt2[1] - t.m * self.targets['st'].pt2[0]
                     self.tubes['st'].seteqn(t.m,b)
                 if rt1 is None:
                     t.setrhotheta(rt2[0],rt2[1])
@@ -560,20 +561,32 @@ class Tubeset():
             xint = ( self.tubes[t1].b-self.tubes[t2].b ) / ( self.tubes[t2].m - self.tubes[t1].m )
             setattr(self.tubes[t1],pt1,np.array([xint,self.tubes[t1].y(xint)]))
             setattr(self.tubes[t2],pt2,np.array([xint,self.tubes[t2].y(xint)]))
-        # check for curved down tube
+        # check if incorrect detection of curved tubes has created a non-physical tt/dt intersection
+        # needs proper detection for line segments of a bent tube. quick kludge for now
         if self.tubes['dt'].pt2[1] < self.tubes['tt'].pt2[1]:
-            xint = ( self.tubes['tt'].b-self.tubes['dt'].b ) / ( self.tubes['dt'].m - self.tubes['tt'].m )
-            self.tubes['dt'].pt2[0]= xint - CM2PX(4)
-            self.tubes['dt'].pt2[1] = self.tubes['dt'].y(self.tubes['dt'].pt2[0])
-            self.tubes['gt'] = Tube()
-            # y intercept for gusset tube, using the point of truncation
-            b = self.tubes['dt'].pt2[1] - self.tubes['tt'].m*self.tubes['dt'].pt2[0]
-            self.tubes['gt'].seteqn(self.tubes['tt'].m,b)
-            self.tubes['gt'].pt1 = np.array([xint-CM2PX(4),self.tubes['gt'].y(xint-CM2PX(4))])
-            xint = ( self.tubes['ht'].b-self.tubes['gt'].b ) / ( self.tubes['gt'].m - self.tubes['ht'].m )
-            self.tubes['gt'].pt2 = np.array([xint,self.tubes['gt'].y(xint)])
-            # recalculate the head tubes point 2
-            self.tubes['ht'].pt2 = np.array([xint,self.tubes['ht'].y(xint)])
+            # kludge: alter the down tube to parallel the top tube
+            kludge=2
+            if kludge==1:
+                xint = ( self.tubes['tt'].b-self.tubes['dt'].b ) / ( self.tubes['dt'].m - self.tubes['tt'].m )
+                self.tubes['dt'].pt2[0]= xint - CM2PX(4)
+                self.tubes['dt'].pt2[1] = self.tubes['dt'].y(self.tubes['dt'].pt2[0])
+                self.tubes['gt'] = Tube()
+                # y intercept for gusset tube, using the point of truncation
+                b = self.tubes['dt'].pt2[1] - self.tubes['tt'].m*self.tubes['dt'].pt2[0]
+                self.tubes['gt'].seteqn(self.tubes['tt'].m,b)
+                self.tubes['gt'].pt1 = np.array([xint-CM2PX(4),self.tubes['gt'].y(xint-CM2PX(4))])
+                xint = ( self.tubes['ht'].b-self.tubes['gt'].b ) / ( self.tubes['gt'].m - self.tubes['ht'].m )
+                self.tubes['gt'].pt2 = np.array([xint,self.tubes['gt'].y(xint)])
+                # recalculate the head tubes point 2
+                self.tubes['ht'].pt2 = np.array([xint,self.tubes['ht'].y(xint)])
+            elif kludge==2:
+            # kludge 2: swap the intersections points at the head tube
+                xint1 = ( self.tubes['ht'].b - self.tubes['tt'].b ) / ( self.tubes['tt'].m - self.tubes['ht'].m )
+                y1 = self.tubes['tt'].y(xint1)
+                xint2 = ( self.tubes['ht'].b - self.tubes['dt'].b ) / ( self.tubes['dt'].m - self.tubes['ht'].m )
+                y2 = self.tubes['dt'].y(xint2)
+                self.tubes['dt'].setpts(self.tubes['dt'].pt1,np.array([xint1,y1]))
+                self.tubes['tt'].setpts(self.tubes['tt'].pt1,np.array([xint2,y2]))
         return
 
     # use first estimate of head tube to improve by measuring tube width at the top and bottom
@@ -592,7 +605,8 @@ class Tubeset():
                 htx,hty = self.tubes['ht'].pt2
             M = cv2.getRotationMatrix2D((htx,hty),self.tubes['ht'].A*180/np.pi-90,1)
             rimg = cv2.warpAffine(img,M,(cols,rows))
-            hrange = range(int(htx)-CM2PX(3),int(htx)+CM2PX(3))
+            # needed 4 cm to the left for the wider headtube of riprock
+            hrange = range(int(htx)-CM2PX(4),int(htx)+CM2PX(3))
             hprofile = rimg[int(hty),hrange]
  
             bxint = np.round(np.arange(hrange[0],hrange[-1],.1)*10)/10
@@ -605,6 +619,7 @@ class Tubeset():
             # this min dist should select the desired two peaks
             peaks = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(3)*10)
             # two max peaks should be the main edges if not the only ones selected. may need silhouette image here though
+            # riprock fails at pt1 due to narrow gap and brake
             hpeaks[:,i1] = np.sort(peaks[mbspl[peaks].argsort()][::-1][0:2])
             hedge[:,i1] = bxint[hpeaks[:,i1].astype(int)]
             hcentre[i1] = np.mean(hedge[:,i1],axis=0)
@@ -665,10 +680,10 @@ class Tubeset():
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(1))[2]+botrangeint[0] 
         # charger - reduced threshold
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[2]+botrangeint[0] 
-        # exceed - reduced threshold
-        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
+        # exceed,riprock - reduced threshold and took first peak
+        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
         # ewoc - cable created 3 peaks. more blur.
-        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[3]+botrangeint[0]
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[3]+botrangeint[0]
         # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.4,min_dist=CM2PX(3))[0]
         # BAYVIEW - reduced threshold
         toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.3,min_dist=CM2PX(3))[0]
@@ -780,8 +795,12 @@ class Geometry():
    
 
 def pts2eq(((x1,y1),(x2,y2))):
-    m = float(y2-y1)/float(x2-x1)
-    b = y1 - m * x1
+    if x1<>x2:
+        m = float(y2-y1)/float(x2-x1)
+        b = y1 - m * x1
+    else:
+        m = float('NaN')
+        b = float('NaN')
     return [m,b]
 
 # this should probably return array not list
@@ -825,10 +844,14 @@ def plotLines(bw,lines,blockFlag=False,title=None):
 
 def coord2angle(line):
     for x1,y1,x2,y2 in line:
-        m = float(y2-y1) / float(x2-x1)
-        b = y1 - m*x1
-        theta = (np.pi/2  + np.arctan(m)) - np.pi
-        rho = -b / (m*np.cos(theta) - np.sin(theta)) 
+        if x1<>x2:
+            m = float(y2-y1) / float(x2-x1)
+            b = y1 - m*x1
+            theta = (np.pi/2  + np.arctan(m)) - np.pi
+            rho = -b / (m*np.cos(theta) - np.sin(theta)) 
+        else:
+            rho = float('NaN')
+            theta = float('NaN')
         return(rho,theta)
         
 def angle2coord(line):
@@ -870,9 +893,11 @@ if __name__=='__main__':
     ret,P.imW = cv2.threshold(P.imW,240,255,cv2.THRESH_BINARY)
     G.T = Tubeset()
     # start with main tubes. old method.
-    # avglines,meqs = P.houghLines(P.imW,P.imRGB,minlength=8.5)
-    # frog62. increase min length
-    avglines,meqs = P.houghLines(P.imW,P.imRGB,minlength=12.5)
+    avglines,meqs = P.houghLines(P.imW,P.imRGB,minlength=8.5)
+    # frog62. increase min length, easiest to avoid the chain confusing the top tube
+    # rather than another round of refinement on angles. should generally be a correct strategy
+    # although it fails for riprock with such a bent top tube.
+    # avglines,meqs = P.houghLines(P.imW,P.imRGB,minlength=12.5)    
     G.T.assignTubeLines(avglines,meqs,['tt','dt'])
 
     # todo: create ROI with seat tube only
@@ -915,19 +940,29 @@ if __name__=='__main__':
     P.imW = np.copy(P.imRGB)
     # Creig-24. slight error because brake cable is below the bottom of tube. need an extra check on tube profile perpendicular
     G.T.extendHeadTube(P.imW)
-
-    # with head tube approximately correct, redo the head angle estimate with better measurement.
-    G.T.measureHeadTube(P.imW)
-
     # add fork, chainstay, seatstay
     G.T.addStays(G.rw.centre)
     G.fork.pt1 = G.T.tubes['ht'].pt2
     G.fork.pt2 = G.fw.centre
+
+    P.imW=np.copy(P.imRGB)
+    P.imW = G.plotTubes(P.imW,G.T)
+    plotFig(P.imW,False,title="head extend")
+
+    # with head tube approximately correct, redo the head angle estimate with better measurement.
+    P.imW = np.copy(P.imRGB)
+    G.T.measureHeadTube(P.imW)
+
+    # redo fork
+    G.fork.pt1 = G.T.tubes['ht'].pt2
     G.fork.axle2crown = G.fork.l()
     G.fork.calcOffset(G.T.tubes['ht'])
+
+    # create output
     G.calcParams()
     G.printParams()
 
+    # final block with blocking
     P.imW = np.copy(P.imRGB)
     P.imw = G.plotTubes(P.imW,G.T)
     plotFig(P.imw,True)

@@ -440,8 +440,10 @@ class Tubeset():
             md[i] = np.mean([d1,d2])
         selected = lines[md.argmin()][0]
         self.tubes['ht'].setpts(selected[0:2],selected[2:4])
-        # adjust line by half the diamter of headtube. need a proper measuremment for this
-        self.tubes['ht'].rho = self.tubes['ht'].rho - CM2PX(1.25*2.54/2)
+        # adjust line by less than half the diamter of the expected headtube. 
+        # this will ensure a clean profile for the actual headtube length detection, following
+        # which the more accurate diameter detection is done. 
+        self.tubes['ht'].rho = self.tubes['ht'].rho - CM2PX(0.75*2.54/2)
         self.tubes['ht'].setrhotheta(self.tubes['ht'].rho,self.tubes['ht'].theta)
 
     # match closest lines to seat tube target. lines not checked yet for same convention pt1[0]<pt2[0]
@@ -630,7 +632,7 @@ class Tubeset():
             plt.plot(bxint[hpeaks[:,i1].astype(int)],mbspl[hpeaks[:,i1].astype(int)],'r+')
 
         # should de-rotate the point here actually to correct the y-value
-        self.tubes['ht'].setpts(np.array([hcentre[0],self.tubes['ht'].pt1[1]]),np.array([hcentre[1],self.tubes['ht'].pt2[1]]))
+        self.tubes['ht'].setpts(np.array([hcentre[0],self.tubes['ht'].pt1[1]]),np.array([hcentre[1],self.tubes['ht'].pt2[1]]))        
         plt.show(block= not __debug__)
         figNo = figNo + 1
     
@@ -667,11 +669,19 @@ class Tubeset():
         # BAYVIEW reduced botrange from 9.3 to 9 because it was overranging lrange defined above.
         # botrange = range(int(self.tubes['ht'].pt2[1])+CM2PX(0.2),int(self.tubes['ht'].pt2[1]+CM2PX(9.0)))
         # DYNAMITE_24 - reduced botrange again because of range error
-        botrange = range(int(self.tubes['ht'].pt2[1])+CM2PX(0.2),int(self.tubes['ht'].pt2[1]+CM2PX(6.0)))
+        # hotrock - increased again slightly.
+        botrange = range(int(self.tubes['ht'].pt2[1])+CM2PX(0.2),int(self.tubes['ht'].pt2[1]+CM2PX(6.5)))
         botrangeint = range(np.where(bxint==botrange[0])[0][0],np.where(bxint==botrange[-1])[0][0])
         # average the three colour bands
         mbspl = np.mean(np.abs(bspl),axis=1)
 
+        plt.figure(figNo)
+        plt.subplot(2,1,1)
+        plt.plot(lrange,htprofile)
+        plt.subplot(2,1,2)
+        plt.plot(bxint,np.mean(np.abs(bspl),axis=1))
+        plt.plot(bxint[botrangeint],mbspl[botrangeint],'r')
+        plt.plot(bxint[toprangeint],mbspl[toprangeint],'r')
         # for top peak take 0th index the first peak in the derivative. 
         # for bottom peak, take 2nd index 3rd peak, allowing two peaks for the cable housing
         # should be able to ignore 1 with min_dist but didn't work? or more smoothing in the splines.
@@ -687,16 +697,9 @@ class Tubeset():
         # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.4,min_dist=CM2PX(3))[0]
         # BAYVIEW - reduced threshold
         toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.3,min_dist=CM2PX(3))[0]
-        plt.figure(figNo)
-        plt.subplot(2,1,1)
-        plt.plot(lrange,htprofile)
-        plt.subplot(2,1,2)
-        plt.plot(bxint,np.mean(np.abs(bspl),axis=1))
-        plt.plot(bxint[botrangeint],mbspl[botrangeint],'r')
-        plt.plot(bxint[toprangeint],mbspl[toprangeint],'r')
         plt.plot(bxint[toppeak],mbspl[toppeak],'r+')
         plt.plot(bxint[botpeak],mbspl[botpeak],'r+')
-        plt.show(block=not __debug__)
+        plt.show(block= not __debug__)
         figNo = figNo + 1
     
         headtubetoplength = self.tubes['ht'].pt1[1] - bxint[toppeak]
@@ -958,6 +961,12 @@ if __name__=='__main__':
     G.fork.axle2crown = G.fork.l()
     G.fork.calcOffset(G.T.tubes['ht'])
 
+    # recalc the tubes
+    G.T.calcTubes()
+    P.imW = np.copy(P.imRGB)
+    # reuse of extendHeadTube ought to work but might hit welding bumps
+    G.T.extendHeadTube(P.imW)
+    
     # create output
     G.calcParams()
     G.printParams()

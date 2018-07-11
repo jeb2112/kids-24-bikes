@@ -195,7 +195,9 @@ class profilePhoto():
         # ewoc - bg=236. changed to 255 in gimp, but could change all the hard-coded fills here to P.bg
         if edgeprocess=='bike':
             if P.bg > 200:
-                edges = cv2.Canny(bw,95,190,apertureSize=3,L2gradient=True)
+                # edges = cv2.Canny(bw,95,190,apertureSize=3,L2gradient=True)
+                # cube240. for the bottom side of top tube which was obscured by cable
+                edges = cv2.Canny(bw,95,190,apertureSize=7,L2gradient=True)
         # filtering on the black background didn't work, had to use gimp
             elif P.bg == 0:
                 edges = cv2.Canny(bw,1,2,apertureSize=7,L2gradient=True)
@@ -566,8 +568,8 @@ class Tubeset():
         # check if incorrect detection of curved tubes has created a non-physical tt/dt intersection
         # needs proper detection for line segments of a bent tube. quick kludge for now
         if self.tubes['dt'].pt2[1] < self.tubes['tt'].pt2[1]:
-            # kludge: alter the down tube to parallel the top tube
-            kludge=2
+            # kludge: alter the down tube to parallel the top tube. for straight top tube
+            kludge=1
             if kludge==1:
                 xint = ( self.tubes['tt'].b-self.tubes['dt'].b ) / ( self.tubes['dt'].m - self.tubes['tt'].m )
                 self.tubes['dt'].pt2[0]= xint - CM2PX(4)
@@ -582,7 +584,7 @@ class Tubeset():
                 # recalculate the head tubes point 2
                 self.tubes['ht'].pt2 = np.array([xint,self.tubes['ht'].y(xint)])
             elif kludge==2:
-            # kludge 2: swap the intersections points at the head tube
+            # kludge 2: swap the intersections points at the head tube. for bent top tube like riprock
                 xint1 = ( self.tubes['ht'].b - self.tubes['tt'].b ) / ( self.tubes['tt'].m - self.tubes['ht'].m )
                 y1 = self.tubes['tt'].y(xint1)
                 xint2 = ( self.tubes['ht'].b - self.tubes['dt'].b ) / ( self.tubes['dt'].m - self.tubes['ht'].m )
@@ -608,7 +610,10 @@ class Tubeset():
             M = cv2.getRotationMatrix2D((htx,hty),self.tubes['ht'].A*180/np.pi-90,1)
             rimg = cv2.warpAffine(img,M,(cols,rows))
             # needed 4 cm to the left for the wider headtube of riprock
-            hrange = range(int(htx)-CM2PX(4),int(htx)+CM2PX(3))
+            # hrange = range(int(htx)-CM2PX(4),int(htx)+CM2PX(3))
+            # needed less than 3cm to right cube240
+            # can detect this properly based on teh 255 background
+            hrange = range(int(htx)-CM2PX(4),int(htx)+CM2PX(2.5))
             hprofile = rimg[int(hty),hrange]
  
             bxint = np.round(np.arange(hrange[0],hrange[-1],.1)*10)/10
@@ -896,11 +901,11 @@ if __name__=='__main__':
     ret,P.imW = cv2.threshold(P.imW,240,255,cv2.THRESH_BINARY)
     G.T = Tubeset()
     # start with main tubes. old method.
-    avglines,meqs = P.houghLines(P.imW,P.imRGB,minlength=8.5)
-    # frog62. increase min length, easiest to avoid the chain confusing the top tube
+    # avglines,meqs = P.houghLines(P.imW,P.imRGB,minlength=8.5)
+    # frog62, cube240. increase min length, easiest to avoid the chain confusing the top tube
     # rather than another round of refinement on angles. should generally be a correct strategy
     # although it fails for riprock with such a bent top tube.
-    # avglines,meqs = P.houghLines(P.imW,P.imRGB,minlength=12.5)    
+    avglines,meqs = P.houghLines(P.imW,P.imRGB,minlength=12.0)    
     G.T.assignTubeLines(avglines,meqs,['tt','dt'])
 
     # todo: create ROI with seat tube only

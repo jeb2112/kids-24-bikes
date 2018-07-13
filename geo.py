@@ -56,6 +56,37 @@ class profilePhoto():
         self.imGRAY = cv2.cvtColor(self.imRGB,cv2.COLOR_BGR2GRAY)
         self.bg = self.imGRAY[0,0]
 
+    # return a profile perpendicular to a tube at the given point
+    # should be used eventually to replace measureHeadTube. but the width parameter might have to be split
+    def profile(self,pt1,width,tube,img=None):
+        if img is None:
+            img = self.imW
+        # rotate tube to vertical position profile is horizontal
+        M = cv2.getRotationMatrix2D((int(pt1[0]),int(pt1[1])),tube.A*180/np.pi-90,1)
+        rimg = cv2.warpAffine(img,M,(cols,rows))
+        hrange = range(int(pt1[0])-CM2PX(width/2),int(pt1[0])+CM2PX(width/2))
+        hprofile = rimg[int(pt1[1]),hrange]
+
+        bxint = np.round(np.arange(hrange[0],hrange[-1],.1)*10)/10
+        if len(np.shape(img))>2:
+            bspl0 = np.zeros((len(bxint),3))
+            bspl1 = np.zeros((len(bxint),3))
+            for i in range(0,3):
+                # arbitrary smoothing factor
+                bsp = scipy.interpolate.splrep(hrange,hprofile[:,i],np.ones(len(hrange)),k=3,s=len(bxint))
+                bspl0[:,i] = scipy.interpolate.splev(bxint,bsp,der=0)
+                bspl1[:,i] = scipy.interpolate.splev(bxint,bsp,der=1)
+            bspl0 = np.mean(np.abs(bspl0),axis=1)
+            bspl1 = np.mean(np.abs(bspl1),axis=1)
+        else:
+            bspl0 = np.zeros((len(bxint)))
+            bspl1 = np.zeros((len(bxint)))
+            bsp = scipy.interpolate.splrep(hrange,hprofile,np.ones(len(hrange)),k=3,s=len(bxint))
+            bspl0 = scipy.interpolate.splev(bxint,bsp,der=0)
+            bspl1 = scipy.interpolate.splev(bxint,bsp,der=1)
+            
+        return(bxint,bspl0,bspl1)       
+
     def houghCircles(self,bw):
         # this preblur maybe helps get rid of the apparent line in the middle of a tube
         # due to the reflection of light but this hasn't been investigated much yet
@@ -80,11 +111,13 @@ class profilePhoto():
         # Creig-24. had to downsample image out of memory, have to scale mmpx accordingly though 0.803 now
         # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # DYNAMITE_24. riprock
-        wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(8),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
+        # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(8),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # exceed. ewoc
         # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # frog62. never did pick up  the front inner correctly.
         # wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.CM2PX(90),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
+        # mantra. further reduction in maxRadius
+        wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(8),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(26))        
         # place rear wheel first in list. note extra 1st dimension in output of HoughCircles
         wheelsInner = wheelsInner[0,wheelsInner[0,:,0].argsort(),:]
         # cleary.png
@@ -106,6 +139,7 @@ class profilePhoto():
         # alite-24. this reduced minDist detects couple dozen, to pick up the chainring.
         # chainring = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(10))[0]
         # fluid - didn't pick up the chairing or outer diameter properly
+        # mantra - chainring detection with these params was skewed about 1cm high
         chainring = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(8))[0]
         # BAYVIEW. use wheel hubs to select chainring circle of more than 1 detected
         if len(chainring[0])>1:
@@ -119,7 +153,7 @@ class profilePhoto():
         for c in chainring:
             cv2.circle(bw3,(c[0],c[1]),int(c[2]),255,5)
         plotFig(bw3,False,cmap="gray",title='houghCircle: wheel detection')
-        plt.show(block =  not __debug__)        
+        plt.show(block = not  __debug__)        
         
         return wheels,chainring[0]
 
@@ -132,7 +166,7 @@ class profilePhoto():
         # AceLTD 2cm
         # BAYVIEW 3cm requried to get the headtube
         for c in masks:
-            cv2.circle(target,(c[0],c[1]),int(c[2]+self.CM2PX(0)),255,-1)        
+            cv2.circle(target,(int(c[0]),int(c[1])),int(c[2]+self.CM2PX(0)),255,-1)        
 
     def maskRect(self,masks,target):
         # masks. list of rects defined by top left point, bottom right
@@ -231,17 +265,18 @@ class profilePhoto():
                 print('No edges detected')
 
             # average matching pairs of lines. slope/intercept might not be ideal to select the matching pairs
-            # becuase non-linear. try rho/theta?
+            # becuase non-linear.
             eqns = np.zeros((np.shape(lines)[0],2))
             rhotheta = np.zeros((np.shape(lines)[0],2))
             for i,line in enumerate(lines):
                 eqns[i,:] = pts2eq(((line[0,0:2]),(line[0,2:4])))
                 rhotheta[i,:] = coord2angle(line)
 
-            # remove any with m=0 or NaN
-            eqns = eqns[np.abs(eqns[:,0])>0.01]
-            eqns = eqns[~np.isnan(eqns[:,0]),:]
-            rhotheta = rhotheta[~np.isnan(rhotheta[:,0]),:]
+            # remove any with m=0 or NaN. nete extra dimension in l ines
+            setr = [a and b for a,b in zip(np.abs(eqns[:,0])>0.01,~np.isnan(eqns[:,0]))] 
+            lines = lines[setr,:,:]
+            eqns = eqns[setr,:]
+            rhotheta = rhotheta[setr,:]
 
             # cujo24.png. saddle is partially picked up. from photo cujo saddle appears to be an adult size 26cm
             # can add a check for saddle length? saddle length isn't tabulated by vendors
@@ -274,19 +309,33 @@ class profilePhoto():
                     break
                 else:
                     meq1 = np.mean(eqns[eqnset1a],axis=0)
+
                 if len(eqnset1b) > 0:
                     meq2 = np.mean(eqns[eqnset1b],axis=0)
                     meq = np.mean([meq1,meq2],axis=0)
                 else:
-                    # only one of two lines deteected for this tube. for now assume this is the head tube
-                    # and the missing line is the left one. subract half the diameter of teh 1 1/2 head tube
-                    # need cos(HTA) in here as well
-                    if np.abs(meq1[0] - (2.5)) < 0.3:
-                        pt1,pt2 = eq2pts(meq1,(0,cols)) 
-                        meq = np.array(pts2eq(((pt1[0]-CM2PX(4)/2,pt1[1]),(pt2[0]-CM2PX(4)/2,pt2[1]))))
-                    else:
-                    # cujo24.png. eqnset1b is null for top tube, so average of eqnset1a alone is correct
-                        meq = meq1
+                    # only one of two lines detected for this tube. 
+                    # form profile to determine which line/edge it is and where the tube centre is.
+                    mln1 = np.mean(lines[eqnset1a,:],axis=0)
+                    t=Tube()
+                    t.seteqn(meq1[0],meq1[1])
+                    t.setpts(mln1[0,0:2],mln1[0,2:4])
+                    midpt = np.mean((t.pt1,t.pt2),axis=0)
+                    # bw2 = np.copy(aw)
+                    bx,b0,b1 = self.profile(midpt,10,t)
+
+                    peaks = peakutils.indexes(b1,thres=0.2,min_dist=CM2PX(3)*10)
+                    hpeaks = np.sort(peaks[b1[peaks].argsort()][::-1][0:2])
+                    hedge = bx[hpeaks.astype(int)]
+                    hcentre = np.mean(hedge,axis=0)
+
+                    # verify this sign
+                    t.setrhotheta(t.rho-(hcentre-hedge[0]),t.theta)
+                    meq = np.array([t.m,t.b])
+                    # plt.figure(figNo)
+                    # plt.plot(bx,b0,bx,b1)
+                    # plt.show(block = True)
+
                 if meqs is None:
                     meqs = meq
                     avglines = eq2pts(meq,(0,cols))
@@ -350,9 +399,10 @@ class Tube():
         if self.fixed is None:
             print('Fixed point not initialized')
             return
-        m = np.tan(theta-np.pi/2)
-        b = m * (-self.fixed[0]) + self.fixed[1]
-        self.seteqn(m,b)
+        else:
+            m = np.tan(theta-np.pi/2)
+            b = m * (-self.fixed[0]) + self.fixed[1]
+            self.seteqn(m,b)
 
     def l(self):
         return(np.sqrt(pow(self.pt1[0]-self.pt2[0],2) + pow(self.pt1[1]-self.pt2[1],2)))
@@ -362,6 +412,7 @@ class Tube():
 
     def x(self,y):
         return( (y - self.b) / self.m)
+
 
 class Circle():
     def __init__(self,c=[0,0],r=0):
@@ -479,6 +530,7 @@ class Tubeset():
                     set1 = np.concatenate((set1,np.reshape(np.array([t.rho,t.theta]),(1,2))),axis=0)
             # take mean angle for improved centreline approx
             meantheta = np.mean(set1[1:,1])
+            # update the target. this allows to use rho to detect which edge is which below
             self.createSeatTubeTarget(cr=None,A=meantheta)
             # sort lines into edges for averaging
             set1 = set1[1:]
@@ -636,8 +688,20 @@ class Tubeset():
             plt.plot(hrange,hprofile)
             plt.plot(bxint[hpeaks[:,i1].astype(int)],mbspl[hpeaks[:,i1].astype(int)],'r+')
 
+        # mantra. check the consistency of the two results. 
+        # use mean if results are similar, if not use the minimum (ie the max since it will be
+        # negative) as the most likely error case is
+        # the detected edge is beyond the true edge not before it. This won't work for a tapered headtube.
+        h1shift = (hcentre[0]-self.tubes['ht'].pt1[0])
+        h2shift = (hcentre[1]-self.tubes['ht'].pt2[0])
+        if np.abs( h1shift - h2shift) < CM2PX(0.2):
+            hshift = np.mean([h1shift,h2shift])
+        else:
+            hshift = np.max([h1shift,h2shift])
         # should de-rotate the point here actually to correct the y-value
-        self.tubes['ht'].setpts(np.array([hcentre[0],self.tubes['ht'].pt1[1]]),np.array([hcentre[1],self.tubes['ht'].pt2[1]]))        
+        # self.tubes['ht'].setpts(np.array([hcentre[0],self.tubes['ht'].pt1[1]]),np.array([hcentre[1],self.tubes['ht'].pt2[1]]))        
+        self.tubes['ht'].setpts(np.array([self.tubes['ht'].pt1[0]+hshift,self.tubes['ht'].pt1[1]]),
+                                np.array([self.tubes['ht'].pt2[0]+hshift,self.tubes['ht'].pt2[1]]))        
         plt.show(block= not __debug__)
         figNo = figNo + 1
     
@@ -892,8 +956,11 @@ if __name__=='__main__':
     P.imW = cv2.blur(P.imW,(5,5))
     # [0]have an extra dimension to get rid of here... 
     # P.maskCircle(np.concatenate((wheels,G.chainring),axis=0),P.imW)
-    P.maskCircle(np.reshape(np.append(G.rw.centre,G.rw.rOuter),(1,3)),P.imW)
-    P.maskCircle(np.reshape(np.append(G.cr.centre,G.cr.R),(1,3)),P.imW)
+    # P.maskCircle(np.reshape(np.append(G.rw.centre,G.rw.rOuter),(1,3)),P.imW)
+    # P.maskCircle(np.reshape(np.append(G.cr.centre,G.cr.R),(1,3)),P.imW)
+    # mantra. increase these radii
+    P.maskCircle(np.reshape(np.append(G.rw.centre,G.rw.rOuter*1.1),(1,3)),P.imW)
+    P.maskCircle(np.reshape(np.append(G.cr.centre,G.cr.R*1.1),(1,3)),P.imW)
     # try to save more of the seatpost here 
     P.maskRect([(G.rw.centre[0],0,G.cr.centre[0],G.rw.centre[1]-G.rw.rOuter)],P.imW)
 
@@ -902,10 +969,10 @@ if __name__=='__main__':
     G.T = Tubeset()
     # start with main tubes. old method.
     # avglines,meqs = P.houghLines(P.imW,P.imRGB,minlength=8.5)
-    # frog62, cube240. increase min length, easiest to avoid the chain confusing the top tube
-    # rather than another round of refinement on angles. should generally be a correct strategy
-    # although it fails for riprock with such a bent top tube.
-    avglines,meqs = P.houghLines(P.imW,P.imRGB,minlength=12.0)    
+    # frog62, cube240. increase min length, one way to avoid the chain confusing the top tube
+    # should generally be a correct strategy although it fails for riprock with such a bent top tube.
+    # another round of refinement on angles better. or should just improve the maskCircle. 
+    avglines,meqs = P.houghLines(P.imW,P.imRGB,minlength=11.0)    
     G.T.assignTubeLines(avglines,meqs,['tt','dt'])
 
     # todo: create ROI with seat tube only

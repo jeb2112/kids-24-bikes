@@ -199,10 +199,12 @@ class profilePhoto():
         if edgeprocess=='bike':
             edges = cv2.Canny(bw,95,190,apertureSize=3,L2gradient=True)
         # for wheel only
-        else:
+        elif edgeprocess=='fork':
+            edges = cv2.Canny(bw,150,200,apertureSize=3,L2gradient=True)
+        elif edgeprocess == 'head':
             edges = cv2.Canny(bw,150,200,apertureSize=3,L2gradient=True)
         plotFig(edges,False,title="houghLinesS")
-        plt.show(block=not __debug__)
+        plt.show(block= not __debug__)
         # plotFigCV(edges)
         # plt.show(block=__debug__)
 
@@ -218,10 +220,12 @@ class profilePhoto():
         global figNo
         # bw = cv2.blur(bw,(5,5))
         # this sort of morphing might help flatten out smaller details like spokes and cables?? needs work
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
-        for i in range(0,2):
-            bw = cv2.dilate(bw,kernel,iterations=3)
-            bw = cv2.erode(bw,kernel,iterations=2)
+        # metaHT. spokes are already removed, and the fit to the fork edges is a bit rough. 
+        if edgeprocess=='bike':
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
+            for i in range(0,2):
+                bw = cv2.dilate(bw,kernel,iterations=3)
+                bw = cv2.erode(bw,kernel,iterations=2)
 
         # cleary, cujo24, AceLTD
         # edges = cv2.Canny(bw,100,200,apertureSize=3,L2gradient=True)
@@ -293,11 +297,13 @@ class profilePhoto():
                 # disply individual eqn sets for debugging purpose
                 # plotFig(bw2)
                 # plt.show()
-                # equal slope, equal offset. Using 2% to qualify as equal.
-                # this logic may still work but no good for tapered tubes. cujo24
+                # # equal slope, equal offset. Using 2% to qualify as equal.
+                # this logic may still work but no good for tapered tubes. cujo24, metaHT
                 # eqnset1a =  eqnset1[np.where((np.abs(eqns[eqnset1,1]-eqns[0,1])<np.abs(0.01*eqns[0,1])))]
                 # alite-24 - increase it back up to 2%. detecting too many false lines though, have to select better
-                eqnset1a =  eqnset1[np.where((np.abs(eqns[eqnset1,1]-eqns[0,1])<np.abs(0.02*eqns[0,1])))]
+                # eqnset1a =  eqnset1[np.where((np.abs(eqns[eqnset1,1]-eqns[0,1])<np.abs(0.02*eqns[0,1])))]
+                # metaHT. tapered top tube throws off this logic. using rhotheta with smaller threshold but need overhaul
+                eqnset1a =  eqnset1[np.where((np.abs(rhotheta[eqnset1,0]-rhotheta[0,0])<np.abs(0.01*rhotheta[0,0])))]
                 # equal slope, different offset but close enough to be a matchingline
                 # y intercept 10% as the threshold%. 10% too low. try 20%.
                 # if change to rhotheta then can identify by a length in actual pixels
@@ -314,27 +320,31 @@ class profilePhoto():
                     meq2 = np.mean(eqns[eqnset1b],axis=0)
                     meq = np.mean([meq1,meq2],axis=0)
                 else:
-                    # only one of two lines detected for this tube. 
-                    # form profile to determine which line/edge it is and where the tube centre is.
-                    mln1 = np.mean(lines[eqnset1a,:],axis=0)
-                    t=Tube()
-                    t.seteqn(meq1[0],meq1[1])
-                    t.setpts(mln1[0,0:2],mln1[0,2:4])
-                    midpt = np.mean((t.pt1,t.pt2),axis=0)
-                    # bw2 = np.copy(aw)
-                    bx,b0,b1 = self.profile(midpt,10,t)
+                    if edgeprocess=='bike':
+                        # only one of two lines detected for this tube. 
+                        # form profile to determine which line/edge it is and where the tube centre is.
+                        mln1 = np.mean(lines[eqnset1a,:],axis=0)
+                        t=Tube()
+                        t.seteqn(meq1[0],meq1[1])
+                        t.setpts(mln1[0,0:2],mln1[0,2:4])
+                        midpt = np.mean((t.pt1,t.pt2),axis=0)
+                        # bw2 = np.copy(aw)
+                        bx,b0,b1 = self.profile(midpt,10,t)
 
-                    peaks = peakutils.indexes(b1,thres=0.2,min_dist=CM2PX(3)*10)
-                    hpeaks = np.sort(peaks[b1[peaks].argsort()][::-1][0:2])
-                    hedge = bx[hpeaks.astype(int)]
-                    hcentre = np.mean(hedge,axis=0)
+                        peaks = peakutils.indexes(b1,thres=0.2,min_dist=CM2PX(3)*10)
+                        hpeaks = np.sort(peaks[b1[peaks].argsort()][::-1][0:2])
+                        hedge = bx[hpeaks.astype(int)]
+                        hcentre = np.mean(hedge,axis=0)
 
-                    # verify this sign
-                    t.setrhotheta(t.rho-(hcentre-hedge[0]),t.theta)
-                    meq = np.array([t.m,t.b])
-                    # plt.figure(figNo)
-                    # plt.plot(bx,b0,bx,b1)
-                    # plt.show(block = True)
+                        # verify this sign
+                        t.setrhotheta(t.rho-(hcentre-hedge[0]),t.theta)
+                        meq = np.array([t.m,t.b])
+                        # plt.figure(figNo)
+                        # plt.plot(bx,b0,bx,b1)
+                        # plt.show(block = True)
+                    # not using this logic for the fork detection yet
+                    elif edgeprocess=='fork':
+                        meq = meq1
 
                 if meqs is None:
                     meqs = meq
@@ -985,7 +995,8 @@ if __name__=='__main__':
 
     # todo:  head tube ROI. mask out everything to the left of the tt/dt intersection
     # find head tube
-    lines = P.houghLinesS(P.imW,minlength=4)
+    # metaHT. increase minlength 4 to 7, separate edge process (maybe not needed though)
+    lines = P.houghLinesS(P.imW,minlength=7,edgeprocess='head')
     P.imW = np.copy(P.imRGB)
     plotLines(P.imW,lines,False,title="head tube line detection")
     G.T.createHeadTubeTarget(G.fw,type='susp')

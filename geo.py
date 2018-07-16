@@ -303,7 +303,9 @@ class profilePhoto():
                 # alite-24 - increase it back up to 2%. detecting too many false lines though, have to select better
                 # eqnset1a =  eqnset1[np.where((np.abs(eqns[eqnset1,1]-eqns[0,1])<np.abs(0.02*eqns[0,1])))]
                 # metaHT. tapered top tube throws off this logic. using rhotheta with smaller threshold but need overhaul
-                eqnset1a =  eqnset1[np.where((np.abs(rhotheta[eqnset1,0]-rhotheta[0,0])<np.abs(0.01*rhotheta[0,0])))]
+                # eqnset1a =  eqnset1[np.where((np.abs(rhotheta[eqnset1,0]-rhotheta[0,0])<np.abs(0.01*rhotheta[0,0])))]
+                # mxxc increase threshold
+                eqnset1a =  eqnset1[np.where((np.abs(rhotheta[eqnset1,0]-rhotheta[0,0])<np.abs(0.015*rhotheta[0,0])))]
                 # equal slope, different offset but close enough to be a matchingline
                 # y intercept 10% as the threshold%. 10% too low. try 20%.
                 # if change to rhotheta then can identify by a length in actual pixels
@@ -413,6 +415,12 @@ class Tube():
             m = np.tan(theta-np.pi/2)
             b = m * (-self.fixed[0]) + self.fixed[1]
             self.seteqn(m,b)
+
+    def rotatePoint(self,M,pt):
+        newpt = np.matmul(M[:,0:2],np.reshape(pt,(2,1)))
+        if np.shape(M)[1]==3:
+            newpt += np.reshape(M[:,2],(2,1))
+        return( newpt )
 
     def l(self):
         return(np.sqrt(pow(self.pt1[0]-self.pt2[0],2) + pow(self.pt1[1]-self.pt2[1],2)))
@@ -607,14 +615,26 @@ class Tubeset():
 
     # average the slope of existing tube with correction 
     def modifyTubeLines(self,meqs,tube,op='mean'):
-
-        targ = np.abs(meqs[:,0] - self.targetSlopes[tube]).argmin()
-        if op=='mean':
-            m2 = np.mean([self.tubes[tube].m,meqs[targ,0]])
-        elif op=='replace':
+        # original code. update while retaining one of the points fixed. not very accurate.
+        # not using existing ht slope in comparison here in case it is grossly wrong (ie the replace case)
+        if len(meqs)>1:
+            targ = np.abs(meqs[:,0] - self.targetSlopes[tube]).argmin()
             m2 = meqs[targ,0]
-        # calculate new b modified line retaining existing point. could use average of pt1,pt2
-        b2 = self.tubes[tube].pt1[1] - m2*self.tubes[tube].pt1[0]
+            if op=='mean':
+                m2 = np.mean([self.tubes[tube].m,m2])
+            elif op=='replace':
+                pass
+            # calculate new b modified line retaining existing point. could use average of pt1,pt2
+            b2 = self.tubes[tube].pt1[1] - m2*self.tubes[tube].pt1[0]
+        # new. combine with both slope and intercept and both points update. 
+        else:
+            m2 = meqs[0,0]
+            b2 = meqs[0,1]
+            if op=='mean':
+                m2 = np.mean([self.tubes[tube].m,m2])
+                b2 = np.mean([self.tubes[tube].b,b2])
+            elif op=='replace':
+                pass
         self.tubes[tube].seteqn(m2,b2)
         
     # float/int/array/tuple problem. cv2 functions work with tuples of ints, but coordinate
@@ -629,18 +649,19 @@ class Tubeset():
             setattr(self.tubes[t2],pt2,np.array([xint,self.tubes[t2].y(xint)]))
         # check if incorrect detection of curved tubes has created a non-physical tt/dt intersection
         # needs proper detection for line segments of a bent tube. quick kludge for now
-        if self.tubes['dt'].pt2[1] < self.tubes['tt'].pt2[1]:
+        if self.tubes['tt'].pt2[1] - self.tubes['dt'].pt2[1] > -CM2PX(1):
             # kludge: alter the down tube to parallel the top tube. for straight top tube
             kludge=1
             if kludge==1:
                 xint = ( self.tubes['tt'].b-self.tubes['dt'].b ) / ( self.tubes['dt'].m - self.tubes['tt'].m )
-                self.tubes['dt'].pt2[0]= xint - CM2PX(4)
+                # mxtrail. increased this hard-coded offset from 4 to 6
+                self.tubes['dt'].pt2[0]= xint - CM2PX(6)
                 self.tubes['dt'].pt2[1] = self.tubes['dt'].y(self.tubes['dt'].pt2[0])
                 self.tubes['gt'] = Tube()
                 # y intercept for gusset tube, using the point of truncation
                 b = self.tubes['dt'].pt2[1] - self.tubes['tt'].m*self.tubes['dt'].pt2[0]
                 self.tubes['gt'].seteqn(self.tubes['tt'].m,b)
-                self.tubes['gt'].pt1 = np.array([xint-CM2PX(4),self.tubes['gt'].y(xint-CM2PX(4))])
+                self.tubes['gt'].pt1 = np.array([xint-CM2PX(6),self.tubes['gt'].y(xint-CM2PX(6))])
                 xint = ( self.tubes['ht'].b-self.tubes['gt'].b ) / ( self.tubes['gt'].m - self.tubes['ht'].m )
                 self.tubes['gt'].pt2 = np.array([xint,self.tubes['gt'].y(xint)])
                 # recalculate the head tubes point 2
@@ -663,19 +684,25 @@ class Tubeset():
          
         hpeaks = np.zeros((2,2))
         hedge = np.zeros((2,2))
-        hcentre = np.zeros(2)
+        hcentre = np.zeros((2,2))
+        htx2 = np.zeros(2)
+        hshift = np.zeros(2)
+        meq = np.zeros((1,2))
         for i1 in range(0,2):
             if i1==0:
                 htx,hty = self.tubes['ht'].pt1
             else:
                 htx,hty = self.tubes['ht'].pt2
+            # rotate around the current estimate of the head tube point
             M = cv2.getRotationMatrix2D((htx,hty),self.tubes['ht'].A*180/np.pi-90,1)
+            Minv = np.concatenate((np.linalg.inv(M[:,0:2]),np.reshape(-np.matmul(np.linalg.inv(M[:,0:2]),M[:,2]),(2,1))),axis=1)
             rimg = cv2.warpAffine(img,M,(cols,rows))
             # needed 4 cm to the left for the wider headtube of riprock
             # hrange = range(int(htx)-CM2PX(4),int(htx)+CM2PX(3))
             # needed less than 3cm to right cube240
+            # adjust again for mxxc 4.5cm to left
             # can detect this properly based on teh 255 background
-            hrange = range(int(htx)-CM2PX(4),int(htx)+CM2PX(2.5))
+            hrange = range(int(htx)-CM2PX(4.5),int(htx)+CM2PX(3))
             hprofile = rimg[int(hty),hrange]
  
             bxint = np.round(np.arange(hrange[0],hrange[-1],.1)*10)/10
@@ -691,30 +718,28 @@ class Tubeset():
             # riprock fails at pt1 due to narrow gap and brake
             hpeaks[:,i1] = np.sort(peaks[mbspl[peaks].argsort()][::-1][0:2])
             hedge[:,i1] = bxint[hpeaks[:,i1].astype(int)]
-            hcentre[i1] = np.mean(hedge[:,i1],axis=0)
+            htx2[i1] = np.mean(hedge[:,i1],axis=0)
+            hcentre[i1,:] = self.tubes['ht'].rotatePoint(Minv,(htx2[i1],hty))[:,0]
 
             plt.subplot(2,1,i1+1)
             plt.plot(bxint,mbspl)
             plt.plot(hrange,hprofile)
             plt.plot(bxint[hpeaks[:,i1].astype(int)],mbspl[hpeaks[:,i1].astype(int)],'r+')
 
-        # mantra. check the consistency of the two results. 
-        # use mean if results are similar, if not use the minimum (ie the max since it will be
-        # negative) as the most likely error case is
-        # the detected edge is beyond the true edge not before it. This won't work for a tapered headtube.
-        h1shift = (hcentre[0]-self.tubes['ht'].pt1[0])
-        h2shift = (hcentre[1]-self.tubes['ht'].pt2[0])
-        if np.abs( h1shift - h2shift) < CM2PX(0.2):
-            hshift = np.mean([h1shift,h2shift])
-        else:
-            hshift = np.max([h1shift,h2shift])
-        # should de-rotate the point here actually to correct the y-value
-        # self.tubes['ht'].setpts(np.array([hcentre[0],self.tubes['ht'].pt1[1]]),np.array([hcentre[1],self.tubes['ht'].pt2[1]]))        
-        self.tubes['ht'].setpts(np.array([self.tubes['ht'].pt1[0]+hshift,self.tubes['ht'].pt1[1]]),
-                                np.array([self.tubes['ht'].pt2[0]+hshift,self.tubes['ht'].pt2[1]]))        
         plt.show(block= not __debug__)
         figNo = figNo + 1
-    
+
+        # mxxc. revert to use of separate values to allow for the correction of the head tube angle
+        # also check for positive error value. the bias to the right of the original head tube detection
+        # should makes these values always negative. 
+        h1shift = hcentre[0,0]-self.tubes['ht'].pt1[0]
+        h2shift = hcentre[1,0]-self.tubes['ht'].pt2[0]
+        if h1shift < 0 and h2shift < 0:
+            meq[0,:] = pts2eq((hcentre[0],hcentre[1]))
+        else:
+            print "no detection"
+            meq=None
+        return meq
 
     def extendHeadTube(self,img):
         global figNo
@@ -729,7 +754,12 @@ class Tubeset():
         lrange = range(hty-CM2PX(10),hty+CM2PX(10))
         # AceLTD. the central profile overlapped some welds which broke the detection.
         # bias the profile to the right away from the seat/down gusset
-        htprofile = rimg[lrange,htx+CM2PX(0.2)]
+        # htprofile = rimg[lrange,htx+CM2PX(0.2)]
+        # mxtrail. all black. 1 profle alone disapperaed in shadow. try combining two or three
+        # htprofile = (rimg[lrange,htx+CM2PX(0.2)] + rimg[lrange,htx+CM2PX(0.8)])/2     
+        # mxxc. opposite problem. don't use a bias
+        htprofile = rimg[lrange,htx+CM2PX(0.0)]
+   
         # fit spline to colour profiles
         bxint = np.round(np.arange(lrange[0],lrange[-1],.1)*10)/10
         bspl = np.zeros((len(bxint),3))
@@ -749,7 +779,8 @@ class Tubeset():
         # botrange = range(int(self.tubes['ht'].pt2[1])+CM2PX(0.2),int(self.tubes['ht'].pt2[1]+CM2PX(9.0)))
         # DYNAMITE_24 - reduced botrange again because of range error
         # hotrock - increased again slightly.
-        botrange = range(int(self.tubes['ht'].pt2[1])+CM2PX(0.2),int(self.tubes['ht'].pt2[1]+CM2PX(6.5)))
+        # mxtrail - increased again slightly.
+        botrange = range(int(self.tubes['ht'].pt2[1])+CM2PX(0.2),int(self.tubes['ht'].pt2[1]+CM2PX(7.0)))
         botrangeint = range(np.where(bxint==botrange[0])[0][0],np.where(bxint==botrange[-1])[0][0])
         # average the three colour bands
         mbspl = np.mean(np.abs(bspl),axis=1)
@@ -771,11 +802,15 @@ class Tubeset():
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[2]+botrangeint[0] 
         # exceed,riprock - reduced threshold and took first peak
         botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
+        # mxtrail. lower threshold but 1st peak
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
         # ewoc - cable created 3 peaks. more blur.
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[3]+botrangeint[0]
         # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.4,min_dist=CM2PX(3))[0]
         # BAYVIEW - reduced threshold
         toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.3,min_dist=CM2PX(3))[0]
+        # mxtrail. all black. reduce threshold.
+        # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.07,min_dist=CM2PX(3))[0]
         plt.plot(bxint[toppeak],mbspl[toppeak],'r+')
         plt.plot(bxint[botpeak],mbspl[botpeak],'r+')
         plt.show(block= not __debug__)
@@ -1012,9 +1047,9 @@ if __name__=='__main__':
     # process the fork for refinement of head tube angle. 
     P.imW = np.copy(P.imGRAY)
     lines,meqs = G.fork.findForkLines(P.imW,G.fw,minlength=5)
+    # G.T.modifyTubeLines(meqs,'ht',op='mean')
+    # Creig-24. charger. mxxc. head tube estimate not good enough use fork only
     G.T.modifyTubeLines(meqs,'ht',op='replace')
-    # Creig-24. charger. head tube estimate not good enough use fork only
-    # G.T.modifyTubeLines(avglines,meqs,'ht',op='replace')
 
     # recalc after modfication 
     G.T.calcTubes()
@@ -1037,12 +1072,17 @@ if __name__=='__main__':
 
     # with head tube approximately correct, redo the head angle estimate with better measurement.
     P.imW = np.copy(P.imRGB)
-    G.T.measureHeadTube(P.imW)
+    # mxtrail. try thresholding for this measurement.
+    ret,P.imW = cv2.threshold(P.imW,240,255,cv2.THRESH_BINARY)
+    meq = G.T.measureHeadTube(P.imW)
+    # adjust the head tube by averaging 
+    # self.tubes['ht'].setpts(np.array([self.tubes['ht'].pt1[0]+h1shiftx,self.tubes['ht'].pt1[1]]),
+    #                         np.array([self.tubes['ht'].pt2[0]+h2shiftx,self.tubes['ht'].pt2[1]]))        
+    G.T.modifyTubeLines(meq,'ht',op='mean')
 
-    # redo fork
-    G.fork.pt1 = G.T.tubes['ht'].pt2
-    G.fork.axle2crown = G.fork.l()
-    G.fork.calcOffset(G.T.tubes['ht'])
+    # replot the tubelines
+    P.imW=np.copy(P.imRGB)
+    G.T.plotTubes(P.imW)
 
     # recalc the tubes
     G.T.calcTubes()
@@ -1050,6 +1090,11 @@ if __name__=='__main__':
     # reuse of extendHeadTube ought to work but might hit welding bumps
     G.T.extendHeadTube(P.imW)
     
+    # redo fork
+    G.fork.pt1 = G.T.tubes['ht'].pt2
+    G.fork.axle2crown = G.fork.l()
+    G.fork.calcOffset(G.T.tubes['ht'])
+
     # create output
     G.calcParams()
     G.printParams()

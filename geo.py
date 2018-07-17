@@ -117,7 +117,9 @@ class profilePhoto():
         # frog62. never did pick up  the front inner correctly.
         # wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.CM2PX(90),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # mantra. further reduction in maxRadius
-        wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(8),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(26))        
+        # wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(8),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(26))        
+        # pineridge. a scaling factor error was confusing the fit here, may not need unique params
+        wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(24))        
         # place rear wheel first in list. note extra 1st dimension in output of HoughCircles
         wheelsInner = wheelsInner[0,wheelsInner[0,:,0].argsort(),:]
         # cleary.png
@@ -127,7 +129,9 @@ class profilePhoto():
         # AceLTD 1.2 seemed to make a big difference compared to 1.0? or was it dropping param1 way down to 4
         # wheelsOuter = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(40))
         # Bayview. further drop of param1 down to 3 required. that fixed the outerwheels, but lost the headtube!
-        wheelsOuter = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(40))
+        # wheelsOuter = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(40))
+        # pineridge. 
+        wheelsOuter = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(28),maxRadius=self.CM2PX(40))
         wheelsOuter = wheelsOuter[0,wheelsOuter[0,:,0].argsort(),:]
         # argsort indexing removed dummy 1st dimension 
         wheels = np.concatenate((wheelsInner,wheelsOuter),axis=0)
@@ -140,7 +144,10 @@ class profilePhoto():
         # chainring = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(10))[0]
         # fluid - didn't pick up the chairing or outer diameter properly
         # mantra - chainring detection with these params was skewed about 1cm high
-        chainring = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(8))[0]
+        # chainring = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(8))[0]
+        # pineridge. have to reduce maxradius because of false selection in mid-air above bottom bracket. could also mask that region out better to 
+        # retain the large radius.
+        chainring = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(6))[0]
         # BAYVIEW. use wheel hubs to select chainring circle of more than 1 detected
         if len(chainring[0])>1:
             wx,wy = np.mean(wheels[:,0:2],axis=0)
@@ -153,7 +160,7 @@ class profilePhoto():
         for c in chainring:
             cv2.circle(bw3,(c[0],c[1]),int(c[2]),255,5)
         plotFig(bw3,False,cmap="gray",title='houghCircle: wheel detection')
-        plt.show(block = not  __debug__)        
+        plt.show(block =  not __debug__)        
         
         return wheels,chainring[0]
 
@@ -334,16 +341,19 @@ class profilePhoto():
                         bx,b0,b1 = self.profile(midpt,10,t)
 
                         peaks = peakutils.indexes(b1,thres=0.2,min_dist=CM2PX(3)*10)
-                        hpeaks = np.sort(peaks[b1[peaks].argsort()][::-1][0:2])
-                        hedge = bx[hpeaks.astype(int)]
-                        hcentre = np.mean(hedge,axis=0)
+                        if len(peaks)>0:
+                            hpeaks = np.sort(peaks[b1[peaks].argsort()][::-1][0:2])
+                            hedge = bx[hpeaks.astype(int)]
+                            hcentre = np.mean(hedge,axis=0)
+                            # verify this sign
+                            t.setrhotheta(t.rho-(hcentre-hedge[0]),t.theta)
+                            meq = np.array([t.m,t.b])
+                            # plt.figure(figNo)
+                            # plt.plot(bx,b0,bx,b1)
+                            # plt.show(block = True)
+                        else:
+                            meq = np.array([0,0])
 
-                        # verify this sign
-                        t.setrhotheta(t.rho-(hcentre-hedge[0]),t.theta)
-                        meq = np.array([t.m,t.b])
-                        # plt.figure(figNo)
-                        # plt.plot(bx,b0,bx,b1)
-                        # plt.show(block = True)
                     # not using this logic for the fork detection yet
                     elif edgeprocess=='fork':
                         meq = meq1
@@ -534,7 +544,8 @@ class Tubeset():
             # sort lines on distance
             lines = lines[md.argsort()]
             md = md[md.argsort()]
-            # iterate and accumulate lines for 1st or 2nd edge or break
+            # iterate and accumulate lines for 1st or 2nd edge or break. possibly this should just use the 
+            # first two lines from the sort, eg pineridge a 3rd line that is close throws off the result
             t=Tube()
             rt1 = np.zeros((1,2))
             rt2 = np.zeros((1,2))
@@ -542,7 +553,8 @@ class Tubeset():
             for i,line in enumerate(lines):
                 line=line[0]
                 t.setpts(line[0:2],line[2:4])
-                if np.abs(t.rho - self.targets['st'].rho) > CM2PX(4) or RAD2DEG(np.abs(t.theta - self.targets['st'].theta)) > 10:
+                # pineridge. increase to 5 cm
+                if np.abs(t.rho - self.targets['st'].rho) > CM2PX(5) or RAD2DEG(np.abs(t.theta - self.targets['st'].theta)) > 10:
                     break
                 else:
                     set1 = np.concatenate((set1,np.reshape(np.array([t.rho,t.theta]),(1,2))),axis=0)
@@ -711,11 +723,15 @@ class Tubeset():
                 # arbitrary smoothing factor
                 bsp = scipy.interpolate.splrep(hrange,hprofile[:,i],np.ones(len(hrange)),k=3,s=len(bxint))
                 bspl[:,i] = scipy.interpolate.splev(bxint,bsp,der=1)
+            # pineridge. need color to get the measurement due to black gear trigger and no white gap
             mbspl = np.mean(np.abs(bspl),axis=1)
             # this min dist should select the desired two peaks
             peaks = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(3)*10)
             # two max peaks should be the main edges if not the only ones selected. may need silhouette image here though
-            # riprock fails at pt1 due to narrow gap and brake
+            # riprock,pineridge fails at pt1 due to narrow gap and brake
+            if len(peaks) != 2:
+                print("no detection")
+                return(None)
             hpeaks[:,i1] = np.sort(peaks[mbspl[peaks].argsort()][::-1][0:2])
             hedge[:,i1] = bxint[hpeaks[:,i1].astype(int)]
             htx2[i1] = np.mean(hedge[:,i1],axis=0)
@@ -797,11 +813,11 @@ class Tubeset():
         # should be able to ignore 1 with min_dist but didn't work? or more smoothing in the splines.
         # note these thresholds 0.4 are still hard-coded
         # and will be too high for any bikes that are black
-        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(1))[2]+botrangeint[0] 
+        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(1))[2]+botrangeint[0] 
         # charger - reduced threshold
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[2]+botrangeint[0] 
         # exceed,riprock - reduced threshold and took first peak
-        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
         # mxtrail. lower threshold but 1st peak
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
         # ewoc - cable created 3 peaks. more blur.
@@ -811,6 +827,15 @@ class Tubeset():
         toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.3,min_dist=CM2PX(3))[0]
         # mxtrail. all black. reduce threshold.
         # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.07,min_dist=CM2PX(3))[0]
+
+        # adjust peak from the peak to the ell (5% threshold) in the spline derivative for more accuracy
+        peaks = [toppeak,botpeak]
+        for i,p in enumerate(peaks):
+            while mbspl[p] > mbspl[peaks[i]]*0.05:
+                p += pow(-1,i)
+            peaks[i] = p
+
+        toppeak,botpeak = peaks
         plt.plot(bxint[toppeak],mbspl[toppeak],'r+')
         plt.plot(bxint[botpeak],mbspl[botpeak],'r+')
         plt.show(block= not __debug__)
@@ -1031,6 +1056,9 @@ if __name__=='__main__':
     # todo:  head tube ROI. mask out everything to the left of the tt/dt intersection
     # find head tube
     # metaHT. increase minlength 4 to 7, separate edge process (maybe not needed though)
+    # try preliminary thresh to eliminate paint graphic effects
+    # pineridge. increase threshold due to white lettering
+    ret,P.imW = cv2.threshold(P.imW,245,255,cv2.THRESH_BINARY)
     lines = P.houghLinesS(P.imW,minlength=7,edgeprocess='head')
     P.imW = np.copy(P.imRGB)
     plotLines(P.imW,lines,False,title="head tube line detection")
@@ -1073,12 +1101,13 @@ if __name__=='__main__':
     # with head tube approximately correct, redo the head angle estimate with better measurement.
     P.imW = np.copy(P.imRGB)
     # mxtrail. try thresholding for this measurement.
-    ret,P.imW = cv2.threshold(P.imW,240,255,cv2.THRESH_BINARY)
+    # ret,P.imW = cv2.threshold(P.imW,240,255,cv2.THRESH_BINARY)
     meq = G.T.measureHeadTube(P.imW)
     # adjust the head tube by averaging 
     # self.tubes['ht'].setpts(np.array([self.tubes['ht'].pt1[0]+h1shiftx,self.tubes['ht'].pt1[1]]),
-    #                         np.array([self.tubes['ht'].pt2[0]+h2shiftx,self.tubes['ht'].pt2[1]]))        
-    G.T.modifyTubeLines(meq,'ht',op='mean')
+    #                         np.array([self.tubes['ht'].pt2[0]+h2shiftx,self.tubes['ht'].pt2[1]])) 
+    if meq is not None:       
+        G.T.modifyTubeLines(meq,'ht',op='mean')
 
     # replot the tubelines
     P.imW=np.copy(P.imRGB)

@@ -666,14 +666,14 @@ class Tubeset():
             kludge=1
             if kludge==1:
                 xint = ( self.tubes['tt'].b-self.tubes['dt'].b ) / ( self.tubes['dt'].m - self.tubes['tt'].m )
-                # mxtrail. increased this hard-coded offset from 4 to 6
-                self.tubes['dt'].pt2[0]= xint - CM2PX(6)
+                # trail. decreased this hard-coded offset from 6 bback to 4
+                self.tubes['dt'].pt2[0]= xint - CM2PX(4)
                 self.tubes['dt'].pt2[1] = self.tubes['dt'].y(self.tubes['dt'].pt2[0])
                 self.tubes['gt'] = Tube()
                 # y intercept for gusset tube, using the point of truncation
                 b = self.tubes['dt'].pt2[1] - self.tubes['tt'].m*self.tubes['dt'].pt2[0]
                 self.tubes['gt'].seteqn(self.tubes['tt'].m,b)
-                self.tubes['gt'].pt1 = np.array([xint-CM2PX(6),self.tubes['gt'].y(xint-CM2PX(6))])
+                self.tubes['gt'].pt1 = np.array([xint-CM2PX(4),self.tubes['gt'].y(xint-CM2PX(4))])
                 xint = ( self.tubes['ht'].b-self.tubes['gt'].b ) / ( self.tubes['gt'].m - self.tubes['ht'].m )
                 self.tubes['gt'].pt2 = np.array([xint,self.tubes['gt'].y(xint)])
                 # recalculate the head tubes point 2
@@ -783,6 +783,7 @@ class Tubeset():
         ypeaks=[]
         for i in range(0,3):
             # arbitrary smoothing factor
+            # trail. subtle shadow adds 3rd peak to cable crossing. 
             bsp = scipy.interpolate.splrep(lrange,htprofile[:,i],np.ones(len(lrange)),k=3,s=len(bxint))
             bspl[:,i] = scipy.interpolate.splev(bxint,bsp,der=1)
             # decided not to use the indivdual colour traces for now
@@ -815,26 +816,29 @@ class Tubeset():
         # note these thresholds 0.4 are still hard-coded
         # and will be too high for any bikes that are black
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(1))[2]+botrangeint[0] 
+        # trail. take 4th peak past cable
+        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(1))[3]+botrangeint[0]         
         # charger - reduced threshold
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[2]+botrangeint[0] 
         # exceed,riprock - reduced threshold and took first peak
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
         # mxtrail, kato. lower threshold but 1st peak
-        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
         # ewoc - cable created 3 peaks. more blur.
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[3]+botrangeint[0]
         # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.4,min_dist=CM2PX(3))[0]
         # BAYVIEW - reduced threshold
-        # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.3,min_dist=CM2PX(3))[0]
+        toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.3,min_dist=CM2PX(3))[0]
         # mxtrail. all black. reduce threshold.
         # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.07,min_dist=CM2PX(3))[0]
         # kato . cable affects top peak
-        toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.3,min_dist=CM2PX(3))[1]
+        # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.3,min_dist=CM2PX(3))[1]
 
         # adjust peak from the peak to the ell (5% threshold) in the spline derivative for more accuracy
+        # trail 10%
         peaks = [toppeak,botpeak]
         for i,p in enumerate(peaks):
-            while mbspl[p] > mbspl[peaks[i]]*0.05:
+            while mbspl[p] > mbspl[peaks[i]]*0.1:
                 p += pow(-1,i)
             peaks[i] = p
         toppeak,botpeak = peaks
@@ -1032,6 +1036,7 @@ if __name__=='__main__':
     # P.maskCircle(np.reshape(np.append(G.rw.centre,G.rw.rOuter),(1,3)),P.imW)
     # P.maskCircle(np.reshape(np.append(G.cr.centre,G.cr.R),(1,3)),P.imW)
     # mantra. increase these radii
+    P.maskCircle(np.reshape(np.append(G.fw.centre,G.rw.rOuter*1.1),(1,3)),P.imW)
     P.maskCircle(np.reshape(np.append(G.rw.centre,G.rw.rOuter*1.1),(1,3)),P.imW)
     P.maskCircle(np.reshape(np.append(G.cr.centre,G.cr.R*1.1),(1,3)),P.imW)
     # try to save more of the seatpost here 

@@ -309,11 +309,11 @@ class profilePhoto():
                 # this logic may still work but no good for tapered tubes. cujo24, metaHT
                 # eqnset1a =  eqnset1[np.where((np.abs(eqns[eqnset1,1]-eqns[0,1])<np.abs(0.01*eqns[0,1])))]
                 # alite-24 - increase it back up to 2%. detecting too many false lines though, have to select better
-                eqnset1a =  eqnset1[np.where((np.abs(eqns[eqnset1,1]-eqns[0,1])<np.abs(0.02*eqns[0,1])))]
+                # eqnset1a =  eqnset1[np.where((np.abs(eqns[eqnset1,1]-eqns[0,1])<np.abs(0.02*eqns[0,1])))]
                 # metaHT. tapered top tube throws off this logic. using rhotheta with smaller threshold but need overhaul
                 # eqnset1a =  eqnset1[np.where((np.abs(rhotheta[eqnset1,0]-rhotheta[0,0])<np.abs(0.01*rhotheta[0,0])))]
-                # mxxc increase threshold.... to pineridge
-                # eqnset1a =  eqnset1[np.where((np.abs(rhotheta[eqnset1,0]-rhotheta[0,0])<np.abs(0.015*rhotheta[0,0])))]
+                # mxxc increase threshold.... to pineridge. yamajama24
+                eqnset1a =  eqnset1[np.where((np.abs(rhotheta[eqnset1,0]-rhotheta[0,0])<np.abs(0.015*rhotheta[0,0])))]
                 # equal slope, different offset but close enough to be a matchingline
                 # y intercept 10% as the threshold%. 10% too low. try 20%.
                 # if change to rhotheta then can identify by a length in actual pixels
@@ -716,7 +716,9 @@ class Tubeset():
             # adjust again for mxxc 4.5cm to left
             # kato initial line very close to right tube edge. reduce range
             # can detect this properly based on teh 255 background
-            hrange = range(int(htx)-CM2PX(4.5),int(htx)+CM2PX(2))
+            # hrange = range(int(htx)-CM2PX(4.5),int(htx)+CM2PX(2))
+            # yamajama - tapered head tube need more on the bottom. problem with top measure on the right from brakes exclude with 2.5 for now
+            hrange = range(int(htx)-CM2PX(5.5),int(htx)+CM2PX(2.5))
             hprofile = rimg[int(hty),hrange]
  
             bxint = np.round(np.arange(hrange[0],hrange[-1],.1)*10)/10
@@ -734,8 +736,13 @@ class Tubeset():
             peaks = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(3)*10)
             # two max peaks should be the main edges if not the only ones selected. may need silhouette image here though
             # riprock,pineridge fails at pt1 due to narrow gap and brake
-            if len(peaks) != 2:
-                print("no detection")
+            if len(peaks) < 2:
+                print("measureHeadTube: no detection")
+                plt.show(block= not __debug__)
+                figNo = figNo + 1
+                return(None)
+            elif len(peaks) > 2:
+                print("measureHeadTube: extra peaks")
                 plt.show(block= not __debug__)
                 figNo = figNo + 1
                 return(None)
@@ -824,9 +831,9 @@ class Tubeset():
         # charger - reduced threshold
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[2]+botrangeint[0] 
         # works. extra peaks for double cables.
-        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[4]+botrangeint[0] 
-        # exceed,riprock - reduced threshold and took first peak
-        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[4]+botrangeint[0] 
+        # exceed,riprock, yamajama - reduced threshold and took first peak
+        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
         # mxtrail, kato. lower threshold but 1st peak
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
         # ewoc - cable created 3 peaks. more blur.
@@ -840,10 +847,11 @@ class Tubeset():
         # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.3,min_dist=CM2PX(3))[1]
 
         # adjust peak from the peak to the ell (5% threshold) in the spline derivative for more accuracy
-        # trail 10%
+        # in measureHeadTube
+        # trail 10%. yamajama 5%.
         peaks = [toppeak,botpeak]
         for i,p in enumerate(peaks):
-            while mbspl[p] > mbspl[peaks[i]]*0.1:
+            while mbspl[p] > mbspl[peaks[i]]*0.05:
                 p += pow(-1,i)
             peaks[i] = p
         toppeak,botpeak = peaks

@@ -131,7 +131,9 @@ class profilePhoto():
         # Bayview. further drop of param1 down to 3 required. that fixed the outerwheels, but lost the headtube!
         # wheelsOuter = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(40))
         # pineridge. 
-        wheelsOuter = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(28),maxRadius=self.CM2PX(40))
+        # wheelsOuter = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(28),maxRadius=self.CM2PX(40))
+        # signal. not quite there.
+        wheelsOuter = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(28),maxRadius=self.CM2PX(40))
         wheelsOuter = wheelsOuter[0,wheelsOuter[0,:,0].argsort(),:]
         # argsort indexing removed dummy 1st dimension 
         wheels = np.concatenate((wheelsInner,wheelsOuter),axis=0)
@@ -144,10 +146,10 @@ class profilePhoto():
         # chainring = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(10))[0]
         # fluid - didn't pick up the chairing or outer diameter properly
         # mantra - chainring detection with these params was skewed about 1cm high
-        # chainring = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(8))[0]
+        chainring = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(8))[0]
         # pineridge. have to reduce maxradius because of false selection in mid-air above bottom bracket. could also mask that region out better to 
         # retain the large radius.
-        chainring = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(6))[0]
+        # chainring = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(6))[0]
         # BAYVIEW. use wheel hubs to select chainring circle of more than 1 detected
         if len(chainring[0])>1:
             wx,wy = np.mean(wheels[:,0:2],axis=0)
@@ -160,7 +162,7 @@ class profilePhoto():
         for c in chainring:
             cv2.circle(bw3,(c[0],c[1]),int(c[2]),255,5)
         plotFig(bw3,False,cmap="gray",title='houghCircle: wheel detection')
-        plt.show(block =  not __debug__)        
+        plt.show(block = not __debug__)        
         
         return wheels,chainring[0]
 
@@ -758,13 +760,13 @@ class Tubeset():
 
         # mxxc. revert to use of separate values to allow for the correction of the head tube angle
         # also check for positive error value. the bias to the right of the original head tube detection
-        # should makes these values always negative. 
+        # should bias these values to negative. 
         h1shift = hcentre[0,0]-self.tubes['ht'].pt1[0]
         h2shift = hcentre[1,0]-self.tubes['ht'].pt2[0]
-        if h1shift < 0 and h2shift < 0:
+        if h1shift < CM2PX(0.5) and h2shift < CM2PX(0.5):
             meq[0,:] = pts2eq((hcentre[0],hcentre[1]))
         else:
-            print "no detection"
+            print "measureHeadTube: no detection"
             meq=None
         return meq
 
@@ -779,6 +781,8 @@ class Tubeset():
         M = cv2.getRotationMatrix2D((htx,hty),self.tubes['ht'].A*180/np.pi-90,1)
         rimg = cv2.warpAffine(img,M,(cols,rows))
         lrange = range(hty-CM2PX(10),hty+CM2PX(10))
+        # signal. long head tube 
+        # lrange = range(hty-CM2PX(10),hty+CM2PX(12))
         # AceLTD. the central profile overlapped some welds which broke the detection.
         # bias the profile to the right away from the seat/down gusset
         # htprofile = rimg[lrange,htx+CM2PX(0.2)]
@@ -808,7 +812,8 @@ class Tubeset():
         # DYNAMITE_24 - reduced botrange again because of range error
         # hotrock - increased again slightly.
         # mxtrail - increased again slightly.
-        botrange = range(int(self.tubes['ht'].pt2[1])+CM2PX(0.2),int(self.tubes['ht'].pt2[1]+CM2PX(7.0)))
+        # signal - long head tube. increased again
+        botrange = range(int(self.tubes['ht'].pt2[1])+CM2PX(0.2),int(self.tubes['ht'].pt2[1]+CM2PX(8.0)))
         botrangeint = range(np.where(bxint==botrange[0])[0][0],np.where(bxint==botrange[-1])[0][0])
         # average the three colour bands
         mbspl = np.mean(np.abs(bspl),axis=1)
@@ -833,7 +838,9 @@ class Tubeset():
         # works. extra peaks for double cables.
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[4]+botrangeint[0] 
         # exceed,riprock, yamajama - reduced threshold and took first peak
-        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
+        # signal. need higher threshold for ruffles but no cables
+        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[0]+botrangeint[0] 
         # mxtrail, kato. lower threshold but 1st peak
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
         # ewoc - cable created 3 peaks. more blur.
@@ -848,10 +855,10 @@ class Tubeset():
 
         # adjust peak from the peak to the ell (5% threshold) in the spline derivative for more accuracy
         # in measureHeadTube
-        # trail 10%. yamajama 5%.
+        # trail 10%. yamajama 5%. signal some ruffles 10%
         peaks = [toppeak,botpeak]
         for i,p in enumerate(peaks):
-            while mbspl[p] > mbspl[peaks[i]]*0.05:
+            while mbspl[p] > mbspl[peaks[i]]*0.1:
                 p += pow(-1,i)
             peaks[i] = p
         toppeak,botpeak = peaks

@@ -240,9 +240,10 @@ class profilePhoto():
         # ewoc - bg=236. changed to 255 in gimp, but could change all the hard-coded fills here to P.bg
         if edgeprocess=='bike':
             if P.bg > 200:
-                # edges = cv2.Canny(bw,95,190,apertureSize=3,L2gradient=True)
-                # cube240. for the bottom side of top tube which was obscured by cable
-                edges = cv2.Canny(bw,95,190,apertureSize=7,L2gradient=True)
+                # works. revert to small aperture
+                edges = cv2.Canny(bw,95,190,apertureSize=3,L2gradient=True)
+                # cube240... trail. for the bottom side of top tube which was obscured by cable
+                # edges = cv2.Canny(bw,95,190,apertureSize=7,L2gradient=True)
         # filtering on the black background didn't work, had to use gimp
             elif P.bg == 0:
                 edges = cv2.Canny(bw,1,2,apertureSize=7,L2gradient=True)
@@ -726,21 +727,23 @@ class Tubeset():
                 bspl[:,i] = scipy.interpolate.splev(bxint,bsp,der=1)
             # pineridge. need color to get the measurement due to black gear trigger and no white gap
             mbspl = np.mean(np.abs(bspl),axis=1)
+            plt.subplot(2,1,i1+1)
+            plt.plot(bxint,mbspl)
+            plt.plot(hrange,hprofile)
             # this min dist should select the desired two peaks
             peaks = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(3)*10)
             # two max peaks should be the main edges if not the only ones selected. may need silhouette image here though
             # riprock,pineridge fails at pt1 due to narrow gap and brake
             if len(peaks) != 2:
                 print("no detection")
+                plt.show(block= not __debug__)
+                figNo = figNo + 1
                 return(None)
             hpeaks[:,i1] = np.sort(peaks[mbspl[peaks].argsort()][::-1][0:2])
             hedge[:,i1] = bxint[hpeaks[:,i1].astype(int)]
             htx2[i1] = np.mean(hedge[:,i1],axis=0)
             hcentre[i1,:] = self.tubes['ht'].rotatePoint(Minv,(htx2[i1],hty))[:,0]
 
-            plt.subplot(2,1,i1+1)
-            plt.plot(bxint,mbspl)
-            plt.plot(hrange,hprofile)
             plt.plot(bxint[hpeaks[:,i1].astype(int)],mbspl[hpeaks[:,i1].astype(int)],'r+')
 
         plt.show(block= not __debug__)
@@ -817,9 +820,11 @@ class Tubeset():
         # and will be too high for any bikes that are black
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(1))[2]+botrangeint[0] 
         # trail. take 4th peak past cable
-        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(1))[3]+botrangeint[0]         
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(1))[3]+botrangeint[0]         
         # charger - reduced threshold
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[2]+botrangeint[0] 
+        # works. extra peaks for double cables.
+        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[4]+botrangeint[0] 
         # exceed,riprock - reduced threshold and took first peak
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
         # mxtrail, kato. lower threshold but 1st peak

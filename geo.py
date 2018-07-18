@@ -146,10 +146,10 @@ class profilePhoto():
         # chainring = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(10))[0]
         # fluid - didn't pick up the chairing or outer diameter properly
         # mantra - chainring detection with these params was skewed about 1cm high
-        chainring = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(8))[0]
-        # pineridge. have to reduce maxradius because of false selection in mid-air above bottom bracket. could also mask that region out better to 
+        # chainring = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(8))[0]
+        # pineridge. line. have to reduce maxradius because of false selection in mid-air above bottom bracket. could also mask that region out better to 
         # retain the large radius.
-        # chainring = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(6))[0]
+        chainring = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(6))[0]
         # BAYVIEW. use wheel hubs to select chainring circle of more than 1 detected
         if len(chainring[0])>1:
             wx,wy = np.mean(wheels[:,0:2],axis=0)
@@ -556,8 +556,8 @@ class Tubeset():
             for i,line in enumerate(lines):
                 line=line[0]
                 t.setpts(line[0:2],line[2:4])
-                # pineridge. increase to 5 cm
-                if np.abs(t.rho - self.targets['st'].rho) > CM2PX(5) or RAD2DEG(np.abs(t.theta - self.targets['st'].theta)) > 10:
+                # pineridge. increase to 5 cm. line increase to 5.5
+                if np.abs(t.rho - self.targets['st'].rho) > CM2PX(5.5) or RAD2DEG(np.abs(t.theta - self.targets['st'].theta)) > 10:
                     break
                 else:
                     set1 = np.concatenate((set1,np.reshape(np.array([t.rho,t.theta]),(1,2))),axis=0)
@@ -581,6 +581,9 @@ class Tubeset():
                 rt2 = np.mean(rt2[1:],axis=0)
             else:
                 rt2 = None
+            if rt1 is None and rt2 is None:
+                print('assignSeatTubeLines: no targets matched')
+                return
             if rt1 is not None and rt2 is not None:
                 rt = np.mean((rt1,rt2),axis=0)
                 self.tubes['st'].setrhotheta(rt[0],rt[1])
@@ -732,6 +735,8 @@ class Tubeset():
             # pineridge. need color to get the measurement due to black gear trigger and no white gap
             mbspl = np.mean(np.abs(bspl),axis=1)
             plt.subplot(2,1,i1+1)
+            if i1==0:
+                plt.title('measureHeadTube')
             plt.plot(bxint,mbspl)
             plt.plot(hrange,hprofile)
             # this min dist should select the desired two peaks
@@ -820,6 +825,7 @@ class Tubeset():
 
         plt.figure(figNo)
         plt.subplot(2,1,1)
+        plt.title('extendHeadTube')
         plt.plot(lrange,htprofile)
         plt.subplot(2,1,2)
         plt.plot(bxint,np.mean(np.abs(bspl),axis=1))

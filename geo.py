@@ -527,7 +527,8 @@ class Tubeset():
         # adjust line by less than half the diamter of the expected headtube. 
         # this will ensure a clean profile for the actual headtube length detection, following
         # which the more accurate diameter detection is done. 
-        self.tubes['ht'].rho = self.tubes['ht'].rho - CM2PX(0.75*2.54/2)
+        # vertex. increase slightly.
+        self.tubes['ht'].rho = self.tubes['ht'].rho - CM2PX(1.0*2.54/2)
         self.tubes['ht'].setrhotheta(self.tubes['ht'].rho,self.tubes['ht'].theta)
 
     # match closest lines to seat tube target. lines not checked yet for same convention pt1[0]<pt2[0]
@@ -770,6 +771,9 @@ class Tubeset():
         h2shift = hcentre[1,0]-self.tubes['ht'].pt2[0]
         if h1shift < CM2PX(0.5) and h2shift < CM2PX(0.5):
             meq[0,:] = pts2eq((hcentre[0],hcentre[1]))
+            # remove previous gusset tube if present
+            if 'gt' in self.tubes.keys():
+                self.tubes.pop('gt')
         else:
             print "measureHeadTube: no detection"
             meq=None
@@ -1134,12 +1138,10 @@ if __name__=='__main__':
 
     # with head tube approximately correct, redo the head angle estimate with better measurement.
     P.imW = np.copy(P.imRGB)
-    # mxtrail. try thresholding for this measurement.
-    # ret,P.imW = cv2.threshold(P.imW,240,255,cv2.THRESH_BINARY)
+    # mxtrail. try thresholding for this measurement. 
+    # vertex. a small white reflection of black paint requires this threshold
+    ret,P.imW = cv2.threshold(P.imW,240,255,cv2.THRESH_BINARY)
     meq = G.T.measureHeadTube(P.imW)
-    # adjust the head tube by averaging 
-    # self.tubes['ht'].setpts(np.array([self.tubes['ht'].pt1[0]+h1shiftx,self.tubes['ht'].pt1[1]]),
-    #                         np.array([self.tubes['ht'].pt2[0]+h2shiftx,self.tubes['ht'].pt2[1]])) 
     if meq is not None:       
         # G.T.modifyTubeLines(meq,'ht',op='mean')
         # kato. poor initial and very good secondary detection. a better combination might be averaging the slopes

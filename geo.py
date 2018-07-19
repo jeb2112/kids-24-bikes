@@ -728,8 +728,14 @@ class Tubeset():
             hprofile = rimg[int(hty),hrange]
  
             bxint = np.round(np.arange(hrange[0],hrange[-1],.1)*10)/10
-            bspl = np.zeros((len(bxint),3))
-            for i in range(0,3):
+            if len(img.shape)==2:
+                ndim=1
+                hprofile = np.reshape(hprofile,(len(hprofile),1))
+            elif len(img.shape)==3:
+                ndim=3
+
+            bspl = np.zeros((len(bxint),ndim))                
+            for i in range(0,ndim):
                 # arbitrary smoothing factor
                 bsp = scipy.interpolate.splrep(hrange,hprofile[:,i],np.ones(len(hrange)),k=3,s=len(bxint))
                 bspl[:,i] = scipy.interpolate.splev(bxint,bsp,der=1)
@@ -741,20 +747,21 @@ class Tubeset():
             plt.plot(bxint,mbspl)
             plt.plot(hrange,hprofile)
             # this min dist should select the desired two peaks
-            peaks = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(3)*10)
-            # two max peaks should be the main edges if not the only ones selected. may need silhouette image here though
+            # peaks = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(3)*10)
+            # edge. switch from min_dist criterion
+            peaks = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(0)*10)
+            # two max peaks should be the main edges if not the only ones selected. may need threshold image here though
             # riprock,pineridge fails at pt1 due to narrow gap and brake
             if len(peaks) < 2:
                 print("measureHeadTube: no detection")
                 plt.show(block= not __debug__)
                 figNo = figNo + 1
                 return(None)
-            elif len(peaks) > 2:
-                print("measureHeadTube: extra peaks")
-                plt.show(block= not __debug__)
-                figNo = figNo + 1
-                return(None)
-            hpeaks[:,i1] = np.sort(peaks[mbspl[peaks].argsort()][::-1][0:2])
+            # select top two peaks by spline derivative amplitude
+            # hpeaks[:,i1] = np.sort(peaks[mbspl[peaks].argsort()][::-1][0:2])
+            # edge. with threshold image, can rely on two innermost peaks as the criterion
+            idx = np.searchsorted(peaks,len(bxint)/2)
+            hpeaks[:,i1] = peaks[idx-1:idx+1]
             hedge[:,i1] = bxint[hpeaks[:,i1].astype(int)]
             htx2[i1] = np.mean(hedge[:,i1],axis=0)
             hcentre[i1,:] = self.tubes['ht'].rotatePoint(Minv,(htx2[i1],hty))[:,0]
@@ -1137,7 +1144,9 @@ if __name__=='__main__':
     plotFig(P.imW,False,title="head extend")
 
     # with head tube approximately correct, redo the head angle estimate with better measurement.
-    P.imW = np.copy(P.imRGB)
+    # P.imW = np.copy(P.imRGB)
+    # edge. color should be less needed for this profile defined by white background
+    P.imW = np.copy(P.imGRAY)
     # mxtrail. try thresholding for this measurement. 
     # vertex. a small white reflection of black paint requires this threshold
     ret,P.imW = cv2.threshold(P.imW,240,255,cv2.THRESH_BINARY)

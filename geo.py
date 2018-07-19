@@ -747,9 +747,9 @@ class Tubeset():
             plt.plot(bxint,mbspl)
             plt.plot(hrange,hprofile)
             # this min dist should select the desired two peaks
-            # peaks = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(3)*10)
+            peaks = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(3)*10)
             # edge. switch from min_dist criterion
-            peaks = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(0)*10)
+            # peaks = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(0)*10)
             # two max peaks should be the main edges if not the only ones selected. may need threshold image here though
             # riprock,pineridge fails at pt1 due to narrow gap and brake
             if len(peaks) < 2:
@@ -758,10 +758,10 @@ class Tubeset():
                 figNo = figNo + 1
                 return(None)
             # select top two peaks by spline derivative amplitude
-            # hpeaks[:,i1] = np.sort(peaks[mbspl[peaks].argsort()][::-1][0:2])
-            # edge. with threshold image, can rely on two innermost peaks as the criterion
+            hpeaks[:,i1] = np.sort(peaks[mbspl[peaks].argsort()][::-1][0:2])
+            # edge. with threshold image, can rely on two innermost peaks as the criterion. didn't work for xtcsljr
             idx = np.searchsorted(peaks,len(bxint)/2)
-            hpeaks[:,i1] = peaks[idx-1:idx+1]
+            # hpeaks[:,i1] = peaks[idx-1:idx+1]
             hedge[:,i1] = bxint[hpeaks[:,i1].astype(int)]
             htx2[i1] = np.mean(hedge[:,i1],axis=0)
             hcentre[i1,:] = self.tubes['ht'].rotatePoint(Minv,(htx2[i1],hty))[:,0]
@@ -850,6 +850,9 @@ class Tubeset():
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(1))[2]+botrangeint[0] 
         # trail. take 4th peak past cable
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(1))[3]+botrangeint[0]         
+        #  xtcsljr - fix scaling in the min_dist arg. exclude 2nd peak of the cable with min_dist. won't work if cable 
+        # is closer to bottom of the head tube than cable thicknesss (2mm)
+        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(.4)*10)[1]+botrangeint[0]         
         # charger - reduced threshold
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[2]+botrangeint[0] 
         # works. extra peaks for double cables.
@@ -857,7 +860,7 @@ class Tubeset():
         # exceed,riprock, yamajama - reduced threshold and took first peak
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
         # signal. need higher threshold for ruffles but no cables
-        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[0]+botrangeint[0] 
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[0]+botrangeint[0] 
         # mxtrail, kato. lower threshold but 1st peak
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
         # ewoc - cable created 3 peaks. more blur.
@@ -882,7 +885,7 @@ class Tubeset():
 
         plt.plot(bxint[toppeak],mbspl[toppeak],'r+')
         plt.plot(bxint[botpeak],mbspl[botpeak],'r+')
-        plt.show(block=  not __debug__)
+        plt.show(block= not __debug__)
         figNo = figNo + 1
     
         headtubetoplength = self.tubes['ht'].pt1[1] - bxint[toppeak]

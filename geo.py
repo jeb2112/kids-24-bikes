@@ -116,10 +116,12 @@ class profilePhoto():
         # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # frog62. never did pick up  the front inner correctly.
         # wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.CM2PX(90),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
+        # zulu. not picking up very well
+        wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.1,minDist=self.CM2PX(86),param1=self.CM2PX(2),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(28))        
         # mantra. further reduction in maxRadius
         # wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(8),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(26))        
         # pineridge. a scaling factor error was confusing the fit here, may not need unique params
-        wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(24))        
+        # wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(24))        
         # place rear wheel first in list. note extra 1st dimension in output of HoughCircles
         wheelsInner = wheelsInner[0,wheelsInner[0,:,0].argsort(),:]
         # cleary.png
@@ -155,12 +157,12 @@ class profilePhoto():
             wx,wy = np.mean(wheels[:,0:2],axis=0)
             chainring = np.reshape(chainring[(np.sqrt(pow(np.abs(chainring[:,0]-wx),2)+pow(np.abs(chainring[:,1]-wy),2))).argmin()],(1,3))
         for c in wheels:
-            cv2.circle(bw3,(c[0],c[1]),int(c[2]),255,5)
+            cv2.circle(bw3,(c[0],c[1]),int(c[2]),140,5)
         wc = np.mean([wheelsInner[:,0:2],wheelsOuter[:,0:2]],axis=0)   
         for w in wheels:
-            cv2.circle(bw3,(w[0],w[1]),CM2PX(0.1),255,-1)
+            cv2.circle(bw3,(w[0],w[1]),CM2PX(0.1),140,-1)
         for c in chainring:
-            cv2.circle(bw3,(c[0],c[1]),int(c[2]),255,5)
+            cv2.circle(bw3,(c[0],c[1]),int(c[2]),140,5)
         plotFig(bw3,False,cmap="gray",title='houghCircle: wheel detection')
         plt.show(block = not __debug__)        
         
@@ -699,13 +701,19 @@ class Tubeset():
     # this may end up replacing the use of findForkLines
     def measureHeadTube(self,img):
         global figNo
-        plt.figure(figNo)
+        # plt.figure(figNo)
          
         hpeaks = np.zeros((2,2))
+        hpeaks1 = np.zeros((20,4))
+        hpeaks2 = np.zeros((20,4))
+        hwidth1 = np.zeros((20,1))
+        hwidth2 = np.zeros((20,1))
+        hwidth = np.zeros((20,1))
         hedge = np.zeros((2,2))
         hcentre = np.zeros((2,2))
         htx2 = np.zeros(2)
         hshift = np.zeros(2)
+        hrangeline = np.zeros((2,1,4))
         meq = np.zeros((1,2))
         for i1 in range(0,2):
             if i1==0:
@@ -724,52 +732,103 @@ class Tubeset():
             # can detect this properly based on teh 255 background
             # hrange = range(int(htx)-CM2PX(4.5),int(htx)+CM2PX(2))
             # yamajama - tapered head tube need more on the bottom. problem with top measure on the right from brakes exclude with 2.5 for now
-            hrange = range(int(htx)-CM2PX(5.5),int(htx)+CM2PX(2.5))
-            hprofile = rimg[int(hty),hrange]
- 
+            # zulu increase right-hand range slightly
+            hrange = range(int(htx)-CM2PX(5.5),int(htx)+CM2PX(3.0))
+            # dummy dimensions to make the np.array an iterable
+            hrangeline = np.reshape(np.array([hrange[0],hty,hrange[-1],hty]),(1,1,4))
+            # debug only
+            rimg2=np.copy(rimg)
+            plotLines(rimg2,hrangeline.astype(int),False,cmap="gray")
+
+            hy = int(hty)
+            hi = 0
             bxint = np.round(np.arange(hrange[0],hrange[-1],.1)*10)/10
             if len(img.shape)==2:
                 ndim=1
-                hprofile = np.reshape(hprofile,(len(hprofile),1))
             elif len(img.shape)==3:
                 ndim=3
-
             bspl = np.zeros((len(bxint),ndim))                
-            for i in range(0,ndim):
-                # arbitrary smoothing factor
-                bsp = scipy.interpolate.splrep(hrange,hprofile[:,i],np.ones(len(hrange)),k=3,s=len(bxint))
-                bspl[:,i] = scipy.interpolate.splev(bxint,bsp,der=1)
-            # pineridge. need color to get the measurement due to black gear trigger and no white gap
-            mbspl = np.mean(np.abs(bspl),axis=1)
-            plt.subplot(2,1,i1+1)
-            if i1==0:
-                plt.title('measureHeadTube')
-            plt.plot(bxint,mbspl)
-            plt.plot(hrange,hprofile)
-            # this min dist should select the desired two peaks
-            peaks = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(3)*10)
-            # edge. switch from min_dist criterion
-            # peaks = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(0)*10)
-            # two max peaks should be the main edges if not the only ones selected. may need threshold image here though
-            # riprock,pineridge fails at pt1 due to narrow gap and brake
-            if len(peaks) < 2:
-                print("measureHeadTube: no detection")
-                plt.show(block= not __debug__)
-                figNo = figNo + 1
-                return(None)
-            # select top two peaks by spline derivative amplitude
-            hpeaks[:,i1] = np.sort(peaks[mbspl[peaks].argsort()][::-1][0:2])
-            # edge. with threshold image, can rely on two innermost peaks as the criterion. didn't work for xtcsljr
-            idx = np.searchsorted(peaks,len(bxint)/2)
-            # hpeaks[:,i1] = peaks[idx-1:idx+1]
-            hedge[:,i1] = bxint[hpeaks[:,i1].astype(int)]
+
+            # todo. slide the profile up and/or down until a consistent width is detected. 
+            hwidthold  = 0.0
+            while True:
+                hprofile = rimg[hy,hrange]
+                if ndim==1:
+                    hprofile = np.reshape(hprofile,(len(hprofile),1))
+
+                for i in range(0,ndim):
+                    # arbitrary smoothing factor
+                    bsp = scipy.interpolate.splrep(hrange,hprofile[:,i],np.ones(len(hrange)),k=3,s=len(bxint))
+                    bspl[:,i] = scipy.interpolate.splev(bxint,bsp,der=1)
+                # pineridge. need color to get the measurement due to black gear trigger and no white gap
+                mbspl = np.mean(np.abs(bspl),axis=1)
+                # plt.subplot(2,1,i1+1)
+                # if i1==0:
+                    # plt.title('measureHeadTube')
+                # plt.plot(bxint,mbspl)
+                # plt.plot(hrange,hprofile)
+                # this min dist should select the desired two peaks
+                peaks1 = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(3)*10)
+                if len(peaks1)>=2:
+                    # select top two peaks by spline derivative amplitude
+                    hpeaks1[hi,0:2] = np.sort(peaks1[mbspl[peaks1].argsort()][::-1][0:2])
+                    hwidth1[hi] = bxint[hpeaks1[hi,1].astype(int)]-bxint[hpeaks1[hi,0].astype(int)]
+                # edge. switch from min_dist criterion
+                peaks2 = peakutils.indexes(mbspl,thres=0.2,min_dist=CM2PX(0)*10)
+                # two max peaks should be the main edges if not the only ones selected. may need threshold image here though
+                # riprock,pineridge fails at pt1 due to narrow gap and brake
+                # edge. with threshold image, can rely on two innermost peaks as the criterion. didn't work for xtcsljr
+                if len(peaks2) >= 2:
+                    idx = np.searchsorted(peaks2,len(bxint)/2)
+                    hpeaks2[hi,0:2] = peaks2[idx-1:idx+1]
+                    hwidth2[hi] = bxint[hpeaks1[hi,1].astype(int)]-bxint[hpeaks1[hi,0].astype(int)]
+
+                if hwidth1[hi] and hwidth2[hi]:
+                    hwidth[hi] = min(hwidth1[hi],hwidth2[hi])
+                elif hwidth1[hi] or hwidth2[hi]:
+                    hwidth[hi] = max(hwidth1[hi],hwidth2[hi])
+                else:
+                    print("measureHeadTube: no width detected")
+                    break
+
+                if hwidthold == 0.0 or (hwidth[hi] - hwidthold < -0.01*hwidthold):
+                    hwidthold = hwidth[hi]
+                    hi += 1
+                    hy += pow(-1,i1)
+                elif hwidth[hi] - hwidthold > 0.01*hwidthold:
+                    print("measureHeadTube: converged")
+                    hi -= 1
+                    break
+                else:
+                    print("measureHeadTube: converged")
+                    break
+
+                # not likely more than 20 pixels before hitting downtube or toptube 
+                if hi==20:
+                    print("measureHeadTube: ending iteration at 20")
+                    break
+
+            # find the edges at the converted width
+            if hwidth1[hi] and hwidth2[hi]:
+                if hwidth1[hi]<hwidth2[hi]:
+                    hedge[:,i1] = bxint[hpeaks1[hi,0:2].astype(int)]
+                else:
+                    hedge[:,i1] = bxint[hpeaks2[hi,0:2].astype(int)]
+            elif hwidth1[hi]:
+                hedge[:,i1] = bxint[hpeaks1[hi,0:2].astype(int)]
+            elif hwidth2[hi]:
+                hedge[:,i1] = bxint[hpeaks2[hi,0:2].astype(int)]
+
+            # new centreline of the tube
             htx2[i1] = np.mean(hedge[:,i1],axis=0)
+
+            # if consistent width detected, rotate back to pixel coordinates. 
             hcentre[i1,:] = self.tubes['ht'].rotatePoint(Minv,(htx2[i1],hty))[:,0]
 
-            plt.plot(bxint[hpeaks[:,i1].astype(int)],mbspl[hpeaks[:,i1].astype(int)],'r+')
+            # plt.plot(bxint[hpeaks[:,i1].astype(int)],mbspl[hpeaks[:,i1].astype(int)],'r+')
 
-        plt.show(block= not __debug__)
-        figNo = figNo + 1
+        # plt.show(block= not __debug__)
+        # figNo = figNo + 1
 
         # mxxc. revert to use of separate values to allow for the correction of the head tube angle
         # also check for positive error value. the bias to the right of the original head tube detection
@@ -821,7 +880,8 @@ class Tubeset():
 
         # create detection search ranges. 3cm above/below the headtube/topdowntube intersection points.
         toprange = range(int(self.tubes['ht'].pt1[1])-CM2PX(0.2),int(self.tubes['ht'].pt1[1])-CM2PX(6.3),-1)
-        # map search range from pixel units to the interpolated 0.1 pixel scale
+        # map search range from pixel units to the interpolated 0.1 pixel scale. note reversal here to search
+        # in a negative direction.
         toprangeint = range(np.where(bxint==toprange[0])[0][0],np.where(bxint==toprange[-1])[0][0],-1)
         # BAYVIEW reduced botrange from 9.3 to 9 because it was overranging lrange defined above.
         # botrange = range(int(self.tubes['ht'].pt2[1])+CM2PX(0.2),int(self.tubes['ht'].pt2[1]+CM2PX(9.0)))
@@ -852,7 +912,9 @@ class Tubeset():
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(1))[3]+botrangeint[0]         
         #  xtcsljr - fix scaling in the min_dist arg. exclude 2nd peak of the cable with min_dist. won't work if cable 
         # is closer to bottom of the head tube than cable thicknesss (2mm)
-        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(.4)*10)[1]+botrangeint[0]         
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(.4)*10)[1]+botrangeint[0]         
+        # zulu - cable at 45 deg need wider min_dist
+        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(.5)*10)[1]+botrangeint[0]         
         # charger - reduced threshold
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[2]+botrangeint[0] 
         # works. extra peaks for double cables.
@@ -867,7 +929,9 @@ class Tubeset():
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[3]+botrangeint[0]
         # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.4,min_dist=CM2PX(3))[0]
         # BAYVIEW - reduced threshold
-        toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.3,min_dist=CM2PX(3))[0]
+        # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.3,min_dist=CM2PX(3))[0]
+        # zulu - reduce threshold. 
+        toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.1,min_dist=CM2PX(3))[0]
         # mxtrail. all black. reduce threshold.
         # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.07,min_dist=CM2PX(3))[0]
         # kato . cable affects top peak
@@ -878,7 +942,7 @@ class Tubeset():
         # trail 10%. yamajama 5%. signal some ruffles 10%
         peaks = [toppeak,botpeak]
         for i,p in enumerate(peaks):
-            while mbspl[p] > mbspl[peaks[i]]*0.1:
+            while mbspl[p] > mbspl[peaks[i]]*0.2:
                 p += pow(-1,i)
             peaks[i] = p
         toppeak,botpeak = peaks
@@ -998,9 +1062,13 @@ def eq2pts((m,b),(x1,x2)):
     y2 = m*x2 + b
     return ([x1,y1],[x2,y2])
 
-def plotFig(img,blockFlag=False,cmap=None,title=None):
+def plotFig(img,blockFlag=False,cmap=None,title=None,figNum=None):
     global figNo
-    plt.figure(figNo)
+    if figNum is None:
+        figNum = figNo
+        figNo += 1
+
+    plt.figure(figNum)
     if title is not None:
         plt.title(title)
     if cmap is not None:
@@ -1013,7 +1081,7 @@ def plotFig(img,blockFlag=False,cmap=None,title=None):
     # plt.pause(.001)
     # input('press to continue')
     plt.show(block=blockFlag)
-    figNo += 1
+    # figNo += 1
 
 # CV graphics do work with pause for keypad that way plt.ion() was supposed to
 def plotFigCV(img,title="Fig"):
@@ -1024,12 +1092,15 @@ def plotFigCV(img,title="Fig"):
     cv2.waitKey(0)
     # cv2.destroyAllWindows()
 
-def plotLines(bw,lines,blockFlag=False,title=None):
+def plotLines(bw,lines,blockFlag=False,cmap=None,title=None, figNum=None):
     # plot raw lines detection
     for line in lines:
         for x1,y1,x2,y2 in line:
-            cv2.line(bw,(x1,y1),(x2,y2),(0,0,255),CM2PX(0.1))
-    plotFig(bw,blockFlag,title=title)
+            if cmap == "gray":
+                cv2.line(bw,(x1,y1),(x2,y2),140,CM2PX(0.1))
+            else:
+                cv2.line(bw,(x1,y1),(x2,y2),(0,0,255),CM2PX(0.1))
+    plotFig(bw,blockFlag,cmap=cmap,title=title, figNum=figNum)
 
 def coord2angle(line):
     for x1,y1,x2,y2 in line:
@@ -1155,10 +1226,10 @@ if __name__=='__main__':
     ret,P.imW = cv2.threshold(P.imW,240,255,cv2.THRESH_BINARY)
     meq = G.T.measureHeadTube(P.imW)
     if meq is not None:       
-        # G.T.modifyTubeLines(meq,'ht',op='mean')
+        G.T.modifyTubeLines(meq,'ht',op='mean')
         # kato. poor initial and very good secondary detection. a better combination might be averaging the slopes
         # whille allowing the centreline to be entirely goverened by the secondary detection
-        G.T.modifyTubeLines(meq,'ht',op='replace')
+        # G.T.modifyTubeLines(meq,'ht',op='replace')
 
     # replot the tubelines
     P.imW=np.copy(P.imRGB)

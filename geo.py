@@ -213,13 +213,13 @@ class profilePhoto():
         # BAYVIEW - reduce slightly due to lightyellow graphic that doesn't generate enough gradient in gray-scale
         # ewoc - bg=236. changed to 255 in gimp, but could change all the hard-coded fills here to P.bg
         if edgeprocess=='bike':
-            if P.bg > 200:
+            if self.bg > 200:
                 # works. revert to small aperture
                 edges = cv2.Canny(bw,95,190,apertureSize=3,L2gradient=True)
                 # cube240... trail. for the bottom side of top tube which was obscured by cable
                 # edges = cv2.Canny(bw,95,190,apertureSize=7,L2gradient=True)
         # filtering on the black background didn't work, had to use gimp
-            elif P.bg == 0:
+            elif self.bg == 0:
                 edges = cv2.Canny(bw,1,2,apertureSize=7,L2gradient=True)
         # for wheel only
         else:
@@ -312,7 +312,7 @@ class profilePhoto():
                         t=Tube()
                         t.setpts(mln1[0,0:2],mln1[0,2:4])
                         midpt = np.mean((t.pt1,t.pt2),axis=0)
-                        p = Profile(int(midpt[0]),int(midpt[1]),CM2PX(5),CM2PX(5),RAD2DEG(t.A)-90,P.imW)
+                        p = Profile(int(midpt[0]),int(midpt[1]),CM2PX(5),CM2PX(5),RAD2DEG(t.A)-90,self.imW)
                         p.setprofile()
                         try:
                             p.setpeaks1()
@@ -346,6 +346,30 @@ class profilePhoto():
             meqs = np.reshape(meqs,(len(meqs)/2,2))
         
             return(avglines,meqs)
+
+    def findForkLines(self,wheel,minlength):
+        # try to fill in light-colored paint with a preliminary thresh. hardcoded at 250 for now
+        imW = np.copy(self.imW)
+        if self.bg > 250:
+            ret,imW = cv2.threshold(imW,250,255,cv2.THRESH_BINARY)
+        elif self.bg == 0:
+            ret,imW = cv2.threshold(imW,250,255,cv2.THRESH_BINARY)
+        # im = cv2.blur(im,(5,5))
+        # Creig-24 . try more blur more spoke suppression, suppression of graphic/printing
+        imW = cv2.blur(imW,(15,15))
+        imW2 = np.copy(imW)
+        self.selectCircle(wheel.centre,wheel.rOuter,imW)
+        imW = imW2 - imW
+        # 100 threshold helps get rid of spokes
+        ret,imW = cv2.threshold(imW,100,255,cv2.THRESH_TOZERO_INV)
+
+        plotFig(imW,cmap="gray")
+        plt.show(block= not __debug__)
+        # up to Creig-24. charger
+        # avglines,meqs = P.houghLines(imW,P.imRGB,edgeprocess='fork',minlength=7.5)
+        # fluid had to reduce minlength 
+        avglines,meqs = self.houghLines(imW,self.imRGB,edgeprocess='fork',minlength=minlength)
+        return(avglines,meqs)
 
 
 ###############
@@ -560,28 +584,6 @@ class Fork(Tube):
         self.offset = self.axle2crown * np.sin(offsetAngle)
         print(('offset = %.1f cm' % PX2CM(self.offset)))
 
-    def findForkLines(self,imW,wheel,minlength):
-        # try to fill in light-colored paint with a preliminary thresh. hardcoded at 250 for now
-        if P.bg > 250:
-            ret,imW = cv2.threshold(imW,250,255,cv2.THRESH_BINARY)
-        elif P.bg == 0:
-            ret,imW = cv2.threshold(imW,250,255,cv2.THRESH_BINARY)
-        # im = cv2.blur(im,(5,5))
-        # Creig-24 . try more blur more spoke suppression, suppression of graphic/printing
-        imW = cv2.blur(imW,(15,15))
-        imW2 = np.copy(imW)
-        P.selectCircle(wheel.centre,wheel.rOuter,imW)
-        imW = imW2 - imW
-        # 100 threshold helps get rid of spokes
-        ret,imW = cv2.threshold(imW,100,255,cv2.THRESH_TOZERO_INV)
-
-        plotFig(imW,cmap="gray")
-        plt.show(block= not __debug__)
-        # up to Creig-24. charger
-        # avglines,meqs = P.houghLines(imW,P.imRGB,edgeprocess='fork',minlength=7.5)
-        # fluid had to reduce minlength 
-        avglines,meqs = P.houghLines(imW,P.imRGB,edgeprocess='fork',minlength=minlength)
-        return(avglines,meqs)
 
 
 class Tubeset():
@@ -1168,10 +1170,7 @@ def angle2coord(line):
         y2 = float(y0 - 1000*(a))
     return[[x2,y2],[x1,y1]]
 
-
-if __name__=='__main__':
-    filename = sys.argv[1]
-    mmpx = float(sys.argv[2])
+def runFull(filename,mmpx):
     P = profilePhoto(filename,mmpx=mmpx)
     G = Geometry()
     wheels,chainring = P.houghCircles(P.imGRAY)
@@ -1235,7 +1234,7 @@ if __name__=='__main__':
 
     # process the fork for refinement of head tube angle. 
     P.imW = np.copy(P.imGRAY)
-    lines,meqs = G.fork.findForkLines(P.imW,G.fw,minlength=5)
+    lines,meqs = P.findForkLines(G.fw,minlength=5)
     G.T.modifyTubeLines(meqs,'ht',op='mean')
     # Creig-24. charger. mxxc. head tube estimate not good enough use fork only
     # G.T.modifyTubeLines(meqs,'ht',op='replace')
@@ -1296,3 +1295,9 @@ if __name__=='__main__':
     P.imW = np.copy(P.imRGB)
     P.imw = G.plotTubes(P.imW,G.T)
     plotFig(P.imw,True)
+
+
+if __name__=='__main__':
+    filename = sys.argv[1]
+    mmpx = float(sys.argv[2])
+    runFull(filename,mmpx)

@@ -58,7 +58,7 @@ class profilePhoto():
         self.bg = self.imGRAY[0,0]
 
     # return a profile perpendicular to a tube at the given point
-    # should be used eventually to replace measureHeadTube. but the width parameter might have to be split
+    # move to Profile class
     def profile(self,pt1,width,tube,img=None):
         if img is None:
             img = self.imW
@@ -380,17 +380,40 @@ class profilePhoto():
         
             return(avglines,meqs)
 
+
+###############
+# class Profile
+###############
+
+class breakIteration(Exception):
+    pass
+
+# class for processing line profiles in image. for now the line profiles are obtained horizontally by
+# specifying the angle of rotation of the source image accordingly. the class instances are intended
+# to be used in iterations to find optimal values but this is only half-conceived.
 class Profile():
-    def __init__(self,hx,hy,hl,hr):
-        self.hrange = range(hx-hl,hx+hr)
+    def __init__(self,hx,hy,hl,hr,A,img):
+        # centre of rotation, angle, for source image to obtain horizontal profile
+        self.hx = hx
+        self.hy = hy
+        self.A = A
+        self.img = img
+        # process rgb or gray
+        if len(img.shape)==2:
+            self.ndim=1
+        elif len(img.shape)==3:
+            self.ndim=3
+        # pixel range horizontally for profile
+        self.hrange = range(self.hx-hl,self.hx+hr)
         self.hprofile = np.zeros(len(self.hrange))
-        self.hrangeline = np.reshape(np.array([self.hrange[0],hy,self.hrange[-1],hy]),(1,1,4))
+        self.hrangeline = np.reshape(np.array([self.hrange[0],self.hy,self.hrange[-1],self.hy]),(1,1,4))
         # arbitrary factor of 10 for interpolation
         self.bxint = np.round(np.arange(self.hrange[0],self.hrange[-1],.1)*10)/10
         self.bspl = np.zeros((len(self.bxint),3))  
         self.mbspl = np.zeros(len(self.bxint))       
 
         self.hpeaks = np.zeros((2,2))
+        # two types of detection will be used and kept track of separately
         self.hpeaks1 = np.zeros(4)
         self.hpeaks2 = np.zeros(4)
         self.hwidth1 = 0
@@ -400,7 +423,82 @@ class Profile():
         self.hcentre = np.zeros((2,2))
         self.htx2 = np.zeros(2)
         self.hshift = np.zeros(2)
+        
+        self.setrimg()
+        self.setprofile()
 
+    # convert final width of the profile to a pair of edges and a centre point
+    def setedge(self):
+        if self.hwidth1 and self.hwidth2:
+            if self.hwidth1 < self.hwidth2:
+                self.hedge = self.bxint[self.hpeaks1[0:2].astype(int)]
+            else:
+                self.hedge = self.bxint[self.hpeaks2[0:2].astype(int)]
+        elif self.hwidth1:
+            self.hedge = self.bxint[self.hpeaks1[0:2].astype(int)]
+        elif self.hwidth2:
+            self.hedge = self.bxint[self.hpeaks2[0:2].astype(int)]
+        # new centreline of the tube
+        self.htx2 = np.mean(self.hedge,axis=0)
+
+    # compare widths determined by two methods and choose the resultant width
+    # the width refers to a tube across which the profile is taken so a misnomer 
+    # for the 'length' of the profile.
+    # the process for establishing the tube width is expected to be iterative so 
+    # raises an exception if failure.
+    def setwidth(self):
+        if self.hwidth1 and self.hwidth2:
+            self.hwidth = min(self.hwidth1,self.hwidth2)
+        elif self.hwidth1 or self.hwidth2:
+            self.hwidth = max(self.hwidth1,self.hwidth2)
+        else:
+            print("measureHeadTube: no width detected")
+            raise breakIteration
+
+    # second method for establishing tube width based on two adjacent peaks in the derivative on either side of the search point
+    # min_dist criterion is therefore not used.
+    def setpeaks2(self):
+        peaks2 = peakutils.indexes(self.mbspl,thres=0.2,min_dist=CM2PX(0)*10)
+        # two max peaks should be the main edges if not the only ones selected. may need threshold image here though
+        # riprock,pineridge fails at pt1 due to narrow gap and brake
+        # edge. with threshold image, can rely on two innermost peaks as the criterion. didn't work for xtcsljr
+        if len(peaks2) >= 2:
+            idx = np.searchsorted(peaks2,len(self.bxint)/2)
+            self.hpeaks2[0:2] = peaks2[idx-1:idx+1]
+            self.hwidth2 = self.bxint[self.hpeaks2[1].astype(int)]-self.bxint[self.hpeaks2[0].astype(int)]
+
+    # first method for establishing tube width based on the spline derivative amplitude, edges should have the
+    # largest derivative values, but min_dist criterion helps some borderline cases.
+    def setpeaks1(self):
+        peaks1 = peakutils.indexes(self.mbspl,thres=0.2,min_dist=CM2PX(3)*10)
+        if len(peaks1)>=2:
+            self.hpeaks1[0:2] = np.sort(peaks1[self.mbspl[peaks1].argsort()][::-1][0:2])
+            self.hwidth1 = self.bxint[self.hpeaks1[1].astype(int)]-self.bxint[self.hpeaks1[0].astype(int)]
+
+    # rotate source image so desired profile is horizontal
+    def setrimg(self):
+            self.M = cv2.getRotationMatrix2D((self.hx,self.hy),self.A,1)
+            self.Minv = np.concatenate((np.linalg.inv(self.M[:,0:2]),np.reshape(-np.matmul(np.linalg.inv(self.M[:,0:2]),self.M[:,2]),(2,1))),axis=1)
+            self.rimg = cv2.warpAffine(self.img,self.M,(cols,rows))
+
+    # returns a smoothing spline of the first derivative of the profile used for detecting edges
+    # for now rgb profiles are averaged rather than processed individually
+    def setprofile(self):
+        self.hprofile = self.rimg[self.hy,self.hrange]
+        if self.ndim==1:
+            self.hprofile = np.reshape(self.hprofile,(len(self.hprofile),1))
+
+        for i in range(0,self.ndim):
+            # arbitrary smoothing factor
+            bsp = scipy.interpolate.splrep(self.hrange,self.hprofile[:,i],np.ones(len(self.hrange)),k=3,s=len(self.bxint))
+            self.bspl[:,i] = scipy.interpolate.splev(self.bxint,bsp,der=1)
+        # pineridge. need color to get the measurement due to black gear trigger and no white gap
+        self.mbspl = np.mean(np.abs(self.bspl),axis=1)
+
+
+############
+# class Tube
+############
 
 class Tube():
     def __init__(self):
@@ -720,7 +818,6 @@ class Tubeset():
         return
 
     # use first estimate of head tube to improve by measuring tube width at the top and bottom
-    # this may end up replacing the use of findForkLines
     def measureHeadTube(self,img):
         global figNo
         p=[]
@@ -730,10 +827,11 @@ class Tubeset():
                 htx,hty = self.tubes['ht'].pt1
             else:
                 htx,hty = self.tubes['ht'].pt2
+            p.append(Profile(int(htx),int(hty),CM2PX(5.5),CM2PX(3.0),RAD2DEG(self.tubes['ht'].A)-90,img))
             # rotate around the current estimate of the head tube point
-            M = cv2.getRotationMatrix2D((htx,hty),self.tubes['ht'].A*180/np.pi-90,1)
-            Minv = np.concatenate((np.linalg.inv(M[:,0:2]),np.reshape(-np.matmul(np.linalg.inv(M[:,0:2]),M[:,2]),(2,1))),axis=1)
-            rimg = cv2.warpAffine(img,M,(cols,rows))
+            # M = cv2.getRotationMatrix2D((htx,hty),self.tubes['ht'].A*180/np.pi-90,1)
+            # Minv = np.concatenate((np.linalg.inv(M[:,0:2]),np.reshape(-np.matmul(np.linalg.inv(M[:,0:2]),M[:,2]),(2,1))),axis=1)
+            # rimg = cv2.warpAffine(img,M,(cols,rows))
             # needed 4 cm to the left for the wider headtube of riprock
             # hrange = range(int(htx)-CM2PX(4),int(htx)+CM2PX(3))
             # needed less than 3cm to right cube240
@@ -743,90 +841,50 @@ class Tubeset():
             # hrange = range(int(htx)-CM2PX(4.5),int(htx)+CM2PX(2))
             # yamajama - tapered head tube need more on the bottom. problem with top measure on the right from brakes exclude with 2.5 for now
             # zulu increase right-hand range slightly
-            p.append(Profile(int(htx),int(hty),CM2PX(5.5),CM2PX(3.0)))
             # debug only
-            rimg2=np.copy(rimg)
-            plotLines(rimg2,p[i1].hrangeline.astype(int),False,cmap="gray")
-
-            hy = int(hty)
-            hi = 0
-            if len(img.shape)==2:
-                ndim=1
-            elif len(img.shape)==3:
-                ndim=3
+            # rimg2=np.copy(rimg)
+            # plotLines(rimg2,p[i1].hrangeline.astype(int),False,cmap="gray")
 
             # slide the profile up/down until a consistent width is detected. 
+            hy = int(hty)
+            hi = 0
             hwidthold  = 0.0
             p2=[]
-            while True:
-                p2.append(copy.deepcopy(p[i1]))
-                p2[hi].hprofile = rimg[hy,p2[hi].hrange]
-                if ndim==1:
-                    p2[hi].hprofile = np.reshape(p2[hi].hprofile,(len(p2[hi].hprofile),1))
+            try:
+                while True:
+                    p2.append(copy.deepcopy(p[i1]))
+                    p2[hi].hy = hy
+                    p2[hi].setprofile()
+                    p2[hi].setpeaks1()
+                    p2[hi].setpeaks2()
+                    p2[hi].setwidth()
 
-                for i in range(0,ndim):
-                    # arbitrary smoothing factor
-                    bsp = scipy.interpolate.splrep(p2[hi].hrange,p2[hi].hprofile[:,i],np.ones(len(p2[hi].hrange)),k=3,s=len(p2[hi].bxint))
-                    p2[hi].bspl[:,i] = scipy.interpolate.splev(p2[hi].bxint,bsp,der=1)
-                # pineridge. need color to get the measurement due to black gear trigger and no white gap
-                p2[hi].mbspl = np.mean(np.abs(p2[hi].bspl),axis=1)
-                # this min dist should select the desired two peaks
-                peaks1 = peakutils.indexes(p2[hi].mbspl,thres=0.2,min_dist=CM2PX(3)*10)
-                if len(peaks1)>=2:
-                    # select top two peaks by spline derivative amplitude
-                    p2[hi].hpeaks1[0:2] = np.sort(peaks1[p2[hi].mbspl[peaks1].argsort()][::-1][0:2])
-                    p2[hi].hwidth1 = p2[hi].bxint[p2[hi].hpeaks1[1].astype(int)]-p2[hi].bxint[p2[hi].hpeaks1[0].astype(int)]
-                # edge. switch from min_dist criterion
-                peaks2 = peakutils.indexes(p2[hi].mbspl,thres=0.2,min_dist=CM2PX(0)*10)
-                # two max peaks should be the main edges if not the only ones selected. may need threshold image here though
-                # riprock,pineridge fails at pt1 due to narrow gap and brake
-                # edge. with threshold image, can rely on two innermost peaks as the criterion. didn't work for xtcsljr
-                if len(peaks2) >= 2:
-                    idx = np.searchsorted(peaks2,len(p2[hi].bxint)/2)
-                    p2[hi].hpeaks2[0:2] = peaks2[idx-1:idx+1]
-                    p2[hi].hwidth2 = p2[hi].bxint[p2[hi].hpeaks2[1].astype(int)]-p2[hi].bxint[p2[hi].hpeaks2[0].astype(int)]
+                    if hwidthold == 0.0 or (p2[hi].hwidth - hwidthold < -0.01*hwidthold):
+                        hwidthold = p2[hi].hwidth
+                        hi += 1
+                        hy += pow(-1,i1)
+                    elif p2[hi].hwidth - hwidthold > 0.01*hwidthold:
+                        print("measureHeadTube: converged")
+                        hi -= 1
+                        raise breakIteration
+                    # or a large jump to increased width also cause to end iteration
+                    else:
+                        print("measureHeadTube: converged")
+                        raise breakIteration
 
-                if p2[hi].hwidth1 and p2[hi].hwidth2:
-                    p2[hi].hwidth = min(p2[hi].hwidth1,p2[hi].hwidth2)
-                elif p2[hi].hwidth1 or p2[hi].hwidth2:
-                    p2[hi].hwidth = max(p2[hi].hwidth1,p2[hi].hwidth2)
-                else:
-                    print("measureHeadTube: no width detected")
-                    break
+                    # not likely more than 1-2 cm of extended head tube.   
+                    if hi==CM2PX(1):
+                        print("measureHeadTube: ending iteration at 1 cm")
+                        raise breakIteration
 
-                if hwidthold == 0.0 or (p2[hi].hwidth - hwidthold < -0.01*hwidthold):
-                    hwidthold = p2[hi].hwidth
-                    hi += 1
-                    hy += pow(-1,i1)
-                elif p2[hi].hwidth - hwidthold > 0.01*hwidthold:
-                    print("measureHeadTube: converged")
-                    hi -= 1
-                    break
-                else:
-                    print("measureHeadTube: converged")
-                    break
-
-                # not likely more than 1-2 cm of extended head tube.   
-                if hi==CM2PX(1):
-                    print("measureHeadTube: ending iteration at max limit")
-                    break
+            except breakIteration:
+                pass
 
             # find the edges at the converted width
-            if p2[hi].hwidth1 and p2[hi].hwidth2:
-                if p2[hi].hwidth1 < p2[hi].hwidth2:
-                    p2[hi].hedge = p2[hi].bxint[p2[hi].hpeaks1[0:2].astype(int)]
-                else:
-                    p2[hi].hedge = p2[hi].bxint[p2[hi].hpeaks2[0:2].astype(int)]
-            elif p2[hi].hwidth1:
-                p2[hi].hedge = p2[hi].bxint[p2[hi].hpeaks1[0:2].astype(int)]
-            elif p2[hi].hwidth2:
-                p2[hi].hedge = p2[hi].bxint[p2[hi].hpeaks2[0:2].astype(int)]
-
-            # new centreline of the tube
-            p2[hi].htx2 = np.mean(p2[hi].hedge,axis=0)
+            p2[hi].setedge()
 
             # if consistent width detected, rotate back to pixel coordinates. 
-            p2[hi].hcentre = self.tubes['ht'].rotatePoint(Minv,(p2[hi].htx2,hty))[:,0]
+            p2[hi].hcentre = self.tubes['ht'].rotatePoint(p2[hi].Minv,(p2[hi].htx2,hty))[:,0]
 
             # save iteration result
             p[i1] =  copy.deepcopy(p2[hi])
@@ -840,10 +898,10 @@ class Tubeset():
                 plt.title('measureHeadTube')
             plt.plot(p[i1].bxint,p[i1].mbspl)
             plt.plot(p[i1].hrange,p[i1].hprofile)
-            # plt.plot(bxint[hpeaks[:,i1].astype(int)],mbspl[hpeaks[:,i1].astype(int)],'r+')
+            plt.plot(p[i1].bxint[p[i1].hpeaks1[0:2].astype(int)],p[i1].mbspl[p[i1].hpeaks1[0:2].astype(int)],'r+')
 
-        # plt.show(block= not __debug__)
-        # figNo = figNo + 1
+        plt.show(block= not __debug__)
+        figNo = figNo + 1
 
         # mxxc. revert to use of separate values to allow for the correction of the head tube angle
         # also check for positive error value. the bias to the right of the original head tube detection

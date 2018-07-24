@@ -57,37 +57,6 @@ class profilePhoto():
         self.imGRAY = cv2.cvtColor(self.imRGB,cv2.COLOR_BGR2GRAY)
         self.bg = self.imGRAY[0,0]
 
-    # return a profile perpendicular to a tube at the given point
-    # move to Profile class
-    def profile(self,pt1,width,tube,img=None):
-        if img is None:
-            img = self.imW
-        # rotate tube to vertical position profile is horizontal
-        M = cv2.getRotationMatrix2D((int(pt1[0]),int(pt1[1])),tube.A*180/np.pi-90,1)
-        rimg = cv2.warpAffine(img,M,(cols,rows))
-        hrange = range(int(pt1[0])-CM2PX(width/2),int(pt1[0])+CM2PX(width/2))
-        hprofile = rimg[int(pt1[1]),hrange]
-
-        bxint = np.round(np.arange(hrange[0],hrange[-1],.1)*10)/10
-        if len(np.shape(img))>2:
-            bspl0 = np.zeros((len(bxint),3))
-            bspl1 = np.zeros((len(bxint),3))
-            for i in range(0,3):
-                # arbitrary smoothing factor
-                bsp = scipy.interpolate.splrep(hrange,hprofile[:,i],np.ones(len(hrange)),k=3,s=len(bxint))
-                bspl0[:,i] = scipy.interpolate.splev(bxint,bsp,der=0)
-                bspl1[:,i] = scipy.interpolate.splev(bxint,bsp,der=1)
-            bspl0 = np.mean(np.abs(bspl0),axis=1)
-            bspl1 = np.mean(np.abs(bspl1),axis=1)
-        else:
-            bspl0 = np.zeros((len(bxint)))
-            bspl1 = np.zeros((len(bxint)))
-            bsp = scipy.interpolate.splrep(hrange,hprofile,np.ones(len(hrange)),k=3,s=len(bxint))
-            bspl0 = scipy.interpolate.splev(bxint,bsp,der=0)
-            bspl1 = scipy.interpolate.splev(bxint,bsp,der=1)
-            
-        return(bxint,bspl0,bspl1)       
-
     def houghCircles(self,bw):
         # this preblur maybe helps get rid of the apparent line in the middle of a tube
         # due to the reflection of light but this hasn't been investigated much yet
@@ -335,31 +304,29 @@ class profilePhoto():
                     meq2 = np.mean(eqns[eqnset1b],axis=0)
                     meq = np.mean([meq1,meq2],axis=0)
                 else:
+                    # hough has failed to create a pair of edgelines in the near vicinity.
+                    # 2nd pass attempt using profile to find a matching line in case it is one of the main tubes
                     if edgeprocess=='bike':
-                        # only one of two lines detected for this tube. 
-                        # form profile to determine which line/edge it is and where the tube centre is.
+                        # form profile across the existing edgeline and search for edges along that profile
                         mln1 = np.mean(lines[eqnset1a,:],axis=0)
                         t=Tube()
-                        t.seteqn(meq1[0],meq1[1])
                         t.setpts(mln1[0,0:2],mln1[0,2:4])
                         midpt = np.mean((t.pt1,t.pt2),axis=0)
-                        # bw2 = np.copy(aw)
-                        bx,b0,b1 = self.profile(midpt,10,t)
-
-                        peaks = peakutils.indexes(b1,thres=0.2,min_dist=CM2PX(3)*10)
-                        if len(peaks)>0:
-                            hpeaks = np.sort(peaks[b1[peaks].argsort()][::-1][0:2])
-                            hedge = bx[hpeaks.astype(int)]
-                            hcentre = np.mean(hedge,axis=0)
-                            # verify this sign
-                            t.setrhotheta(t.rho-(hcentre-hedge[0]),t.theta)
+                        p = Profile(int(midpt[0]),int(midpt[1]),CM2PX(5),CM2PX(5),RAD2DEG(t.A)-90,P.imW)
+                        p.setprofile()
+                        try:
+                            p.setpeaks1()
+                            p.setwidth()
+                            p.setedge()
+                            p.hcentre = p.prof2pix((p.htx2,midpt[1]))[:,0]
+                            # adjust rho according to the 2nd line of the pair
+                            # keep track of sign here
+                            t.setrhotheta(t.rho-(p.hcentre[0]-p.hedge[0]),t.theta)
                             meq = np.array([t.m,t.b])
-                            # plt.figure(figNo)
-                            # plt.plot(bx,b0,bx,b1)
-                            # plt.show(block = True)
-                        else:
+                        except profileException:
+                            print("Peaks not detected correctly")
                             meq = np.array([0,0])
-
+                            
                     # not using this logic for the fork detection yet
                     elif edgeprocess=='fork':
                         meq = meq1
@@ -385,7 +352,7 @@ class profilePhoto():
 # class Profile
 ###############
 
-class breakIteration(Exception):
+class profileException(Exception):
     pass
 
 # class for processing line profiles in image. for now the line profiles are obtained horizontally by
@@ -423,7 +390,7 @@ class Profile():
         self.hcentre = np.zeros((2,2))
         self.htx2 = np.zeros(2)
         self.hshift = np.zeros(2)
-        
+
         self.setrimg()
         self.setprofile()
 
@@ -453,7 +420,7 @@ class Profile():
             self.hwidth = max(self.hwidth1,self.hwidth2)
         else:
             print("measureHeadTube: no width detected")
-            raise breakIteration
+            raise profileException
 
     # second method for establishing tube width based on two adjacent peaks in the derivative on either side of the search point
     # min_dist criterion is therefore not used.
@@ -474,12 +441,21 @@ class Profile():
         if len(peaks1)>=2:
             self.hpeaks1[0:2] = np.sort(peaks1[self.mbspl[peaks1].argsort()][::-1][0:2])
             self.hwidth1 = self.bxint[self.hpeaks1[1].astype(int)]-self.bxint[self.hpeaks1[0].astype(int)]
+        else:
+            raise profileException
 
     # rotate source image so desired profile is horizontal
     def setrimg(self):
             self.M = cv2.getRotationMatrix2D((self.hx,self.hy),self.A,1)
             self.Minv = np.concatenate((np.linalg.inv(self.M[:,0:2]),np.reshape(-np.matmul(np.linalg.inv(self.M[:,0:2]),self.M[:,2]),(2,1))),axis=1)
             self.rimg = cv2.warpAffine(self.img,self.M,(cols,rows))
+
+    # rotate a point on the profile back to pixel coordinates
+    def prof2pix(self,pt):
+        newpt = np.matmul(self.Minv[:,0:2],np.reshape(pt,(2,1)))
+        if np.shape(self.Minv)[1]==3:
+            newpt += np.reshape(self.Minv[:,2],(2,1))
+        return( newpt )
 
     # returns a smoothing spline of the first derivative of the profile used for detecting edges
     # for now rgb profiles are averaged rather than processed individually
@@ -493,7 +469,7 @@ class Profile():
             bsp = scipy.interpolate.splrep(self.hrange,self.hprofile[:,i],np.ones(len(self.hrange)),k=3,s=len(self.bxint))
             self.bspl[:,i] = scipy.interpolate.splev(self.bxint,bsp,der=1)
         # pineridge. need color to get the measurement due to black gear trigger and no white gap
-        self.mbspl = np.mean(np.abs(self.bspl),axis=1)
+        self.mbspl = np.mean(np.abs(self.bspl[:,0:self.ndim]),axis=1)
 
 
 ############
@@ -550,12 +526,6 @@ class Tube():
             m = np.tan(theta-np.pi/2)
             b = m * (-self.fixed[0]) + self.fixed[1]
             self.seteqn(m,b)
-
-    def rotatePoint(self,M,pt):
-        newpt = np.matmul(M[:,0:2],np.reshape(pt,(2,1)))
-        if np.shape(M)[1]==3:
-            newpt += np.reshape(M[:,2],(2,1))
-        return( newpt )
 
     def l(self):
         return(np.sqrt(pow(self.pt1[0]-self.pt2[0],2) + pow(self.pt1[1]-self.pt2[1],2)))
@@ -866,25 +836,25 @@ class Tubeset():
                     elif p2[hi].hwidth - hwidthold > 0.01*hwidthold:
                         print("measureHeadTube: converged")
                         hi -= 1
-                        raise breakIteration
+                        raise profileException
                     # or a large jump to increased width also cause to end iteration
                     else:
                         print("measureHeadTube: converged")
-                        raise breakIteration
+                        raise profileException
 
                     # not likely more than 1-2 cm of extended head tube.   
                     if hi==CM2PX(1):
                         print("measureHeadTube: ending iteration at 1 cm")
-                        raise breakIteration
+                        raise profileException
 
-            except breakIteration:
+            except profileException:
                 pass
 
             # find the edges at the converted width
             p2[hi].setedge()
 
             # if consistent width detected, rotate back to pixel coordinates. 
-            p2[hi].hcentre = self.tubes['ht'].rotatePoint(p2[hi].Minv,(p2[hi].htx2,hty))[:,0]
+            p2[hi].hcentre = p2[hi].prof2pix((p2[hi].htx2,hty))[:,0]
 
             # save iteration result
             p[i1] =  copy.deepcopy(p2[hi])
@@ -892,7 +862,6 @@ class Tubeset():
         # plots
         plt.figure(figNo)
         for i1 in range(0,2):
-
             plt.subplot(2,1,i1+1)
             if i1==0:
                 plt.title('measureHeadTube')

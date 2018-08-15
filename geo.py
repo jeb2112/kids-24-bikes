@@ -8,9 +8,10 @@ import matplotlib.pyplot as plt
 import peakutils
 import scipy.interpolate
 import copy
+import argparse
+import re
 
 figNo = 1
-mmpx = 0
 rows = 0 
 cols = 0
 def CM2PX(cm):
@@ -77,7 +78,7 @@ class profilePhoto():
         # cleary,cujo24
         # wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(60),param1=self.CM2PX(22),param2=self.CM2PX(16),minRadius=self.CM2PX(13),maxRadius=self.CM2PX(30))
         # AceLTD...Alite-24
-        # wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
+        # wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # Creig-24. had to downsample image out of memory, have to scale mmpx accordingly though 0.803 now
         # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
         # DYNAMITE_24. riprock
@@ -134,7 +135,7 @@ class profilePhoto():
         for c in chainring:
             cv2.circle(bw3,(c[0],c[1]),int(c[2]),140,5)
         plotFig(bw3,False,cmap="gray",title='houghCircle: wheel detection')
-        plt.show(block = not __debug__)        
+        plt.show(block =  not __debug__)        
         
         return wheels,chainring[0]
 
@@ -381,10 +382,11 @@ class profileException(Exception):
 
 # class for processing line profiles in image. for now the line profiles are obtained horizontally by
 # specifying the angle of rotation of the source image accordingly. the class instances are intended
-# to be used in iterations to find optimal values but this is only half-conceived.
+# to be used in iterations to find optimal values but this isn't fully conceived yet.
 class Profile():
     def __init__(self,hx,hy,hl,hr,A,img):
         # centre of rotation, angle, for source image to obtain horizontal profile
+        # hl,hr are the pixel ranges to test on either side of the given point
         self.hx = hx
         self.hy = hy
         self.A = A
@@ -457,6 +459,13 @@ class Profile():
             idx = np.searchsorted(peaks2,len(self.bxint)/2)
             self.hpeaks2[0:2] = peaks2[idx-1:idx+1]
             self.hwidth2 = self.bxint[self.hpeaks2[1].astype(int)]-self.bxint[self.hpeaks2[0].astype(int)]
+    # right peak only. ie left end of profile is considered to be inside an area.
+    def setrpeak2(self):
+        peaks2 = peakutils.indexes(self.mbspl,thres=0.2,min_dist=CM2PX(0)*10)
+        # 1st peak should be the main right edge. may need threshold image here though
+        if len(peaks2) >= 1:
+            self.hpeaks2[1] = peaks2[0]
+            self.hwidth2 = self.bxint[self.hpeaks2[1].astype(int)]-self.bxint[0]
 
     # first method for establishing tube width based on the spline derivative amplitude, edges should have the
     # largest derivative values, but min_dist criterion helps some borderline cases.
@@ -738,7 +747,8 @@ class Tubeset():
             elif op=='replace':
                 pass
             # calculate new b modified line retaining existing point. could use average of pt1,pt2
-            b2 = self.tubes[tube].pt1[1] - m2*self.tubes[tube].pt1[0]
+            # b2 = self.tubes[tube].pt1[1] - m2*self.tubes[tube].pt1[0]
+            b2 = np.mean((self.tubes[tube].pt1[1],self.tubes[tube].pt2[1])) - m2*np.mean((self.tubes[tube].pt1[0],self.tubes[tube].pt2[0]))
         # new. combine with both slope and intercept and both points update. 
         else:
             m2 = meqs[0,0]
@@ -788,6 +798,26 @@ class Tubeset():
                 self.tubes['dt'].setpts(self.tubes['dt'].pt1,np.array([xint1,y1]))
                 self.tubes['tt'].setpts(self.tubes['tt'].pt1,np.array([xint2,y2]))
         return
+
+    # adjust first estimate of head tube based on the right rube edge only. ie need to make sure it is not past the
+    # centreline to the left, where the welds will interfere with the extendHeadTube method.
+    # v. similar to measureHeadTube method but only a half profile. 
+    def shiftHeadTube(self,img):
+        global figNo
+        p=[]
+        hnew = np.zeros((2,2))
+        for i1 in range(0,2):
+            if i1==0:
+                htx,hty = self.tubes['ht'].pt1
+            else:
+                htx,hty = self.tubes['ht'].pt2
+            p.append(Profile(int(htx),int(hty),CM2PX(0.0),CM2PX(4.0),RAD2DEG(self.tubes['ht'].A)-90,img))
+            p[i1].setprofile()
+            p[i1].setrpeak2()
+            p[i1].setwidth()
+            # rotate the point 1cm left of the edge back to pixel coords and assign as the new head tube point
+            hnew[:,i1] = p[i1].prof2pix((htx+p[i1].hwidth-CM2PX(1.5),hty))[:,0]
+        self.tubes['ht'].setpts(hnew[:,0],hnew[:,1])
 
     # use first estimate of head tube to improve by measuring tube width at the top and bottom
     def measureHeadTube(self,img):
@@ -946,6 +976,11 @@ class Tubeset():
         plt.plot(bxint,np.mean(np.abs(bspl),axis=1))
         plt.plot(bxint[botrangeint],mbspl[botrangeint],'r')
         plt.plot(bxint[toprangeint],mbspl[toprangeint],'r')
+
+        # need to redo this with some logic for the number of peaks detected within a certain distance
+        # to try to establish whehter or not cable is present intelligently.
+        # or that could be a parameter. or make use of black colour for a non-black bikes.
+
         # for top peak take 0th index the first peak in the derivative. 
         # for bottom peak, take 2nd index 3rd peak, allowing two peaks for the cable housing
         # should be able to ignore 1 with min_dist but didn't work? or more smoothing in the splines.
@@ -958,7 +993,9 @@ class Tubeset():
         # is closer to bottom of the head tube than cable thicknesss (2mm)
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(.4)*10)[1]+botrangeint[0]         
         # zulu - cable at 45 deg need wider min_dist
-        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(.5)*10)[1]+botrangeint[0]         
+        botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(.5)*10)[1]+botrangeint[0]    
+        # alite. no cable, but bad reflections. last element in the peak list is needed for the 2 iterations!
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(.5)*10)[-1]+botrangeint[0]    
         # charger - reduced threshold
         # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[2]+botrangeint[0] 
         # works. extra peaks for double cables.
@@ -1091,6 +1128,10 @@ class Geometry():
     #             (com_leg[2]*anthro$leg + com_torso[2]*anthro$torso + com_arm[2]*anthro$arm)/sum(anthro))
    
 
+#################
+# general methods
+#################
+
 def pts2eq(((x1,y1),(x2,y2))):
     if x1<>x2:
         m = float(y2-y1)/float(x2-x1)
@@ -1136,14 +1177,14 @@ def plotFigCV(img,title="Fig"):
     cv2.waitKey(0)
     # cv2.destroyAllWindows()
 
-def plotLines(bw,lines,blockFlag=False,cmap=None,title=None, figNum=None):
+def plotLines(bw,lines,blockFlag=False,cmap=None,title=None, figNum=None, color=(0,0,255)):
     # plot raw lines detection
     for line in lines:
         for x1,y1,x2,y2 in line:
             if cmap == "gray":
                 cv2.line(bw,(x1,y1),(x2,y2),140,CM2PX(0.1))
             else:
-                cv2.line(bw,(x1,y1),(x2,y2),(0,0,255),CM2PX(0.1))
+                cv2.line(bw,(x1,y1),(x2,y2),color,CM2PX(0.1))
     plotFig(bw,blockFlag,cmap=cmap,title=title, figNum=figNum)
 
 def coord2angle(line):
@@ -1221,9 +1262,11 @@ def runFull(filename,mmpx):
     ret,P.imW = cv2.threshold(P.imW,245,255,cv2.THRESH_BINARY)
     lines = P.houghLinesS(P.imW,minlength=7,edgeprocess='head')
     P.imW = np.copy(P.imRGB)
-    plotLines(P.imW,lines,False,title="head tube line detection")
     G.T.createHeadTubeTarget(G.fw,type='susp')
     G.T.assignHeadTubeLine(lines)
+    # np.concatenate((lines,np.reshape(G.T.tubes['ht'].pt1+G.T.tubes['ht'].pt2,(1,1,4))),axis=0)
+    plotLines(P.imW,lines,False,title="head tube line detection")
+    plotLines(P.imW,np.reshape(G.T.tubes['ht'].pt1+G.T.tubes['ht'].pt2,(1,1,4)).astype(int),False,title="head tube line detection",color=(255,0,0))
 
     P.imW=np.copy(P.imRGB)
     G.T.plotTubes(P.imW)
@@ -1235,15 +1278,23 @@ def runFull(filename,mmpx):
     # process the fork for refinement of head tube angle. 
     P.imW = np.copy(P.imGRAY)
     lines,meqs = P.findForkLines(G.fw,minlength=5)
-    G.T.modifyTubeLines(meqs,'ht',op='mean')
-    # Creig-24. charger. mxxc. head tube estimate not good enough use fork only
-    # G.T.modifyTubeLines(meqs,'ht',op='replace')
+    # G.T.modifyTubeLines(meqs,'ht',op='mean')
+    # alite. Creig-24. charger. mxxc. head tube estimate not good enough use fork only
+    G.T.modifyTubeLines(meqs,'ht',op='replace')
+
+    # further adjust the current head tube estimate using the right edge of the head tube
+    # this could be done with thresholded silhouette
+    # this might replace the fork lines estimate?
+    P.imW=np.copy(P.imGRAY)
+    ret,P.imW = cv2.threshold(P.imW,245,255,cv2.THRESH_BINARY)
+    G.T.shiftHeadTube(P.imW)
 
     # recalc after modfication 
     G.T.calcTubes()
 
     P.imW=np.copy(P.imRGB)
     G.T.plotTubes(P.imW)
+    plt.show(block= not __debug__)
 
     # find the length of the head tube 
     P.imW = np.copy(P.imRGB)
@@ -1296,8 +1347,34 @@ def runFull(filename,mmpx):
     P.imw = G.plotTubes(P.imW,G.T)
     plotFig(P.imw,True)
 
+# for a text file list of images and mmpx scale factors
+def readFile(filename):
+    if filename.closed:
+        f = open(filename,'r')
+    else:
+        f = filename
+    flist=[]
+    for line in f:
+        flist.append([re.search('^[a-zA-Z\/]*\.(png|jpg)',line).group(0),float(re.search('[0|1]\.[0-9]*',line).group(0))])
+    f.close()
+    return(flist)
 
 if __name__=='__main__':
-    filename = sys.argv[1]
-    mmpx = float(sys.argv[2])
-    runFull(filename,mmpx)
+    parser = argparse.ArgumentParser()
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-f","--file",type=file,dest="file",help="filename containing list of photos to process")
+    group.add_argument("-i","--img",type=file,dest="img",help="filename of a photos to process")
+    parser.add_argument("--mmpx",type=float,dest="mmpx",help="millimetres per pixel scaling")
+    parser.add_argument("-p","--plot",dest="plot",help="option for plots")
+    
+    args =  parser.parse_args()
+    
+    if args.img:
+        mmpx = args.mmpx
+        runFull(args.img,args.mmpx)
+    elif args.file:
+        flist = readFile(args.file)
+        for n,m in flist:
+            mmpx = m
+            runFull(n,m)
+        

@@ -10,6 +10,7 @@ import scipy.interpolate
 import copy
 import argparse
 import re
+import scipy.optimize
 
 figNo = 1
 rows = 0 
@@ -405,6 +406,7 @@ class Profile():
             self.range = range(self.hy-hl,self.hy+hr)
             self.rangeline = np.reshape(np.array([self.hx,self.range[0],self.hx,self.range[-1]]),(1,1,4))
         self.profile = np.zeros(len(self.range))
+        self.mprofile = np.zeros(len(self.range))
         # self.rangeline = np.reshape(np.array([self.range[0],self.hy,self.range[-1],self.hy]),(1,1,4))
         # arbitrary factor of 10 for interpolation
         self.bxint = np.round(np.arange(self.range[0],self.range[-1],.1)*10)/10
@@ -505,6 +507,9 @@ class Profile():
             self.profile = self.rimg[self.range,self.hx]            
         if self.ndim==1:
             self.profile = np.reshape(self.profile,(len(self.profile),1))
+            self.mprofile = self.profile
+        elif self.ndim==3:
+            self.mprofile = np.mean(self.profile,axis=1)
 
         for i in range(0,self.ndim):
             # arbitrary smoothing factor
@@ -512,6 +517,15 @@ class Profile():
             self.bspl[:,i] = scipy.interpolate.splev(self.bxint,bsp,der=1)
         # pineridge. need color to get the measurement due to black gear trigger and no white gap
         self.mbspl = np.mean(np.abs(self.bspl[:,0:self.ndim]),axis=1)
+
+    # instead of using peaks in the derivative of the spline fit, try a boxcar fit
+    def setboxcar(self):
+        res = scipy.optimize.differential_evolution(lambda p: np.sum((self.box(self.range, *p) - self.mprofile)**2), [[0, 255], [self.range[0], self.range[-1]], [CM2PX(8), CM2PX(11)]])
+        return(res)
+
+    def box(self, x, *p):
+        height, center, width = p
+        return height*(center-width/2 < x)*(x < center+width/2)
 
 
 ############
@@ -601,7 +615,6 @@ class Fork(Tube):
         offsetAngle = np.arcsin( (self.pt2[0]-self.pt1[0]) / self.axle2crown) + (headtube.A-np.pi/2)
         self.offset = self.axle2crown * np.sin(offsetAngle)
         print(('offset = %.1f cm' % PX2CM(self.offset)))
-
 
 
 class Tubeset():
@@ -964,7 +977,9 @@ class Tubeset():
         plt.figure(figNo)
         plt.subplot(2,1,1)
         plt.title('extendHeadTube')
-        plt.plot(p.range,p.profile)
+        for i,color in enumerate(['red','green','blue'],start=1):
+            plt.plot(p.range,p.profile[:,i-1],color=color)
+        plt.plot(p.range,p.mprofile,'k')
         plt.subplot(2,1,2)
         plt.plot(p.bxint,np.mean(np.abs(p.bspl),axis=1))
         plt.plot(p.bxint[botrangeint],p.mbspl[botrangeint],'r')
@@ -1029,6 +1044,16 @@ class Tubeset():
         # rotate the measured length from the profile back to the pixel coordinates
         self.tubes['ht'].pt1 = p.prof2pix((htx,p.bxint[toppeak]))[:,0]
         self.tubes['ht'].pt2 = p.prof2pix((htx,p.bxint[botpeak]))[:,0]
+
+        # try boxcar
+        res = p.setboxcar()
+        plt.figure(figNo)
+        plt.step(p.range, p.box(p.range, *res.x), where='mid', label='diff-ev')
+        plt.plot(p.range, p.mprofile, '.')
+        plt.legend()
+        plt.show(block = not __debug__)
+        figNo = figNo +1
+
 
     def addStays(self,rearhub):
         # need to check order of wheels

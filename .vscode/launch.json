@@ -2,17 +2,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-        "name": "Python",
+        "name": "main",
         "type": "python",
         "request": "launch",
-        "python": "/usr/share/miniconda2/envs/mypy2/bin/python",
-        "program": "${file}",
-        "args": ["-i","/home/jbishop/src/python/geo/png/alite.png","--mmpx","1.65"],
-        "args2": ["-f","/home/jbishop/src/python/geo/images.txt"],
+        "program": "${workspaceRoot}/main.py",
+        "args": ["-f","/home/src/kids-24-bikes/images.txt"],
         "cwd": "${workspaceRoot}",
-        "debugOptions": [
-            "BreakOnSystemExitZero",
-            "RedirectOutput"]
+        "justMyCode": false,
+        "console": "integratedTerminal"
         }
     ],
     "compounds": []

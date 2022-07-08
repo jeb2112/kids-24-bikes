@@ -1,21 +1,16 @@
 from operator import eq
-import os
 from ssl import PROTOCOL_TLSv1_1
-import sys
-import io
 import numpy as np
-import imageio
 import cv2
 import matplotlib.pyplot as plt
 import peakutils
-import scipy.interpolate
 import copy
-import argparse
-import re
-import scipy.optimize
-from geo.misc import *
+# relative intra-package import. can use .misc for module in the same directory as this file,
+# or geo.misc as well, resolves to the same thing.
+from .misc import *
 from geo.profile import Profile,ProfileException
-
+from geo.display import Display
+# from geo.geometry import Convert
 
 ############
 # class Tube
@@ -47,7 +42,9 @@ class Tube():
         self.m = m
         self.b = b
         if self.pt2[0]==0:
-            self.pt2[0]=cols
+            # raise Exception('cols not available')
+            # self.pt2[0]=cols
+            self.pt2[0] = 100
         self.pt1,self.pt2 = eq2pts((m,b),(self.pt1[0],self.pt2[0]))
         self.pt1 = np.array(self.pt1)
         self.pt2 = np.array(self.pt2)
@@ -82,10 +79,24 @@ class Tube():
         return( (y - self.b) / self.m)
 
 
+class Fork(Tube):
+    def __init__(self,mmpx=None):
+        self.type = 'suspension'
+        self.axle2crown = 0
+        self.offset = 0
+        if mmpx is not None:
+            self.cv = Convert(mmpx=mmpx)
+
+    def calcOffset(self,headtube):
+        # convention is pt1 is to the left of pt2
+        offsetAngle = np.arcsin( (self.pt2[0]-self.pt1[0]) / self.axle2crown) + (headtube.A-np.pi/2)
+        self.offset = self.axle2crown * np.sin(offsetAngle)
+        print(('offset = %.1f cm' % self.cv.PX2CM(self.offset)))
+
 
 
 class Tubeset():
-    def __init__(self):
+    def __init__(self,mmpx=None,rows=0,cols=0):
         self.tubes = dict(dt=Tube(),tt=Tube(),st=Tube(),ht=Tube(),cs=Tube(),ss=Tube())
         self.targets = dict(ht=Tube(),st=Tube())
         # this will replace targetAngles, targetSLopes
@@ -98,6 +109,11 @@ class Tubeset():
         self.targetSlopes = dict()
         for key in self.targetAngles.keys():
             self.targetSlopes[key] = np.tan(self.targetAngles[key] * np.pi/180)
+        if mmpx is not None:
+            self.cv = Convert(mmpx=mmpx)
+            self.D = Display(mmpx=mmpx)
+        self.rows=rows
+        self.cols=cols
 
     # three main tubes can be assigned by slope alone
     def assignTubeLines(self,avglines,meqs,tubes):
@@ -120,7 +136,7 @@ class Tubeset():
         # this will ensure a clean profile for the actual headtube length detection, following
         # which the more accurate diameter detection is done. 
         # vertex. increase slightly.
-        self.tubes['ht'].rho = self.tubes['ht'].rho - CM2PX(1.0*2.54/2)
+        self.tubes['ht'].rho = self.tubes['ht'].rho - self.cv.CM2PX(1.0*2.54/2)
         self.tubes['ht'].setrhotheta(self.tubes['ht'].rho,self.tubes['ht'].theta)
 
     # match closest lines to seat tube target. lines not checked yet for same convention pt1[0]<pt2[0]
@@ -150,7 +166,7 @@ class Tubeset():
                 line=line[0]
                 t.setpts(line[0:2],line[2:4])
                 # pineridge. increase to 5 cm. line increase to 5.5
-                if np.abs(t.rho - self.targets['st'].rho) > CM2PX(5.5) or RAD2DEG(np.abs(t.theta - self.targets['st'].theta)) > 10:
+                if np.abs(t.rho - self.targets['st'].rho) > self.cv.CM2PX(5.5) or RAD2DEG(np.abs(t.theta - self.targets['st'].theta)) > 10:
                     break
                 else:
                     set1 = np.concatenate((set1,np.reshape(np.array([t.rho,t.theta]),(1,2))),axis=0)
@@ -160,7 +176,7 @@ class Tubeset():
             self.createSeatTubeTarget(cr=None,A=meantheta)
             # sort lines into edges for averaging
             set1 = set1[1:]
-            # sethist,setbins = np.histogram(set1,range(int(np.amin(set1[:,0]))-CM2PX(0.5),int(np.amin(set1[:,0]))+CM2PX(5.5),CM2PX(1)))
+            # sethist,setbins = np.histogram(set1,range(int(np.amin(set1[:,0]))-self.cv.CM2PX(0.5),int(np.amin(set1[:,0]))+self.cv.CM2PX(5.5),self.cv.CM2PX(1)))
             for rho,theta in set1:
                 if rho < self.targets['st'].rho:
                     rt1 = np.concatenate((rt1,np.reshape(np.array([rho,theta]),(1,2))),axis=0)
@@ -193,11 +209,11 @@ class Tubeset():
 
     def createHeadTubeTarget(self,fw,type='susp'):
         if type=='susp':
-            travel = CM2PX(6.5)
+            travel = self.cv.CM2PX(6.5)
         elif type=='rigid':
             travel = 0
-        crown = CM2PX(4.5)
-        length = CM2PX(10)
+        crown = self.cv.CM2PX(4.5)
+        length = self.cv.CM2PX(10)
 
         axle2crown = fw.rOuter + (travel + crown)
         self.targets['ht'].pt1 = (fw.centre[0]-(axle2crown+length) * np.cos(self.targets['ht'].A),
@@ -207,7 +223,7 @@ class Tubeset():
 
     # try to mask only the seat, not the seatpost. add seatpost detection to this
     def createSeatTubeTarget(self,cr,A=None):
-        length = CM2PX(12)
+        length = self.cv.CM2PX(12)
         if A is not None:
             self.targets['st'].A = A
             if cr is None and self.targets['st'].fixed is None:
@@ -261,19 +277,19 @@ class Tubeset():
             setattr(self.tubes[t2],pt2,np.array([xint,self.tubes[t2].y(xint)]))
         # check if incorrect detection of curved tubes has created a non-physical tt/dt intersection
         # needs proper detection for line segments of a bent tube. quick kludge for now
-        if self.tubes['tt'].pt2[1] - self.tubes['dt'].pt2[1] > -CM2PX(1):
+        if self.tubes['tt'].pt2[1] - self.tubes['dt'].pt2[1] > -self.cv.CM2PX(1):
             # kludge: alter the down tube to parallel the top tube. for straight top tube
             kludge=1
             if kludge==1:
                 xint = ( self.tubes['tt'].b-self.tubes['dt'].b ) / ( self.tubes['dt'].m - self.tubes['tt'].m )
                 # trail. decreased this hard-coded offset from 6 bback to 4
-                self.tubes['dt'].pt2[0]= xint - CM2PX(4)
+                self.tubes['dt'].pt2[0]= xint - self.cv.CM2PX(4)
                 self.tubes['dt'].pt2[1] = self.tubes['dt'].y(self.tubes['dt'].pt2[0])
                 self.tubes['gt'] = Tube()
                 # y intercept for gusset tube, using the point of truncation
                 b = self.tubes['dt'].pt2[1] - self.tubes['tt'].m*self.tubes['dt'].pt2[0]
                 self.tubes['gt'].seteqn(self.tubes['tt'].m,b)
-                self.tubes['gt'].pt1 = np.array([xint-CM2PX(4),self.tubes['gt'].y(xint-CM2PX(4))])
+                self.tubes['gt'].pt1 = np.array([xint-self.cv.CM2PX(4),self.tubes['gt'].y(xint-self.cv.CM2PX(4))])
                 xint = ( self.tubes['ht'].b-self.tubes['gt'].b ) / ( self.tubes['gt'].m - self.tubes['ht'].m )
                 self.tubes['gt'].pt2 = np.array([xint,self.tubes['gt'].y(xint)])
                 # recalculate the head tubes point 2
@@ -300,12 +316,12 @@ class Tubeset():
                 htx,hty = self.tubes['ht'].pt1
             else:
                 htx,hty = self.tubes['ht'].pt2
-            p.append(Profile(int(htx),int(hty),CM2PX(0.0),CM2PX(4.0),RAD2DEG(self.tubes['ht'].A)-90,img))
+            p.append(Profile(int(htx),int(hty),self.cv.CM2PX(0.0),self.cv.CM2PX(4.0),RAD2DEG(self.tubes['ht'].A)-90,img,mmpx=self.cv.mmpx))
             p[i1].setprofile()
             p[i1].setrpeak2()
             p[i1].setwidth()
             # rotate the point 1cm left of the edge back to pixel coords and assign as the new head tube point
-            hnew[:,i1] = p[i1].prof2pix((htx+p[i1].width-CM2PX(1.5),hty))[:,0]
+            hnew[:,i1] = p[i1].prof2pix((htx+p[i1].width-self.cv.CM2PX(1.5),hty))[:,0]
         self.tubes['ht'].setpts(hnew[:,0],hnew[:,1])
 
     # use first estimate of head tube to improve by measuring tube width at the top and bottom
@@ -318,23 +334,23 @@ class Tubeset():
                 htx,hty = self.tubes['ht'].pt1
             else:
                 htx,hty = self.tubes['ht'].pt2
-            p.append(Profile(int(htx),int(hty),CM2PX(5.5),CM2PX(3.0),RAD2DEG(self.tubes['ht'].A)-90,img))
+            p.append(Profile(int(htx),int(hty),self.cv.CM2PX(5.5),self.cv.CM2PX(3.0),RAD2DEG(self.tubes['ht'].A)-90,img,mmpx=self.cv.mmpx))
             # rotate around the current estimate of the head tube point
             # M = cv2.getRotationMatrix2D((htx,hty),self.tubes['ht'].A*180/np.pi-90,1)
             # Minv = np.concatenate((np.linalg.inv(M[:,0:2]),np.reshape(-np.matmul(np.linalg.inv(M[:,0:2]),M[:,2]),(2,1))),axis=1)
             # rimg = cv2.warpAffine(img,M,(cols,rows))
             # needed 4 cm to the left for the wider headtube of riprock
-            # range = range(int(htx)-CM2PX(4),int(htx)+CM2PX(3))
+            # range = range(int(htx)-self.cv.CM2PX(4),int(htx)+self.cv.CM2PX(3))
             # needed less than 3cm to right cube240
             # adjust again for mxxc 4.5cm to left
             # kato initial line very close to right tube edge. reduce range
             # can detect this properly based on teh 255 background
-            # range = range(int(htx)-CM2PX(4.5),int(htx)+CM2PX(2))
+            # range = range(int(htx)-self.cv.CM2PX(4.5),int(htx)+self.cv.CM2PX(2))
             # yamajama - tapered head tube need more on the bottom. problem with top measure on the right from brakes exclude with 2.5 for now
             # zulu increase right-hand range slightly
             # debug only
             # rimg2=np.copy(rimg)
-            # plotLines(rimg2,p[i1].rangeline.astype(int),False,cmap="gray")
+            # D.plotLines(rimg2,p[i1].rangeline.astype(int),False,cmap="gray")
 
             # slide the profile up/down until a consistent width is detected. 
             hy = int(hty)
@@ -364,7 +380,7 @@ class Tubeset():
                         raise ProfileException
 
                     # not likely more than 1-2 cm of extended head tube.   
-                    if hi==CM2PX(1):
+                    if hi==self.cv.CM2PX(1):
                         print("measureHeadTube: ending iteration at 1 cm")
                         raise ProfileException
 
@@ -398,7 +414,7 @@ class Tubeset():
         # should bias these values to negative. 
         h1shift = p[0].centre[0]-self.tubes['ht'].pt1[0]
         h2shift = p[1].centre[0]-self.tubes['ht'].pt2[0]
-        if h1shift < CM2PX(0.5) and h2shift < CM2PX(0.5):
+        if h1shift < self.cv.CM2PX(0.5) and h2shift < self.cv.CM2PX(0.5):
             meq[0,:] = pts2eq(p[0].centre,p[1].centre)
             # remove previous gusset tube if present
             if 'gt' in self.tubes.keys():
@@ -410,35 +426,35 @@ class Tubeset():
 
     def extendHeadTube(self,img):
         global figNo
-        # rows,cols = np.shape(img)[0:2]
+        self.rows,self.cols = np.shape(img)[0:2]
         # point of rotation. could be the average of the 1st pass head tube pts, if they are evenly placed
         # but some times, the downtube will curve at the join, making the lower head tube pt2
         # artificially high. meanwhile the top tube will likely never curve at the join.
         # therefore probably should use only the top point, and skew the search range accordingly.
         htx,hty = np.round(np.mean([self.tubes['ht'].pt1,self.tubes['ht'].pt2],axis=0)).astype(int)
-        p = Profile(int(htx),int(hty),CM2PX(10),CM2PX(10),RAD2DEG(self.tubes['ht'].A)-90,img,type='vert')
+        p = Profile(int(htx),int(hty),self.cv.CM2PX(10),self.cv.CM2PX(10),RAD2DEG(self.tubes['ht'].A)-90,img,type='vert',mmpx=self.cv.mmpx)
         # variations on profile needed.
         # signal. long head tube 
-        # lrange = range(hty-CM2PX(10),hty+CM2PX(12))
+        # lrange = range(hty-self.cv.CM2PX(10),hty+self.cv.CM2PX(12))
         # AceLTD. the central profile overlapped some welds which broke the detection.
         # bias the profile to the right away from the seat/down gusset. should be fixed by shiftHeadTube
-        # htprofile = rimg[lrange,htx+CM2PX(0.2)]
+        # htprofile = rimg[lrange,htx+self.cv.CM2PX(0.2)]
         # mxtrail. all black. 1 profle alone disapperaed in shadow. try combining two or three
-        # htprofile = (rimg[lrange,htx+CM2PX(0.2)] + rimg[lrange,htx+CM2PX(0.8)])/2     
+        # htprofile = (rimg[lrange,htx+self.cv.CM2PX(0.2)] + rimg[lrange,htx+self.cv.CM2PX(0.8)])/2     
         # mxxc. opposite problem. don't use a bias
    
         # create detection search ranges. 3cm above/below the headtube/topdowntube intersection points.
-        toprange = range(int(self.tubes['ht'].pt1[1])-CM2PX(0.2),int(self.tubes['ht'].pt1[1])-CM2PX(6.3),-1)
+        toprange = range(int(self.tubes['ht'].pt1[1])-self.cv.CM2PX(0.2),int(self.tubes['ht'].pt1[1])-self.cv.CM2PX(6.3),-1)
         # map search range from pixel units to the interpolated 0.1 pixel scale. note reversal here to search
         # in a negative direction.
         toprangeint = range(np.where(p.bxint==toprange[0])[0][0],np.where(p.bxint==toprange[-1])[0][0],-1)
         # BAYVIEW reduced botrange from 9.3 to 9 because it was overranging lrange defined above.
-        # botrange = range(int(self.tubes['ht'].pt2[1])+CM2PX(0.2),int(self.tubes['ht'].pt2[1]+CM2PX(9.0)))
+        # botrange = range(int(self.tubes['ht'].pt2[1])+self.cv.CM2PX(0.2),int(self.tubes['ht'].pt2[1]+self.cv.CM2PX(9.0)))
         # DYNAMITE_24 - reduced botrange again because of range error
         # hotrock - increased again slightly.
         # mxtrail - increased again slightly.
         # signal - long head tube. increased again
-        botrange = range(int(self.tubes['ht'].pt2[1])+CM2PX(0.2),int(self.tubes['ht'].pt2[1]+CM2PX(8.0)))
+        botrange = range(int(self.tubes['ht'].pt2[1])+self.cv.CM2PX(0.2),int(self.tubes['ht'].pt2[1]+self.cv.CM2PX(8.0)))
         botrangeint = range(np.where(p.bxint==botrange[0])[0][0],np.where(p.bxint==botrange[-1])[0][0])
 
         plt.figure(figNo)
@@ -461,37 +477,37 @@ class Tubeset():
         # should be able to ignore 1 with min_dist but didn't work? or more smoothing in the splines.
         # note these thresholds 0.4 are still hard-coded
         # and will be too high for any bikes that are black
-        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(1))[2]+botrangeint[0] 
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=self.cv.CM2PX(1))[2]+botrangeint[0] 
         # trail. take 4th peak past cable
-        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(1))[3]+botrangeint[0]         
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=self.cv.CM2PX(1))[3]+botrangeint[0]         
         #  xtcsljr - fix scaling in the min_dist arg. exclude 2nd peak of the cable with min_dist. won't work if cable 
         # is closer to bottom of the head tube than cable thicknesss (2mm)
-        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(.4)*10)[1]+botrangeint[0]         
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=self.cv.CM2PX(.4)*10)[1]+botrangeint[0]         
         # zulu - cable at 45 deg need wider min_dist
-        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=CM2PX(.5)*10)[1]+botrangeint[0]    
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.4,min_dist=self.cv.CM2PX(.5)*10)[1]+botrangeint[0]    
         # alite. no cable, but bad reflections. last element in the peak list is needed for the 2 iterations!
-        botpeak = peakutils.indexes(p.mbspl[botrangeint],thres=0.4,min_dist=CM2PX(.5)*10)[-1]+botrangeint[0]    
+        botpeak = peakutils.indexes(p.mbspl[botrangeint],thres=0.4,min_dist=self.cv.CM2PX(.5)*10)[-1]+botrangeint[0]    
         # charger - reduced threshold
-        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[2]+botrangeint[0] 
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=self.cv.CM2PX(1))[2]+botrangeint[0] 
         # works. extra peaks for double cables.
-        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[4]+botrangeint[0] 
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=self.cv.CM2PX(1))[4]+botrangeint[0] 
         # exceed,riprock, yamajama - reduced threshold and took first peak
-        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=self.cv.CM2PX(1))[0]+botrangeint[0] 
         # signal. need higher threshold for ruffles but no cables
-        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[0]+botrangeint[0] 
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=self.cv.CM2PX(1))[0]+botrangeint[0] 
         # mxtrail, kato. lower threshold but 1st peak
-        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=CM2PX(1))[0]+botrangeint[0] 
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.12,min_dist=self.cv.CM2PX(1))[0]+botrangeint[0] 
         # ewoc - cable created 3 peaks. more blur.
-        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=CM2PX(1))[3]+botrangeint[0]
-        # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.4,min_dist=CM2PX(3))[0]
+        # botpeak = peakutils.indexes(mbspl[botrangeint],thres=0.2,min_dist=self.cv.CM2PX(1))[3]+botrangeint[0]
+        # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.4,min_dist=self.cv.CM2PX(3))[0]
         # BAYVIEW - reduced threshold
-        # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.3,min_dist=CM2PX(3))[0]
+        # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.3,min_dist=self.cv.CM2PX(3))[0]
         # zulu - reduce threshold. 
-        toppeak = toprangeint[0] - peakutils.indexes(p.mbspl[toprangeint],thres=0.1,min_dist=CM2PX(3))[0]
+        toppeak = toprangeint[0] - peakutils.indexes(p.mbspl[toprangeint],thres=0.1,min_dist=self.cv.CM2PX(3))[0]
         # mxtrail. all black. reduce threshold.
-        # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.07,min_dist=CM2PX(3))[0]
+        # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.07,min_dist=self.cv.CM2PX(3))[0]
         # kato . cable affects top peak
-        # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.3,min_dist=CM2PX(3))[1]
+        # toppeak = toprangeint[0] - peakutils.indexes(mbspl[toprangeint],thres=0.3,min_dist=self.cv.CM2PX(3))[1]
 
         # adjust peak from the peak to the ell (5% threshold) in the spline derivative for more accuracy
         # in measureHeadTube
@@ -521,7 +537,6 @@ class Tubeset():
         plt.show(block = not __debug__)
         figNo = figNo +1
 
-
     def addStays(self,rearhub):
         # need to check order of wheels
         self.tubes['cs'].pt1 = np.array(rearhub)
@@ -536,7 +551,75 @@ class Tubeset():
             #for x1,y1,x2,y2 in np.nditer(Lline):
             #    cv2.line(aimg2,(x1,y1),(x2,y2),(0,0,255),2)
             pt1 = np.array([0,self.tubes[tube].y(0)])
-            pt2 = np.array([cols,self.tubes[tube].y(cols)])
+            pt2 = np.array([self.cols,self.tubes[tube].y(self.cols)])
             # cv2.line(aimg,tuple(self.tubes[tube].pt1.astype(int)),tuple(self.tubes[tube].pt2.astype(int)),(255,0,0),linew)
             cv2.line(aimg,tuple(pt1.astype(int)),tuple(pt2.astype(int)),(255,0,0),linew)
-        plotFig(aimg)
+        self.D.plotFig(aimg)
+
+
+class Geometry():
+    def __init__(self,mmpx=None):
+        self.T = Tubeset()
+        self.fw = Tire()
+        self.rw = Tire()
+        self.cr = Circle()
+        self.fork = Fork(mmpx=mmpx)
+        self.paramlist = ['toptube','frontcentre','chainstay','rearcentre','reach','stack',
+                        'bbdrop','headtube','htA','stA','standover','wheelbase','com','trail']
+        self.params = dict(zip(self.paramlist,np.zeros(len(self.paramlist))))
+        if mmpx is not None:
+            self.cv = Convert(mmpx=mmpx)
+
+    def addRider(self,anthro):
+        self.rider = Rider(anthro)
+        return
+
+# for centre of mass calculation
+# coords$stem <- c(coords$htXtt[1]+geo$stem/10 * cos(geo$stemA + pi/2-geo$HA),
+#                    coords$htXtt[2]+geo$stem/10 * sin(geo$stemA + pi/2-geo$HA))
+#   coords$saddle <- c(coords$BB[1]+cos(geo$SA)*geo$crank.length-cos(geo$SA)*anthro$leg*0.883,
+#                      coords$BB[2]-sin(geo$SA)*geo$crank.length + sin(geo$SA)*anthro$leg*0.883)
+#   saddle2bar <- sqrt((coords$stem[1]-coords$saddle[1])^2 + (coords$stem[2]-coords$saddle[2])^2)
+#   # given seat and bar, find the angle of the torso. add torso curvature option
+#   A_torso = acos((saddle2bar^2+anthro$torso^2-anthro$arm^2)/(2*saddle2bar*anthro$torso))
+#   # shoulder at the apex of torso arm triangle
+#   coords$shldr <- c(coords$saddle[1]+anthro$torso*cos(A_torso),coords$saddle[2]+anthro$torso*sin(A_torso)) 
+
+    def calcParams(self):
+
+        # this should already be a mean value
+        R = np.mean([self.fw.rOuter,self.rw.rOuter])
+        self.params['trail'] = self.cv.PX2CM((R+self.fork.pt2[1]-self.T.tubes['ht'].pt2[1]) / np.sin(self.T.tubes['ht'].A) * np.cos(self.T.tubes['ht'].A) - (self.fork.pt2[0]-self.T.tubes['ht'].pt2[0]))
+        self.params['reach'] = self.cv.PX2CM(self.T.tubes['ht'].pt1[0] - self.T.tubes['st'].pt2[0])
+        self.params['stack'] = self.cv.PX2CM(self.T.tubes['st'].pt2[1] - self.T.tubes['ht'].pt1[1])
+        self.params['bbdrop'] = self.cv.PX2CM(self.T.tubes['st'].pt2[1] - self.fw.centre[1])
+        self.params['htA'] = RAD2DEG(self.T.tubes['ht'].A)
+        self.params['stA'] = RAD2DEG(self.T.tubes['st'].A)
+        self.params['toptube'] = self.cv.PX2CM(self.T.tubes['ht'].pt1[0] - self.T.tubes['st'].x(self.T.tubes['ht'].pt1[1]))
+        self.params['headtube'] = self.cv.PX2CM(self.T.tubes['ht'].l())
+        self.params['frontcentre'] = self.cv.PX2CM(self.fw.centre[0] - self.T.tubes['st'].pt2[0])
+        self.params['rearcentre'] = self.cv.PX2CM(self.T.tubes['st'].pt2[0] - self.rw.centre[0])
+        self.params['chainstay'] = self.cv.PX2CM(self.T.tubes['cs'].l())
+        self.params['wheelbase'] = self.cv.PX2CM(self.fw.centre[0] - self.rw.centre[0])
+        # doesn't include top tube radius yet
+        self.params['standover'] = self.cv.PX2CM(np.mean([self.T.tubes['cs'].pt1[1],self.fork.pt2[1]]) - (self.T.tubes['tt'].m * self.T.tubes['st'].pt2[0] + self.T.tubes['tt'].b) + R)
+        self.params['cob'] = self.params['frontcentre'] - self.params['wheelbase']/2
+        # self.params['com'] =  self.calcCom()
+
+    def printParams(self):
+        for p1,p2 in zip(*[iter(self.paramlist)]*2):
+            print('%15s  %8.1f %15s  %8.1f' % (p1,self.params[p1],p2,self.params[p2]))
+
+    def plotTubes(self,aimg,tubeset):
+        for tube in tubeset.tubes.keys():
+            cv2.line(aimg,tuple(tubeset.tubes[tube].pt1.astype(int)),tuple(tubeset.tubes[tube].pt2.astype(int)),(0,255,0),self.cv.CM2PX(0.6))
+        cv2.line(aimg,tuple(self.fork.pt1.astype(int)),tuple(self.fork.pt2.astype(int)),(0,0,255),self.cv.CM2PX(0.6))
+        return(aimg)
+
+    # def calcCom(self):
+    #     com_leg = c((coords$BB[1]-coords$saddle[1])/2+coords$saddle[1],(coords$saddle[2]-coords$BB[2])/2+coords$BB[2])
+    #     com_torso = c((coords$shldr[1]-coords$saddle[1]/2)+coords$saddle[1],(coords$shldr[2]-coords$saddle[2])/2+coords$saddle[2])
+    #     com_arm = c((coords$stem[1]-coords$shldr[1])/2+coords$shldr[1],(coords$shldr[2]-coords$stem[2])/2+coords$stem[2])
+    #     com <- c((com_leg[1]*anthro$leg + com_torso[1]*anthro$torso + com_arm[1]*anthro$arm)/sum(anthro),
+    #             (com_leg[2]*anthro$leg + com_torso[2]*anthro$torso + com_arm[2]*anthro$arm)/sum(anthro))
+   

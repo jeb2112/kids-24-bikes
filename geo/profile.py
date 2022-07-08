@@ -1,20 +1,12 @@
 from operator import eq
-import os
 from ssl import PROTOCOL_TLSv1_1
-import sys
-import io
 import numpy as np
-import imageio
-import cv2
 import matplotlib.pyplot as plt
-import peakutils
 import scipy.interpolate
-import copy
-import argparse
-import re
 import scipy.optimize
+import peakutils
 from geo.misc import *
-
+# from geo.geometry import Convert
 
 ###############
 # class Profile
@@ -27,7 +19,7 @@ class ProfileException(Exception):
 # specifying the angle of rotation of the source image and horz/vert. the class instances are intended
 # to be used in iterations to find optimal values but this isn't fully conceived yet.
 class Profile():
-    def __init__(self,hx,hy,hl,hr,A,img,type='horz'):
+    def __init__(self,hx,hy,hl,hr,A,img,type='horz',mmpx=None):
         # centre of rotation, angle, for source image to obtain profile
         # hl,hr are the pixel ranges to test on either side of the given point.
         # above/below for vertical, left/right for horz
@@ -35,6 +27,7 @@ class Profile():
         self.hy = hy
         self.A = A
         self.img = img
+        self.rows,self.cols = np.shape(img)[0:2]
         # process rgb or gray
         if len(img.shape)==2:
             self.ndim=1
@@ -69,6 +62,8 @@ class Profile():
 
         self.setrimg()
         self.setprofile(type=type)
+        if mmpx is not None:
+            self.cv = Convert(mmpx=mmpx)
 
     # convert final width of the profile to a pair of edges and a centre point
     def setedge(self):
@@ -101,7 +96,7 @@ class Profile():
     # second method for establishing tube width based on two adjacent peaks in the derivative on either side of the search point
     # min_dist criterion is therefore not used.
     def setpeaks2(self):
-        peaks2 = peakutils.indexes(self.mbspl,thres=0.2,min_dist=CM2PX(0)*10)
+        peaks2 = peakutils.indexes(self.mbspl,thres=0.2,min_dist=self.cv.CM2PX(0)*10)
         # two max peaks should be the main edges if not the only ones selected. may need threshold image here though
         # riprock,pineridge fails at pt1 due to narrow gap and brake
         # edge. with threshold image, can rely on two innermost peaks as the criterion. didn't work for xtcsljr
@@ -111,7 +106,7 @@ class Profile():
             self.width2 = self.bxint[self.peaks2[1].astype(int)]-self.bxint[self.peaks2[0].astype(int)]
     # right peak only. ie left end of profile is considered to be inside an area.
     def setrpeak2(self):
-        peaks2 = peakutils.indexes(self.mbspl,thres=0.2,min_dist=CM2PX(0)*10)
+        peaks2 = peakutils.indexes(self.mbspl,thres=0.2,min_dist=self.cv.CM2PX(0)*10)
         # 1st peak should be the main right edge. may need threshold image here though
         if len(peaks2) >= 1:
             self.peaks2[1] = peaks2[0]
@@ -120,7 +115,7 @@ class Profile():
     # first method for establishing tube width based on the spline derivative amplitude, edges should have the
     # largest derivative values, but min_dist criterion helps some borderline cases.
     def setpeaks1(self):
-        peaks1 = peakutils.indexes(self.mbspl,thres=0.2,min_dist=CM2PX(3)*10)
+        peaks1 = peakutils.indexes(self.mbspl,thres=0.2,min_dist=self.cv.CM2PX(3)*10)
         if len(peaks1)>=2:
             self.peaks1[0:2] = np.sort(peaks1[self.mbspl[peaks1].argsort()][::-1][0:2])
             self.width1 = self.bxint[self.peaks1[1].astype(int)]-self.bxint[self.peaks1[0].astype(int)]
@@ -131,7 +126,7 @@ class Profile():
     def setrimg(self):
             self.M = cv2.getRotationMatrix2D((self.hx,self.hy),self.A,1)
             self.Minv = np.concatenate((np.linalg.inv(self.M[:,0:2]),np.reshape(-np.matmul(np.linalg.inv(self.M[:,0:2]),self.M[:,2]),(2,1))),axis=1)
-            self.rimg = cv2.warpAffine(self.img,self.M,(cols,rows))
+            self.rimg = cv2.warpAffine(self.img,self.M,(self.cols,self.rows))
 
     # rotate a point on the profile back to pixel coordinates
     def prof2pix(self,pt):
@@ -162,7 +157,7 @@ class Profile():
 
     # instead of using peaks in the derivative of the spline fit, try a boxcar fit
     def setboxcar(self):
-        res = scipy.optimize.differential_evolution(lambda p: np.sum((self.box(self.range, *p) - self.mprofile)**2), [[0, 255], [self.range[0], self.range[-1]], [CM2PX(8), CM2PX(11)]])
+        res = scipy.optimize.differential_evolution(lambda p: np.sum((self.box(self.range, *p) - self.mprofile)**2), [[0, 255], [self.range[0], self.range[-1]], [self.cv.CM2PX(8), self.cv.CM2PX(11)]])
         return(res)
 
     def box(self, x, *p):

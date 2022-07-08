@@ -1,29 +1,24 @@
 from operator import eq
-import os
 from ssl import PROTOCOL_TLSv1_1
-import sys
-import io
 import numpy as np
 import imageio
 import cv2
 import matplotlib.pyplot as plt
-import peakutils
-import scipy.interpolate
-import copy
-import argparse
-import re
-import scipy.optimize
-from geo.misc import *
+from .misc import *
 from geo.tube import Tube
-from profile import Profile,ProfileException
+from geo.profile import Profile,ProfileException
+from geo.display import Display
+# from geo.geometry import Convert
 
-
-class profilePhoto():
-    global rows,cols
-    def __init__(self,filename,mmpx):
-        rows = 0
-        cols = 0
-        self.mmpx = mmpx # mm per pixel 
+class ProfilePhoto():
+    # global rows,cols
+    def __init__(self,filename,mmpx=None):
+        self.rows = 0
+        self.cols = 0
+        if mmpx is not None:
+            self.mmpx = mmpx # mm per pixel
+            self.cv = Convert(mmpx=mmpx)
+            self.D = Display(mmpx=mmpx)
         self.filename = filename
         self.imRGB = None
         self.imGRAY = None
@@ -37,10 +32,10 @@ class profilePhoto():
         return(int(np.round(cm/(self.mmpx/10.))))
 
     def loadImage(self,filename):
-        global rows,cols
+        # global rows,cols
         im = imageio.imread(filename)
         # if png/alpha, remove alpha
-        rows,cols = np.shape(im)[0:2]
+        self.rows,self.cols = np.shape(im)[0:2]
         if np.shape(im)[2]==4:
             im = cv2.cvtColor(im,cv2.COLOR_BGRA2BGR)
         # may need this reverse?
@@ -59,75 +54,77 @@ class profilePhoto():
         # AceLTD. merely converting the hard-coded 5x5 kernel from cleary to same equivalent size broke it
         # reverting to 5x5, still had more difficulty with this image and cujo or cleary for the circles
         # fluid. switch to separate blurring for wheel/chainring. better tread outer detection this way
-        bw1 = cv2.blur(bw,(CM2PX(1.6),CM2PX(1.6)))
+        bw1 = cv2.blur(bw,(self.cv.CM2PX(1.6),self.cv.CM2PX(1.6)))
         bw2 = cv2.blur(bw,(5,5))
         bw3 = np.copy(bw)
         # try simply binarizing the image? seemed like a good idea but param2 had to get even smaller to detect
         # anything, and the detections were anywhere but the correct spot. maybe need to reblur again?
         # ret,bw = cv2.threshold(bw,240,255,cv2.THRESH_BINARY)
-        # plotFig(bw,False,cmap="gray")
+        # self.D.plotFig(bw3,False,cmap="gray",fignum=1)
         # plt.show()        
         # not sure about final param1,2 choices yet
         # cleary,cujo24
-        # wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(60),param1=self.CM2PX(22),param2=self.CM2PX(16),minRadius=self.CM2PX(13),maxRadius=self.CM2PX(30))
+        # wheelsInner = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.cv.CM2PX(60),param1=self.cv.CM2PX(22),param2=self.cv.CM2PX(16),minRadius=self.cv.CM2PX(13),maxRadius=self.cv.CM2PX(30))
         # AceLTD...Alite-24
-        # wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
+        # wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.2,minDist=self.cv.CM2PX(90),param1=self.cv.CM2PX(10),param2=self.cv.CM2PX(2),minRadius=self.cv.CM2PX(20),maxRadius=self.cv.CM2PX(30))        
         # Creig-24. had to downsample image out of memory, have to scale mmpx accordingly though 0.803 now
-        # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(10),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
+        # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.cv.CM2PX(90),param1=self.cv.CM2PX(10),param2=self.cv.CM2PX(2),minRadius=self.cv.CM2PX(20),maxRadius=self.cv.CM2PX(30))        
         # DYNAMITE_24. riprock
-        # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(8),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
+        # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.cv.CM2PX(90),param1=self.cv.CM2PX(8),param2=self.cv.CM2PX(2),minRadius=self.cv.CM2PX(20),maxRadius=self.cv.CM2PX(30))        
         # exceed. ewoc
-        # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
+        # wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.cv.CM2PX(90),param1=self.cv.CM2PX(4),param2=self.cv.CM2PX(2),minRadius=self.cv.CM2PX(20),maxRadius=self.cv.CM2PX(30))        
         # frog62. never did pick up  the front inner correctly.
-        # wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.CM2PX(90),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(30))        
+        # wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.cv.CM2PX(90),param1=self.cv.CM2PX(3),param2=self.cv.CM2PX(2),minRadius=self.cv.CM2PX(20),maxRadius=self.cv.CM2PX(30))        
         # zulu. not picking up very well
-        wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.1,minDist=self.CM2PX(86),param1=self.CM2PX(2),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(28))        
+        wheelsInner = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.1,minDist=self.cv.CM2PX(86),param1=self.cv.CM2PX(2),param2=self.cv.CM2PX(2),minRadius=self.cv.CM2PX(20),maxRadius=self.cv.CM2PX(28))        
         # mantra. further reduction in maxRadius
-        # wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(8),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(26))        
+        # wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.2,minDist=self.cv.CM2PX(90),param1=self.cv.CM2PX(8),param2=self.cv.CM2PX(2),minRadius=self.cv.CM2PX(20),maxRadius=self.cv.CM2PX(26))        
         # pineridge. a scaling factor error was confusing the fit here, may not need unique params
-        # wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(20),maxRadius=self.CM2PX(24))        
+        # wheelsInner = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.cv.CM2PX(90),param1=self.cv.CM2PX(4),param2=self.cv.CM2PX(2),minRadius=self.cv.CM2PX(20),maxRadius=self.cv.CM2PX(24))        
         # place rear wheel first in list. note extra 1st dimension in output of HoughCircles
         wheelsInner = wheelsInner[0,wheelsInner[0,:,0].argsort(),:]
         # cleary.png
-        # wheelsOuter = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(60),param1=self.CM2PX(16),param2=self.CM2PX(13),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(60))
+        # wheelsOuter = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.cv.CM2PX(60),param1=self.cv.CM2PX(16),param2=self.cv.CM2PX(13),minRadius=self.cv.CM2PX(26),maxRadius=self.cv.CM2PX(60))
         # cujo24.png
-        # wheelsOuter = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(60),param1=self.CM2PX(10),param2=self.CM2PX(6),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(36))
+        # wheelsOuter = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.cv.CM2PX(60),param1=self.cv.CM2PX(10),param2=self.cv.CM2PX(6),minRadius=self.cv.CM2PX(26),maxRadius=self.cv.CM2PX(36))
         # AceLTD 1.2 seemed to make a big difference compared to 1.0? or was it dropping param1 way down to 4
-        # wheelsOuter = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(40))
+        # wheelsOuter = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1.2,minDist=self.cv.CM2PX(90),param1=self.cv.CM2PX(4),param2=self.cv.CM2PX(2),minRadius=self.cv.CM2PX(26),maxRadius=self.cv.CM2PX(40))
         # Bayview. further drop of param1 down to 3 required. that fixed the outerwheels, but lost the headtube!
-        # wheelsOuter = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(26),maxRadius=self.CM2PX(40))
+        # wheelsOuter = cv2.HoughCircles(bw1,cv2.HOUGH_GRADIENT,1.2,minDist=self.cv.CM2PX(90),param1=self.cv.CM2PX(3),param2=self.cv.CM2PX(2),minRadius=self.cv.CM2PX(26),maxRadius=self.cv.CM2PX(40))
         # pineridge. 
-        # wheelsOuter = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.CM2PX(90),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(28),maxRadius=self.CM2PX(40))
+        # wheelsOuter = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.1,minDist=self.cv.CM2PX(90),param1=self.cv.CM2PX(4),param2=self.cv.CM2PX(2),minRadius=self.cv.CM2PX(28),maxRadius=self.cv.CM2PX(40))
         # signal. not quite there.
-        wheelsOuter = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.2,minDist=self.CM2PX(90),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(28),maxRadius=self.CM2PX(40))
+        wheelsOuter = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1.2,minDist=self.cv.CM2PX(90),param1=self.cv.CM2PX(3),param2=self.cv.CM2PX(2),minRadius=self.cv.CM2PX(28),maxRadius=self.cv.CM2PX(40))
         wheelsOuter = wheelsOuter[0,wheelsOuter[0,:,0].argsort(),:]
         # argsort indexing removed dummy 1st dimension 
         wheels = np.concatenate((wheelsInner,wheelsOuter),axis=0)
         # cleary,cujo24
         # chainring = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,
-        #     1,minDist=self.CM2PX(60),param1=self.CM2PX(22),param2=self.CM2PX(16),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(10))[0]
+        #     1,minDist=self.cv.CM2PX(60),param1=self.cv.CM2PX(22),param2=self.cv.CM2PX(16),minRadius=self.cv.CM2PX(3),maxRadius=self.cv.CM2PX(10))[0]
         # AceLTD
-        # chainring = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(60),param1=self.CM2PX(10),param2=self.CM2PX(6),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(10))[0]
+        # chainring = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.cv.CM2PX(60),param1=self.cv.CM2PX(10),param2=self.cv.CM2PX(6),minRadius=self.cv.CM2PX(3),maxRadius=self.cv.CM2PX(10))[0]
         # alite-24. this reduced minDist detects couple dozen, to pick up the chainring.
-        # chainring = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(4),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(10))[0]
+        # chainring = cv2.HoughCircles(bw,cv2.HOUGH_GRADIENT,1,minDist=self.cv.CM2PX(20),param1=self.cv.CM2PX(4),param2=self.cv.CM2PX(2),minRadius=self.cv.CM2PX(3),maxRadius=self.cv.CM2PX(10))[0]
         # fluid - didn't pick up the chairing or outer diameter properly
         # mantra - chainring detection with these params was skewed about 1cm high
-        # chainring = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(8))[0]
+        # chainring = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1,minDist=self.cv.CM2PX(20),param1=self.cv.CM2PX(3),param2=self.cv.CM2PX(2),minRadius=self.cv.CM2PX(3),maxRadius=self.cv.CM2PX(8))[0]
         # pineridge. line. have to reduce maxradius because of false selection in mid-air above bottom bracket. could also mask that region out better to 
         # retain the large radius.
-        chainring = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1,minDist=self.CM2PX(20),param1=self.CM2PX(3),param2=self.CM2PX(2),minRadius=self.CM2PX(3),maxRadius=self.CM2PX(6))[0]
+        chainring = cv2.HoughCircles(bw2,cv2.HOUGH_GRADIENT,1,minDist=self.cv.CM2PX(20),param1=self.cv.CM2PX(3),param2=self.cv.CM2PX(2),minRadius=self.cv.CM2PX(3),maxRadius=self.cv.CM2PX(6))[0]
         # BAYVIEW. use wheel hubs to select chainring circle of more than 1 detected
         if len(chainring[0])>1:
             wx,wy = np.mean(wheels[:,0:2],axis=0)
             chainring = np.reshape(chainring[(np.sqrt(pow(np.abs(chainring[:,0]-wx),2)+pow(np.abs(chainring[:,1]-wy),2))).argmin()],(1,3))
         for c in wheels:
-            cv2.circle(bw3,(c[0],c[1]),int(c[2]),140,5)
+            # cv2.circle(bw3,(c[0],c[1]),int(c[2]),140,5)
+            cv2.circle(bw3,(int(c[0]),int(c[1])),int(c[2]),140,5)
         wc = np.mean([wheelsInner[:,0:2],wheelsOuter[:,0:2]],axis=0)   
         for w in wheels:
-            cv2.circle(bw3,(w[0],w[1]),CM2PX(0.1),140,-1)
+            # cv2.circle(bw3,(w[0],w[1]),self.cv.CM2PX(0.1),140,-1)
+            cv2.circle(bw3,(int(w[0]),int(w[1])),self.cv.CM2PX(0.1),140,-1)
         for c in chainring:
-            cv2.circle(bw3,(c[0],c[1]),int(c[2]),140,5)
-        plotFig(bw3,False,cmap="gray",title='houghCircle: wheel detection')
+            cv2.circle(bw3,(int(c[0]),int(c[1])),int(c[2]),140,5)
+        self.D.plotFig(bw3,False,cmap="gray",title='houghCircle: wheel detection')
         plt.show(block =  not __debug__)        
         
         return wheels,chainring[0]
@@ -141,17 +138,17 @@ class profilePhoto():
         # AceLTD 2cm
         # BAYVIEW 3cm requried to get the headtube
         for c in masks:
-            cv2.circle(target,(int(c[0]),int(c[1])),int(c[2]+self.CM2PX(0)),255,-1)        
+            cv2.circle(target,(int(c[0]),int(c[1])),int(c[2]+self.cv.CM2PX(0)),255,-1)        
 
     def maskRect(self,masks,target):
         # masks. list of rects defined by top left point, bottom right
         # target. target image
         for c in masks:
-            cv2.rectangle(target,(c[0],c[1]),(c[2],c[3]),255,-1)        
+            cv2.rectangle(target,(int(c[0]),int(c[1])),(int(c[2]),int(c[3])),255,-1)        
         
     def selectCircle(self,maskcentre,maskradius,target):
         t2 = np.copy(target)
-        cv2.circle(target,(maskcentre[0],maskcentre[1]),int(maskradius+self.CM2PX(0)),255,-1)        
+        cv2.circle(target,(int(maskcentre[0]),int(maskcentre[1])),int(maskradius+self.cv.CM2PX(0)),255,-1)        
         target = t2 - target
 
     def resetAnnotatedIm(self):
@@ -178,12 +175,12 @@ class profilePhoto():
             edges = cv2.Canny(bw,150,200,apertureSize=3,L2gradient=True)
         elif edgeprocess == 'head':
             edges = cv2.Canny(bw,150,200,apertureSize=3,L2gradient=True)
-        plotFig(edges,False,title="houghLinesS")
+        self.D.plotFig(edges,False,title="houghLinesS")
         plt.show(block= not __debug__)
-        # plotFigCV(edges)
+        # self.D.plotFigCV(edges)
         # plt.show(block=__debug__)
 
-        lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=CM2PX(minlength))
+        lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=self.cv.CM2PX(minlength))
 
         # todo. arrange all lines with pt1[0]<pt2[0]
 
@@ -218,8 +215,8 @@ class profilePhoto():
         # for wheel only
         else:
             edges = cv2.Canny(bw,150,200,apertureSize=3,L2gradient=True)
-        plotFig(edges,False,title='houghLines: edges')
-        # plotFigCV(edges)
+        self.D.plotFig(edges,False,title='houghLines: edges')
+        # self.D.plotFigCV(edges)
         plt.show(block=  not __debug__)
 
         # line processing
@@ -228,18 +225,18 @@ class profilePhoto():
         # 1. estimate of headset might be better by clipping the rigid fork exacttly at the headtube. or for suspension,
         # using the fork too.
         # 2. average line for the downtube in biased for the cleary example, can't see why the averaing doesn't worok
-            # cleary lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=CM2PX(15.75))
+            # cleary lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=self.cv.CM2PX(15.75))
             # AceLTD-Alite-24
-            # lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=CM2PX(8.5))
+            # lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=self.cv.CM2PX(8.5))
             # Creig-24 seem to miss the headtube so try 6.5. and stxdt at bottom bracket could be constrained by chainring
-            lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=CM2PX(minlength))
+            lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=self.cv.CM2PX(minlength))
             if (lines is not None):
                 # plot raw lines detection
                 bw2 = np.copy(aw)
                 for line in lines:
                     for x1,y1,x2,y2 in line:
-                        cv2.line(bw2,(x1,y1),(x2,y2),(0,0,255),CM2PX(0.2))
-                plotFig(bw2,False,title='houghLines: raw lines')
+                        cv2.line(bw2,(x1,y1),(x2,y2),(0,0,255),self.cv.CM2PX(0.2))
+                self.D.plotFig(bw2,False,title='houghLines: raw lines')
                 plt.show(block= not __debug__)
             else:
                 print('No edges detected')
@@ -271,7 +268,7 @@ class profilePhoto():
                     for x1,y1,x2,y2 in line:
                         cv2.line(bw2,(x1,y1),(x2,y2),(255,0,255),2)
                 # disply individual eqn sets for debugging purpose
-                # plotFig(bw2)
+                # self.D.plotFig(bw2)
                 # plt.show()
                 # # equal slope, equal offset. Using 2% to qualify as equal.
                 # this logic may still work but no good for tapered tubes. cujo24, metaHT
@@ -306,7 +303,7 @@ class profilePhoto():
                         t=Tube()
                         t.setpts(mln1[0,0:2],mln1[0,2:4])
                         midpt = np.mean((t.pt1,t.pt2),axis=0)
-                        p = Profile(int(midpt[0]),int(midpt[1]),CM2PX(5),CM2PX(5),RAD2DEG(t.A)-90,self.imW)
+                        p = Profile(int(midpt[0]),int(midpt[1]),self.cv.CM2PX(5),self.cv.CM2PX(5),RAD2DEG(t.A)-90,self.imW,mmpx=self.mmpx)
                         p.setprofile()
                         try:
                             p.setpeaks1()
@@ -327,17 +324,17 @@ class profilePhoto():
 
                 if meqs is None:
                     meqs = meq
-                    avglines = eq2pts(meq,(0,cols))
+                    avglines = eq2pts(meq,(0,self.cols))
                 else:
                     meqs = np.append(meqs,meq,axis=0)
-                    avglines = np.append(avglines,eq2pts(meq,(0,cols)),axis=0)
+                    avglines = np.append(avglines,eq2pts(meq,(0,self.cols)),axis=0)
                 # throw out only the used offsets 
                 eqns = np.delete(eqns,np.concatenate((eqnset1a,eqnset1b),axis=0),axis=0)
                 rhotheta = np.delete(rhotheta,np.concatenate((eqnset1a,eqnset1b),axis=0),axis=0)
                 lines = np.delete(lines,np.concatenate((eqnset1a,eqnset1b),axis=0),axis=0)
 
-            avglines = np.reshape(avglines,(len(meqs)/2,4))
-            meqs = np.reshape(meqs,(len(meqs)/2,2))
+            avglines = np.reshape(avglines,(len(meqs)//2,4))
+            meqs = np.reshape(meqs,(len(meqs)//2,2))
         
             return(avglines,meqs)
 
@@ -357,7 +354,7 @@ class profilePhoto():
         # 100 threshold helps get rid of spokes
         ret,imW = cv2.threshold(imW,100,255,cv2.THRESH_TOZERO_INV)
 
-        plotFig(imW,cmap="gray")
+        self.D.plotFig(imW,cmap="gray")
         plt.show(block= not __debug__)
         # up to Creig-24. charger
         # avglines,meqs = P.houghLines(imW,P.imRGB,edgeprocess='fork',minlength=7.5)

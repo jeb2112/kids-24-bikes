@@ -1,2 +1,2 @@
-/home/jbishop/Pictures/alite.png    1.65
-/home/jbishop/Pictures/zulu.png    1.4
+/home/src/kids-24-bikes/png/alite.png    1.65
+/home/src/kids-24-bikes/png/zulu.png    1.4

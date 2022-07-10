@@ -17,7 +17,7 @@ class Display():
         if mmpx is not None:
             self.cv = Convert(mmpx=mmpx)
 
-    def plotFig(self,img,blockFlag=False,cmap=None,title=None,fignum=None):
+    def plotFig(self,img,blockflag=False,cmap=None,title=None,fignum=None):
         global figNo
         if fignum is None:
             fignum = figNo
@@ -35,7 +35,7 @@ class Display():
         # plt.show()
         # plt.pause(.001)
         # input('press to continue')
-        plt.show(block=blockFlag)
+        plt.show(block=blockflag)
         # figNo += 1
 
     # CV graphics do work with pause for keypad that way plt.ion() was supposed to
@@ -47,7 +47,7 @@ class Display():
         cv2.waitKey(0)
         # cv2.destroyAllWindows()
 
-    def plotLines(self,bw,lines,blockFlag=False,cmap=None,title=None, fignum=None, color=(0,0,255)):
+    def plotLines(self,bw,lines,blockflag=False,cmap=None,title=None, fignum=None, color=(0,0,255)):
         # plot raw lines detection
         for line in lines:
             for x1,y1,x2,y2 in line:
@@ -55,4 +55,4 @@ class Display():
                     cv2.line(bw,(x1,y1),(x2,y2),140,self.cv.CM2PX(0.1))
                 else:
                     cv2.line(bw,(x1,y1),(x2,y2),color,self.cv.CM2PX(0.1))
-        self.plotFig(bw,blockFlag,cmap=cmap,title=title, fignum=fignum)
+        self.plotFig(bw,blockflag,cmap=cmap,title=title, fignum=fignum)

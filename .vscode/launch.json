@@ -2,15 +2,27 @@
     "version": "0.2.0",
     "configurations": [
         {
-        "name": "main",
+        "name": "cv",
         "type": "python",
         "request": "launch",
         "program": "${workspaceRoot}/main.py",
-        "args": ["-f","/home/src/kids-24-bikes/images.txt"],
+        "args": ["-f","/home/src/kids-24-bikes/images.txt",
+                "--cv"],
         "cwd": "${workspaceRoot}",
         "justMyCode": false,
         "console": "integratedTerminal"
-        }
-    ],
+        },
+        {
+            "name": "annotate",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/main.py",
+            "args": ["-f","/home/src/kids-24-bikes/images.txt",
+                    "--annotate"],
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "console": "integratedTerminal"
+            },
+        ],
     "compounds": []
 }

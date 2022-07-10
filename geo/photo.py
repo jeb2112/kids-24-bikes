@@ -10,8 +10,8 @@ from geo.profile import Profile,ProfileException
 from geo.display import Display
 # from geo.geometry import Convert
 
-class ProfilePhoto():
-    # global rows,cols
+
+class Photo():
     def __init__(self,filename,mmpx=None):
         self.rows = 0
         self.cols = 0
@@ -28,9 +28,6 @@ class ProfilePhoto():
         self.bg = 255
         self.loadImage(self.filename)
 
-    def CM2PX(self,cm):
-        return(int(np.round(cm/(self.mmpx/10.))))
-
     def loadImage(self,filename):
         # global rows,cols
         im = imageio.imread(filename)
@@ -45,6 +42,11 @@ class ProfilePhoto():
         self.imANNO = self.imRGB
         self.imGRAY = cv2.cvtColor(self.imRGB,cv2.COLOR_BGR2GRAY)
         self.bg = self.imGRAY[0,0]
+
+class ProfilePhoto(Photo):
+    # global rows,cols
+    def __init__(self,filename,mmpx=None):
+        super(ProfilePhoto,self).__init__(filename,mmpx=mmpx)
 
     def houghCircles(self,bw):
         # this preblur maybe helps get rid of the apparent line in the middle of a tube
@@ -157,7 +159,6 @@ class ProfilePhoto():
     # single lines detection. this is probably what houghLines should be. line selection and combination
     # should be in a separate function
     def houghLinesS(self,bw,edgeprocess='bike',minlength=8.5):
-        global figNo
         # bw = cv2.blur(bw,(5,5))
         # this sort of morphing might help flatten out smaller details like spokes and cables?? needs work
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
@@ -189,7 +190,6 @@ class ProfilePhoto():
 
     # main lines detection
     def houghLines(self,bw,aw,houghProcess='p',edgeprocess='bike',minlength=8.5):
-        global figNo
         # bw = cv2.blur(bw,(5,5))
         # this sort of morphing might help flatten out smaller details like spokes and cables?? needs work
         # metaHT. spokes are already removed, and the fit to the fork edges is a bit rough. 

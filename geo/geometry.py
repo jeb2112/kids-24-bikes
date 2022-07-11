@@ -17,9 +17,9 @@ from geo.cvtubeset import CVTubeset
 class Geometry():
     def __init__(self,mmpx=None):
         self.T = None
-        self.fw = Tire()
-        self.rw = Tire()
-        self.cr = Circle()
+        self.fw = None
+        self.rw = None
+        self.cr = None
         self.fork = Fork(mmpx=mmpx)
         self.paramlist = ['toptube','frontcentre','chainstay','rearcentre','reach','stack',
                         'bbdrop','headtube','htA','stA','standover','wheelbase','com','trail']
@@ -90,28 +90,53 @@ class Geometry():
 
 # sub-class for annotating a geometry
 class AnnoGeometry(Geometry):
-    def __init__(self):
-        super(AnnoGeometry,self).__init__()
+    def __init__(self,mmpx=None):
+        super(AnnoGeometry,self).__init__(mmpx=mmpx)
         self.T = Tubeset()
 
     def findwheels(self,P):
-        wheels,chainring = P.houghCircles(P.imGRAY)
-        # note sort. back wheel  returned first
-        # decided not to use outer radius in hub estimation becuase tread pattern sometimes throws it off
-        self.rw = Tire(np.mean(wheels[0:4:4],axis=0)[0:2],wheels[0,2],wheels[2,2])
-        self.fw = Tire(np.mean(wheels[1:5:4],axis=0)[0:2],wheels[1,2],wheels[3,2])
-        self.cr = Circle(chainring[0:2],chainring[2])
+        fig,ax = self.D.plotfig(P.imRGB,show=False)
+        cursor = Cursor(ax)
+        fig.canvas.mpl_connect('motion_notify_event',cursor.on_mouse_move)
+        # enter 2 wheels 
+        pts = plt.ginput(n=2)
+        plt.close()
+        # sort x coord of the input points for left to right, back wheel first
+        pts.sort(key=lambda pt:pt[0])
+        # assume hubs at equal y-axis, average
+        pts = [np.array([p[0],np.mean(pts,axis=0)[1]]) for p in pts]
+        self.rw = Tire(pts[0],self.cv.CM2PX(in2cm(12)),self.cv.CM2PX(in2cm(13)))
+        self.fw = Tire(pts[1],self.cv.CM2PX(in2cm(12)),self.cv.CM2PX(in2cm(13)))
 
     def findlines(self,P):
+        fig,ax = self.D.plotfig(P.imRGB,show=False)
+        cursor = Cursor(ax)
+        fig.canvas.mpl_connect('motion_notify_event',cursor.on_mouse_move)
+        # enter seat/upper, bottombracket, head/upper, head/lower
+        pts = plt.ginput(n=4)
+        plt.close()
+        pts.sort(key=lambda pt:pt[0])
+        # convert tuples to arrays
+        pts = [np.array(p) for p in pts]
+        self.cr = Circle(pts[1],self.cv.CM2PX(in2cm(3)))
+        self.T.tubes['tt'].setpts(pts[0],pts[2])
+        self.T.tubes['ss'].setpts(self.rw.centre,pts[0])
+        self.T.tubes['cs'].setpts(self.rw.centre,pts[1])
+        self.T.tubes['st'].setpts(pts[0],pts[1])
+        self.T.tubes['dt'].setpts(pts[1],pts[3])
+        self.T.tubes['ht'].setpts(pts[2],pts[3])
+        self.fork.setpts(pts[3],self.fw.centre)
 
+    def calc(self):
         # create output
         self.calcParams()
         self.printParams()
 
+    def plot(self,P):
         # final block with blocking
         P.imW = np.copy(P.imRGB)
         P.imw = self.plotTubes(P.imW,self.T)
-        self.D.plotFig(P.imw,True)
+        self.D.plotfig(P.imw,True)
 
         return P
 
@@ -217,7 +242,7 @@ class CVGeometry(Geometry):
 
         P.imW=np.copy(P.imRGB)
         P.imW = self.plotTubes(P.imW,self.T)
-        self.D.plotFig(P.imW,False,title="head extend")
+        self.D.plotfig(P.imW,False,title="head extend")
 
         # with head tube approximately correct, redo the head angle estimate with better measurement.
         # P.imW = np.copy(P.imRGB)
@@ -255,6 +280,6 @@ class CVGeometry(Geometry):
         # final block with blocking
         P.imW = np.copy(P.imRGB)
         P.imw = self.plotTubes(P.imW,self.T)
-        self.D.plotFig(P.imw,True)
+        self.D.plotfig(P.imw,True)
 
         return P

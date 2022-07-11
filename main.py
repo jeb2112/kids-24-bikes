@@ -20,6 +20,11 @@ def runAnnotate(flist):
     for filename,mmpx in flist:
         P = ProfilePhoto(filename,mmpx=mmpx)
         G = AnnoGeometry(mmpx=mmpx)
+        G.findwheels(P)
+        G.findlines(P)
+        G.calc()
+        G.plot(P)
+        a=1
 
 
 if __name__=='__main__':

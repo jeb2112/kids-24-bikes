@@ -6,19 +6,53 @@ import cv2
 import matplotlib.pyplot as plt
 
 figNo = 1
-# rows = 0 
-# cols = 0
+
+class Cursor:
+    """
+    A cross hair cursor.
+    """
+    def __init__(self, ax):
+        self.ax = ax
+        self.horizontal_line = ax.axhline(color='k', lw=0.8, ls='--')
+        self.vertical_line = ax.axvline(color='k', lw=0.8, ls='--')
+        # text location in axes coordinates
+        self.text = ax.text(0.72, 0.9, '', transform=ax.transAxes)
+
+    def set_cross_hair_visible(self, visible):
+        need_redraw = self.horizontal_line.get_visible() != visible
+        self.horizontal_line.set_visible(visible)
+        self.vertical_line.set_visible(visible)
+        self.text.set_visible(visible)
+        return need_redraw
+
+    def on_mouse_move(self, event):
+        if not event.inaxes:
+            need_redraw = self.set_cross_hair_visible(False)
+            if need_redraw:
+                self.ax.figure.canvas.draw()
+        else:
+            self.set_cross_hair_visible(True)
+            x, y = event.xdata, event.ydata
+            # update the line positions
+            self.horizontal_line.set_ydata(y)
+            self.vertical_line.set_xdata(x)
+            self.text.set_text('x=%1.2f, y=%1.2f' % (x, y))
+            self.ax.figure.canvas.draw()
 
 class Convert():
     def __init__(self,mmpx=None):
         if mmpx is not None:
-            self.mmpx = mmpx
+            self.mmpx = mmpx # mm/pixel
+        # scaling factors as products
+        self.cm2px = 10 / self.mmpx
+        self.px2cm = self.mmpx / 10
+        self.px2mm = 1 / self.mmpx
     def CM2PX(self,cm):
-        return(int(np.round(cm/(self.mmpx/10))))
+        return int(np.round(cm * self.cm2px))
     def PX2CM(self,px):
-        return(px * self.mmpx/10.)
+        return px * self.px2cm
     def PX2MM(self,px):
-        return(px * self.mmpx)
+        return px * self.mmpx
 
 class Circle():
     def __init__(self,c=[0,0],r=0):
@@ -46,6 +80,10 @@ def DEG2RAD(d):
     return(d * np.pi/180)
 def RAD2DEG(r):
     return(r * 180./np.pi)
+def cm2in(c):
+    return c/2.54
+def in2cm(i):
+    return i*2.54
 
 def pts2eq(pt1,pt2):
     x1,y1 = pt1

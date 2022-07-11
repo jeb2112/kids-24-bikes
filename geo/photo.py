@@ -62,7 +62,7 @@ class ProfilePhoto(Photo):
         # try simply binarizing the image? seemed like a good idea but param2 had to get even smaller to detect
         # anything, and the detections were anywhere but the correct spot. maybe need to reblur again?
         # ret,bw = cv2.threshold(bw,240,255,cv2.THRESH_BINARY)
-        # self.D.plotFig(bw3,False,cmap="gray",fignum=1)
+        # self.D.plotfig(bw3,False,cmap="gray",fignum=1)
         # plt.show()        
         # not sure about final param1,2 choices yet
         # cleary,cujo24
@@ -126,7 +126,7 @@ class ProfilePhoto(Photo):
             cv2.circle(bw3,(int(w[0]),int(w[1])),self.cv.CM2PX(0.1),140,-1)
         for c in chainring:
             cv2.circle(bw3,(int(c[0]),int(c[1])),int(c[2]),140,5)
-        self.D.plotFig(bw3,False,cmap="gray",title='houghCircle: wheel detection')
+        self.D.plotfig(bw3,False,cmap="gray",title='houghCircle: wheel detection')
         plt.show(block =  not __debug__)        
         
         return wheels,chainring[0]
@@ -176,9 +176,9 @@ class ProfilePhoto(Photo):
             edges = cv2.Canny(bw,150,200,apertureSize=3,L2gradient=True)
         elif edgeprocess == 'head':
             edges = cv2.Canny(bw,150,200,apertureSize=3,L2gradient=True)
-        self.D.plotFig(edges,False,title="houghLinesS")
+        self.D.plotfig(edges,False,title="houghLinesS")
         plt.show(block= not __debug__)
-        # self.D.plotFigCV(edges)
+        # self.D.plotfigCV(edges)
         # plt.show(block=__debug__)
 
         lines = cv2.HoughLinesP(edges,rho=1.0,theta=np.pi/180,threshold=30,maxLineGap=20,minLineLength=self.cv.CM2PX(minlength))
@@ -215,8 +215,8 @@ class ProfilePhoto(Photo):
         # for wheel only
         else:
             edges = cv2.Canny(bw,150,200,apertureSize=3,L2gradient=True)
-        self.D.plotFig(edges,False,title='houghLines: edges')
-        # self.D.plotFigCV(edges)
+        self.D.plotfig(edges,False,title='houghLines: edges')
+        # self.D.plotfigCV(edges)
         plt.show(block=  not __debug__)
 
         # line processing
@@ -236,7 +236,7 @@ class ProfilePhoto(Photo):
                 for line in lines:
                     for x1,y1,x2,y2 in line:
                         cv2.line(bw2,(x1,y1),(x2,y2),(0,0,255),self.cv.CM2PX(0.2))
-                self.D.plotFig(bw2,False,title='houghLines: raw lines')
+                self.D.plotfig(bw2,False,title='houghLines: raw lines')
                 plt.show(block= not __debug__)
             else:
                 print('No edges detected')
@@ -268,7 +268,7 @@ class ProfilePhoto(Photo):
                     for x1,y1,x2,y2 in line:
                         cv2.line(bw2,(x1,y1),(x2,y2),(255,0,255),2)
                 # disply individual eqn sets for debugging purpose
-                # self.D.plotFig(bw2)
+                # self.D.plotfig(bw2)
                 # plt.show()
                 # # equal slope, equal offset. Using 2% to qualify as equal.
                 # this logic may still work but no good for tapered tubes. cujo24, metaHT
@@ -354,7 +354,7 @@ class ProfilePhoto(Photo):
         # 100 threshold helps get rid of spokes
         ret,imW = cv2.threshold(imW,100,255,cv2.THRESH_TOZERO_INV)
 
-        self.D.plotFig(imW,cmap="gray")
+        self.D.plotfig(imW,cmap="gray")
         plt.show(block= not __debug__)
         # up to Creig-24. charger
         # avglines,meqs = P.houghLines(imW,P.imRGB,edgeprocess='fork',minlength=7.5)

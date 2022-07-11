@@ -20,6 +20,17 @@ from geo.tube import Tubeset,Tube
 class CVTubeset(Tubeset):
     def __init__(self,mmpx=None):
         super(CVTubeset,self).__init__(mmpx=mmpx)
+        self.targets = dict(ht=Tube(),st=Tube())
+        # this will replace targetAngles, targetSLopes
+        self.targets['ht'].A = DEG2RAD(70)
+        self.targets['st'].A = DEG2RAD(72)
+        # target set of angles: head tube, seat tube, down tube, top tube  
+        # conventional bike angles rotating from neg x to pos y are: (69,72,-47,-23)
+        # cujo24. downtube slope>-47 so it picked the stem angle. either filter out stem line before or lower target
+        self.targetAngles = dict(ht=68,st=73,dt=-55,tt=-23)
+        self.targetSlopes = dict()
+        for key in self.targetAngles.keys():
+            self.targetSlopes[key] = np.tan(self.targetAngles[key] * np.pi/180)
 
     # three main tubes can be assigned by slope alone
     def assignTubeLines(self,avglines,meqs,tubes):

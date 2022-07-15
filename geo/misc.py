@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 figNo = 1
 
-class Cursor:
+class Cursor2:
     """
     A cross hair cursor.
     """
@@ -53,6 +53,8 @@ class Convert():
         return px * self.px2cm
     def PX2MM(self,px):
         return px * self.mmpx
+    def set_mmpx(self,mmpx):
+        self.mmpx = mmpx
 
 class Circle():
     def __init__(self,c=[0,0],r=0):

@@ -3,7 +3,9 @@ from ssl import PROTOCOL_TLSv1_1
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
-import peakutils
+from matplotlib.widgets import Cursor
+import json,pickle
+import os
 import copy
 # relative intra-package import. can use .misc for module in the same directory as this file,
 # or geo.misc as well, resolves to the same thing.
@@ -15,7 +17,7 @@ from geo.cvtubeset import CVTubeset
 
 # base class for a complete geometry
 class Geometry():
-    def __init__(self,mmpx=None):
+    def __init__(self,mmpx=None,name=None):
         self.T = None
         self.fw = None
         self.rw = None
@@ -27,6 +29,7 @@ class Geometry():
         if mmpx is not None:
             self.cv = Convert(mmpx=mmpx)
             self.D = Display(mmpx=mmpx)
+        self.name = name
 
     def addRider(self,anthro):
         self.rider = Rider(anthro)
@@ -80,6 +83,10 @@ class Geometry():
     def findlines(self):
         pass
 
+    def save(self):
+        fp = open(os.path.join('/home/src/kids-24-bikes/testdata/',self.name),'wb')
+        pickle.dump(self,fp)
+
     # def calcCom(self):
     #     com_leg = c((coords$BB[1]-coords$saddle[1])/2+coords$saddle[1],(coords$saddle[2]-coords$BB[2])/2+coords$BB[2])
     #     com_torso = c((coords$shldr[1]-coords$saddle[1]/2)+coords$saddle[1],(coords$shldr[2]-coords$saddle[2])/2+coords$saddle[2])
@@ -90,16 +97,21 @@ class Geometry():
 
 # sub-class for annotating a geometry
 class AnnoGeometry(Geometry):
-    def __init__(self,mmpx=None):
-        super(AnnoGeometry,self).__init__(mmpx=mmpx)
+    def __init__(self,mmpx=None,name=None):
+        super(AnnoGeometry,self).__init__(mmpx=mmpx,name=name)
         self.T = Tubeset()
 
     def findwheels(self,P):
         fig,ax = self.D.plotfig(P.imRGB,show=False)
-        cursor = Cursor(ax)
-        fig.canvas.mpl_connect('motion_notify_event',cursor.on_mouse_move)
+        plt.subplots_adjust(left=0,right=1,bottom=0,top=1)
+        fig.set_size_inches(2*fig.get_size_inches())
+        if False:
+            cursor = Cursor2(ax)
+            fig.canvas.mpl_connect('motion_notify_event',cursor.on_mouse_move)
+        else:
+            cursor = Cursor(ax)
         # enter 2 wheels 
-        pts = plt.ginput(n=2)
+        pts = plt.ginput(n=2,timeout=-1)
         plt.close()
         # sort x coord of the input points for left to right, back wheel first
         pts.sort(key=lambda pt:pt[0])
@@ -107,13 +119,19 @@ class AnnoGeometry(Geometry):
         pts = [np.array([p[0],np.mean(pts,axis=0)[1]]) for p in pts]
         self.rw = Tire(pts[0],self.cv.CM2PX(in2cm(12)),self.cv.CM2PX(in2cm(13)))
         self.fw = Tire(pts[1],self.cv.CM2PX(in2cm(12)),self.cv.CM2PX(in2cm(13)))
+        # calculate mmpx from image size and wheelbase spec.
 
     def findlines(self,P):
         fig,ax = self.D.plotfig(P.imRGB,show=False)
-        cursor = Cursor(ax)
-        fig.canvas.mpl_connect('motion_notify_event',cursor.on_mouse_move)
+        plt.subplots_adjust(left=0,right=1,bottom=0,top=1)
+        fig.set_size_inches(2*fig.get_size_inches())
+        if False:
+            cursor = Cursor2(ax)
+            fig.canvas.mpl_connect('motion_notify_event',cursor.on_mouse_move)
+        else:
+            cursor = Cursor(ax)
         # enter seat/upper, bottombracket, head/upper, head/lower
-        pts = plt.ginput(n=4)
+        pts = plt.ginput(n=4,timeout=-1)
         plt.close()
         pts.sort(key=lambda pt:pt[0])
         # convert tuples to arrays
@@ -143,8 +161,8 @@ class AnnoGeometry(Geometry):
 
 # sub-class for cv processing a geometry
 class CVGeometry(Geometry):
-    def __init__(self,mmpx=None):
-        super(CVGeometry,self).__init__(mmpx=mmpx)
+    def __init__(self,mmpx=None,name=None):
+        super(CVGeometry,self).__init__(mmpx=mmpx,name=name)
         self.T = CVTubeset(mmpx=mmpx)
 
     def findwheels(self,P):

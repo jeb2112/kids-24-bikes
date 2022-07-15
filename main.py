@@ -1,17 +1,20 @@
 from operator import eq
 from ssl import PROTOCOL_TLSv1_1
 import numpy as np
-import cv2
+import os
 import matplotlib.pyplot as plt
 import argparse
+import requests
 from geo.photo import ProfilePhoto
 from geo.misc import *
 from geo.geometry import CVGeometry,AnnoGeometry
+from scrape.gsheet import Gsheet
 
 
 def runCV(filename,mmpx):
     P = ProfilePhoto(filename,mmpx=mmpx)
-    G = CVGeometry(mmpx=mmpx)
+    name = os.path.splitext(os.path.basename(filename))[0]
+    G = CVGeometry(name=name,mmpx=mmpx)
     P = G.findwheels(P)
     P = G.findlines(P)
 
@@ -19,12 +22,22 @@ def runCV(filename,mmpx):
 def runAnnotate(flist):
     for filename,mmpx in flist:
         P = ProfilePhoto(filename,mmpx=mmpx)
-        G = AnnoGeometry(mmpx=mmpx)
+        name = os.path.splitext(os.path.basename(filename))[0]
+        G = AnnoGeometry(name=name,mmpx=mmpx)
         G.findwheels(P)
         G.findlines(P)
         G.calc()
         G.plot(P)
+        G.save()
         a=1
+
+def runScrape():
+    gs = Gsheet()
+    for b in gs.bikes[5:]: # offset debugging
+        gs.dosoup(b)
+        a=1
+
+
 
 
 if __name__=='__main__':
@@ -36,7 +49,8 @@ if __name__=='__main__':
     parser.add_argument("--mmpx",type=float,dest="mmpx",help="millimetres per pixel scaling")
     parser.add_argument("-p","--plot",dest="plot",help="option for plots")
     parser.add_argument("--annotate",action="store_true",default=False)
-    parser.add_argument("--cv",action="store_true",default=True)
+    parser.add_argument("--cv",action="store_true",default=False)
+    parser.add_argument("--scrape",action="store_true",default=False)
     
     args =  parser.parse_args()
     
@@ -44,6 +58,8 @@ if __name__=='__main__':
         if args.file:
             flist = readFile(args.file)
             runAnnotate(flist)
+    elif args.scrape:
+        runScrape()
     elif args.cv:
         if args.img:
             mmpx = args.mmpx

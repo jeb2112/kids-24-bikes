@@ -24,6 +24,15 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "scrape",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/main.py",
+            "args": ["--scrape"],
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "console": "integratedTerminal"
+        },        {
             "name": "demo",
             "type": "python",
             "request": "launch",

@@ -32,11 +32,16 @@ def runAnnotate(flist):
         a=1
 
 def runScrape():
-    gs = Gsheet()
-    for b in gs.bikes[5:]: # offset debugging
+    gs = Gsheet(online=False)
+    b1 = 13 # starting offset for debugging
+    bcol = 'AF'
+    b1 = ord(bcol[-1])-64-4
+    if len(bcol)==2:
+        b1 += (ord(bcol[0])-64)*26
+    for b in gs.bikes[b1:]:
+        print('item# {}, {}'.format(b1,b['label']))
         gs.dosoup(b)
-        a=1
-
+        b1 += 1
 
 
 

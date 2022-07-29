@@ -49,12 +49,23 @@ class Gsheet():
             celldata = celldata[3:celldata.index('mean')] # hard-coded start 3rd col
             builddata = self.wks.get_row(4) # build string
             builddata = builddata[3:len(celldata)]
-            for c,b in zip(celldata,builddata):
-                bike = dict.fromkeys(['link','label','build'],[])
+            typedata = self.wks.get_row(1)
+            typedata = typedata[3:len(celldata)]
+            for c,b,t in zip(celldata,builddata,typedata):
+                bike = dict.fromkeys(['link','label','build','type'],[])
                 m =re.search(r'=HYPERLINK\("(.*?)","(.*?)"\)',c)
                 bike['link'] = m.group(1)
                 bike['label'] = m.group(2)
                 bike['build'] = b
+                if 'front' in t:
+                    ctype = '24fs'
+                elif '26' in t:
+                    ctype = '26'
+                elif '24' in t:
+                    ctype = '24r'
+                elif 'XS' in t:
+                    ctype = 'xsl'
+                bike['type'] = ctype
                 self.bikes.append(bike)
 
             if debug:
@@ -75,7 +86,7 @@ class Gsheet():
         ua = UAS[random.randrange(len(UAS))]
         headers = {'user-agent': ua}
 
-        img_fname = os.path.join('/home/src/kids-24-bikes/png/2022',b['label'])
+        img_fname = os.path.join('/home/src/kids-24-bikes/png/2022',b['type'],b['label'])
         img_fname = re.sub(' ','',img_fname)
         # for multiple builds, if already have one photo don't repeat
         # TODO: check for fork with a different trail
@@ -85,9 +96,11 @@ class Gsheet():
         model_pattern = b['label'].replace(' ','.*?') # single space hard-coded
         if b['build']:
             build_pattern = model_pattern+'.*?'+b['build']
+            # try limiting to a small number of characters. should mostly be 1 or 0
+            build_pattern = model_pattern+'.{0-3}'+b['build']
         else:
             build_pattern = model_pattern
-        pfile = os.path.join('/home/src/kids-24-bikes/tmp/page',b['label']+'.pkl')
+        pfile = os.path.join('/home/src/kids-24-bikes/tmp/page',b['type'],b['label']+'.pkl')
         if debug and os.path.exists(pfile):
             fp = open(pfile,'rb')
             ptext = pickle.load(fp)
@@ -97,6 +110,11 @@ class Gsheet():
             http_session = requests.Session()
             # http_session.get('https://'+b['link'].split('/')[2],headers=headers)
             # gtbicycles. missing intermediate cert probably can't ssl it
+            http_referer = 'https://'+b['link'].split('/')[2]
+            # vitus requires referer to load the 26 page with the 26 link, otherwise it just loads the 24 page
+            # even though the 24 page loads without referer. is referer still a thing in 2022??
+            # may solve some earlier problems too? vpace 26
+            headers['referer'] = http_referer
             page = http_session.get(b['link'],headers=headers,timeout=5)
             if 'META NAME=\"robots\"' in page.text: #scott i think had this
                 warnings.warn('Robot blocked page serve, skipping: {}'.format(b['link']))
@@ -127,26 +145,36 @@ class Gsheet():
                     if re.search(p,i.attrs.get('src',''),flags=re.I): # khs alite
                         img_url = self.process_srcset(p,i)
                         break # TODO. iterate all imgs and take the largest one
-                    # pello reyes has data-src, no src
                     # cdale trail has a src masking the larger image in data-src
                     # Giant STP,XTC has no src, small data-src, large image served??
-                    # next try the data-src attribute
+                    # if nothing in src, next try the data-src attribute
                     elif re.search(p,i.attrs.get('data-src',''),flags=re.I): # khs alite
                         img_url = self.process_srcset(p,i,defkey='data-src')
                         break
                     # tairn has label in alt tag, not image src name
-                    # tairn will need afurther algorithm to collect all the images and pick the right one
                     # next try the alt attribute
                     elif re.search(p,i.attrs.get('alt',''),flags=re.I): # tairn
-                        if 'lazyload' in i.attrs.get('class',''): # quick hack for lazyload thing
+                        # not sure whether to use lazyload or not
+                        # for MTB 69, it is needed to get the largest image
+                        if 'lazyload' in i.attrs.get('class',''):
+                            # TODO method to process a lazyload class
                             continue
-                        img_url = i.attrs['src']
+                        # TODO handle variations on 'src'
+                        if 'src' in i.attrs.keys():
+                            img_url = i.attrs['src']
+                        else:
+                            raise Exception('no image url found')
+
                         break
                     # special cases
                     # flowdown doesn't appear in src, but does in a wrong image, but could
                     # use data-widths > 1 as a clue to the unlabelled images
                     # cleary scout may be jscrip served? but the easily findable image
                     # in a tag appears to be mislabelled.
+                    # creig 26 appears to be jscrip served? even though creig 24 was not
+                    # max 26 same. appears to be jscrip served even though max 24 was not
+                    # tairn will need afurther algorithm to collect all the images and pick the right one
+                    # vpace 26 can make no sense of imgs, they don't match what's on the page
                     # this case for mec ace, but try to generalize it
                     elif 'Ace' in b['label'] and 'px' in i.attrs.get('sizes',''):
                         img_url = self.process_srcset(i)
@@ -215,6 +243,8 @@ class Gsheet():
             if k in i.attrs.keys():
                 if not re.search(p,i.attrs[k],flags=re.I):
                     continue
+            else:
+                continue
 
             # a lot of url's have the calendar year as well, which is similar to a
             # typical large image size so might lose a match this way, but exclude them as follows

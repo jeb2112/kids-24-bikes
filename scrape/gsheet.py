@@ -12,6 +12,7 @@ import glob
 import imghdr
 from ast import literal_eval
 from bs4 import BeautifulSoup
+from PIL import Image
 
 #authorization
 
@@ -77,11 +78,12 @@ class Gsheet():
     def dosoup(self,b,debug=True):
         # user agent is still a thing in 2022. find a better place for this
         UAS = ("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.1", 
-            "Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0",
+            # "Mozilla/5.0 (Windows NT 6.3; rv:36.0) Gecko/20100101 Firefox/36.0",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10; rv:33.0) Gecko/20100101 Firefox/33.0",
             "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.1 Safari/537.36",
-            "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36",
+            # "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0"
             )
         ua = UAS[random.randrange(len(UAS))]
         headers = {'user-agent': ua}
@@ -95,9 +97,9 @@ class Gsheet():
 
         model_pattern = b['label'].replace(' ','.*?') # single space hard-coded
         if b['build']:
-            build_pattern = model_pattern+'.*?'+b['build']
-            # try limiting to a small number of characters. should mostly be 1 or 0
-            build_pattern = model_pattern+'.{0-3}'+b['build']
+            # build_pattern = model_pattern+'.*?'+b['build']
+            # got one fail with .*?. try limiting to a small number of characters. should mostly be 1 or 0
+            build_pattern = model_pattern+'.{0,3}'+b['build']
         else:
             build_pattern = model_pattern
         pfile = os.path.join('/home/src/kids-24-bikes/tmp/page',b['type'],b['label']+'.pkl')
@@ -116,7 +118,7 @@ class Gsheet():
             # may solve some earlier problems too? vpace 26
             headers['referer'] = http_referer
             page = http_session.get(b['link'],headers=headers,timeout=5)
-            if 'META NAME=\"robots\"' in page.text: #scott i think had this
+            if 'META NAME=\"robots\"' in page.text: #scott has this
                 warnings.warn('Robot blocked page serve, skipping: {}'.format(b['link']))
                 return
             ptext = page.text
@@ -133,7 +135,7 @@ class Gsheet():
             # commencal served by jscrip? but only a med-res available in meta
             # lone peak profile is in meta, but has other images in img tags
             img_url = self.process_meta(meta,model_pattern,build_pattern)
-            # offair5 profile image is in a link
+            # offair5 profile image is in a link. off5 pofile image is in meta
             # recon no label-pattern anywhere, meta, alt or img
 
         else:
@@ -144,9 +146,11 @@ class Gsheet():
                     # start with build_pattern, fall back on model_pattern
                     if re.search(p,i.attrs.get('src',''),flags=re.I): # khs alite
                         img_url = self.process_srcset(p,i)
-                        break # TODO. iterate all imgs and take the largest one
+                        break   # TODO. iterate several candidate imgs and take the largest one
+                                # eg. early seeker has src that is small, data-src with widths.
                     # cdale trail has a src masking the larger image in data-src
-                    # Giant STP,XTC has no src, small data-src, large image served??
+                    # Giant STP,XTC has no src, small data-src, large image jscrip served?? but in browser,
+                    # a larger image is served. another missing header??
                     # if nothing in src, next try the data-src attribute
                     elif re.search(p,i.attrs.get('data-src',''),flags=re.I): # khs alite
                         img_url = self.process_srcset(p,i,defkey='data-src')
@@ -154,6 +158,13 @@ class Gsheet():
                     # tairn has label in alt tag, not image src name
                     # next try the alt attribute
                     elif re.search(p,i.attrs.get('alt',''),flags=re.I): # tairn
+                        # dback pines doesn't have name in the 'src' attr, but it can be 
+                        # inferred by a data-widths attr. meanwhile, lack of a lazyload
+                        # method blocks the correct assignment. so this is just a kludge
+                        # for now may or may not need to be permanent.
+                        if 'data-widths' in i.attrs.keys():
+                            img_url = self.process_srcset(p,i)
+                            break
                         # not sure whether to use lazyload or not
                         # for MTB 69, it is needed to get the largest image
                         if 'lazyload' in i.attrs.get('class',''):
@@ -170,11 +181,13 @@ class Gsheet():
                     # flowdown doesn't appear in src, but does in a wrong image, but could
                     # use data-widths > 1 as a clue to the unlabelled images
                     # cleary scout may be jscrip served? but the easily findable image
-                    # in a tag appears to be mislabelled.
+                    # in a tag appears to be mislabelled. scout 26 also broken
                     # creig 26 appears to be jscrip served? even though creig 24 was not
                     # max 26 same. appears to be jscrip served even though max 24 was not
                     # tairn will need afurther algorithm to collect all the images and pick the right one
                     # vpace 26 can make no sense of imgs, they don't match what's on the page
+                    # amulet 24,26 maybe another header tag needed? page response seems wrong-different than browser
+                    # roscoe build_pattern is in meta, but this picks up a wrong image with model_pattern first
                     # this case for mec ace, but try to generalize it
                     elif 'Ace' in b['label'] and 'px' in i.attrs.get('sizes',''):
                         img_url = self.process_srcset(i)
@@ -184,6 +197,10 @@ class Gsheet():
             # if no matches, try the meta tags
             if img_url is None:
                 img_url = self.process_meta(meta,model_pattern,build_pattern)
+            # if still no matches, error
+            if img_url is None:
+                warnings.warn('No url found. continuing')
+                return
         img_url = img_url.lstrip()
         img_url = re.sub(r'%3A',':',img_url)
         img_url = re.sub(r'%2F','/',img_url)
@@ -196,8 +213,8 @@ class Gsheet():
         else:
             raise Exception('url prepending failed.')
         # additionally remove any trailing characters after these common exts
-        if any(ext in img_url for ext in [r'.gif',r'.png',r'.jpg']):
-            img_url = re.sub(r'(\.gif|\.png|\.jpg).*$',r'\1',img_url)
+        if any(ext in img_url for ext in [r'.gif',r'.png',r'.jpg',r'.jpeg']):
+            img_url = re.sub(r'(\.gif|\.png|\.jpg|\.jpeg).*$',r'\1',img_url)
         else:
             # raise Exception('no image extension in image url')
             # precaliber is this case, left all the trailing chars
@@ -214,24 +231,31 @@ class Gsheet():
             os.remove(img_fname)
         with open(os.path.join(img_fname+img_ext),'wb') as fp:
             fp.write(img.content)
+        # record image size
+        ibytes = len(img.content)
+        # im = Image.open(os.path.join(img_fname+img_ext))
+        # w,h = im.size
         a=1
 
     def process_meta(self,meta,model_pattern,build_pattern):
         for m in meta:
             if m.attrs.get('content','').startswith("http"): # for now assume we have this
                 if re.search(model_pattern,m.attrs['content'],flags=re.I):
-                    if any(ext in m.attrs['content'] for ext in ['gif','jpg','png']):
+                    if any(ext in m.attrs['content'] for ext in ['gif','jpg','png','webp']):
                         img_url = m.attrs['content']
                         return img_url
-                    else:
-                        if re.search(build_pattern,m.attrs['content'],flags=re.I):
-                            img_url = m.attrs['content'] # for special riprock, no ext but
-                                                         # can at least check build
-                            return img_url
                 else: # for opus recon. risky but take any .png in a meta content
-                    if any(ext in m.attrs['content'] for ext in ['gif','jpg','png']):
+                    if any(ext in m.attrs['content'] for ext in ['gif','jpg','png','webp']):
                         img_url = m.attrs['content']
                         return img_url
+        # no images found, repeat and take just a url. eg special riprock
+        for m in meta:
+            if m.attrs.get('content','').startswith('http'):
+                if re.search(build_pattern,m.attrs['content'],flags=re.I):
+                    img_url = m.attrs['content'] # for special riprock, no ext but
+                                                    # can at least check build
+                    return img_url
+ 
 
         return None
 

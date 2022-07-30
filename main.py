@@ -34,7 +34,7 @@ def runAnnotate(flist):
 def runScrape():
     gs = Gsheet(online=True)
     b1 = 13 # starting offset for debugging
-    bcol = 'BE'
+    bcol = 'CI'
     b1 = ord(bcol[-1])-64-4
     if len(bcol)==2:
         b1 += (ord(bcol[0])-64)*26

@@ -9,6 +9,7 @@ from geo.photo import ProfilePhoto
 from geo.misc import *
 from geo.geometry import CVGeometry,AnnoGeometry
 from scrape.gsheet import Gsheet
+from scrape.scraper import Scraper
 
 
 def runCV(filename,mmpx):
@@ -33,14 +34,14 @@ def runAnnotate(flist):
 
 def runScrape():
     gs = Gsheet(online=True)
-    b1 = 13 # starting offset for debugging
-    bcol = 'CI'
+    sc = Scraper()
+    bcol = 'D' # starting column for debugging
     b1 = ord(bcol[-1])-64-4
     if len(bcol)==2:
         b1 += (ord(bcol[0])-64)*26
     for b in gs.bikes[b1:]:
         print('item# {}, {}'.format(b1,b['label']))
-        gs.dosoup(b)
+        sc.dosoup(b)
         b1 += 1
 
 

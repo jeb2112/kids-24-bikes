@@ -2,3 +2,4 @@ __pycache__
 demo.py
 auth
 tmp
+*.h5

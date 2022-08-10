@@ -1,16 +1,15 @@
 from operator import eq
 from ssl import PROTOCOL_TLSv1_1
-import numpy as np
 import os
 import matplotlib.pyplot as plt
 import argparse
-import requests
 from geo.photo import ProfilePhoto
 from geo.misc import *
 from geo.geometry import CVGeometry,AnnoGeometry
 from scrape.gsheet import Gsheet
 from scrape.scraper import Scraper
-
+from process.process import Process
+from process.profile import Profile
 
 def runCV(filename,mmpx):
     P = ProfilePhoto(filename,mmpx=mmpx)
@@ -44,6 +43,13 @@ def runScrape():
         sc.dosoup(b)
         b1 += 1
 
+def runProcess():
+    p = Process(pad=False)
+    p.runprocess()
+
+def runProfile():
+    p = Profile()
+    p.dotrain()
 
 
 if __name__=='__main__':
@@ -57,9 +63,15 @@ if __name__=='__main__':
     parser.add_argument("--annotate",action="store_true",default=False)
     parser.add_argument("--cv",action="store_true",default=False)
     parser.add_argument("--scrape",action="store_true",default=False)
+    parser.add_argument("--process",action="store_true",default=False)
+    parser.add_argument("--trainprofile",action="store_true",default=False)
     
     args =  parser.parse_args()
     
+    if args.trainprofile:
+        runProfile()
+    if args.process:
+        runProcess()
     if args.annotate:
         if args.file:
             flist = readFile(args.file)

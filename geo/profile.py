@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate
 import scipy.optimize
-import peakutils
+# import peakutils
 from geo.misc import *
 # from geo.geometry import Convert
 

@@ -32,7 +32,28 @@
             "cwd": "${workspaceRoot}",
             "justMyCode": false,
             "console": "integratedTerminal"
-        },        {
+        },        
+        {
+            "name": "process",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/main.py",
+            "args": ["--process"],
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "console": "integratedTerminal"
+        },        
+        {
+            "name": "train profile",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/main.py",
+            "args": ["--trainprofile"],
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "console": "integratedTerminal"
+        },        
+        {
             "name": "demo",
             "type": "python",
             "request": "launch",

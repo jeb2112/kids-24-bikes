@@ -3,7 +3,7 @@ from ssl import PROTOCOL_TLSv1_1
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
-import peakutils
+# import peakutils
 import copy
 # relative intra-package import. can use .misc for module in the same directory as this file,
 # or geo.misc as well, resolves to the same thing.

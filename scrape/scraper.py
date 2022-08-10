@@ -85,6 +85,7 @@ class Scraper():
                 if re.search(p,i.attrs.get('src',''),flags=re.I): # khs alite
                     img_url = self.process_srcset(p,i)
                     urls.append(img_url)
+                    continue
                 
                 # also try the data-src attribute
 
@@ -96,6 +97,7 @@ class Scraper():
                 if re.search(p,i.attrs.get('data-src',''),flags=re.I): # khs alite
                     img_url = self.process_srcset(p,i,defkey='data-src')
                     urls.append(img_url)
+                    continue
 
                 # next try the alt attribute
 
@@ -108,6 +110,7 @@ class Scraper():
                     if 'data-widths' in i.attrs.keys():
                         img_url = self.process_srcset(p,i)
                         urls.append(img_url)
+                        continue
                     # not sure whether to use lazyload or not
                     # for MTB 69, it is needed to get the largest image
                     if 'lazyload' in i.attrs.get('class',''):
@@ -117,6 +120,7 @@ class Scraper():
                     if 'src' in i.attrs.keys():
                         img_url = i.attrs['src']
                         urls.append(img_url)
+                        continue
 
                 # other problem cases
                 # flowdown doesn't appear in src, but does in a wrong image, but could
@@ -142,7 +146,7 @@ class Scraper():
     
     # set re patterns and other data for current bike
     def setpattern(self,b):
-        self.fname = os.path.join('/home/src/kids-24-bikes/png/'+self.year,b['type'],b['label'])
+        self.fname = os.path.join('/home/src/kids-24-bikes/png/'+str(self.year),b['type'],b['label'])
         self.fname = re.sub(' ','',self.fname)
         # for multiple builds, if already have one photo don't repeat
         # TODO: check for fork with a different trail

@@ -2,4 +2,7 @@ __pycache__
 demo.py
 auth
 tmp
+*processed*
+models*
 *.h5
+checkpoint

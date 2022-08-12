@@ -54,6 +54,26 @@
             "console": "integratedTerminal"
         },        
         {
+            "name": "plot profile",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/main.py",
+            "args": ["--plotprofile"],
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "console": "integratedTerminal"
+        },        
+        {
+            "name": "predict profile",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/main.py",
+            "args": ["--predictprofile"],
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "console": "integratedTerminal"
+        },        
+        {
             "name": "demo",
             "type": "python",
             "request": "launch",

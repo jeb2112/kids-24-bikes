@@ -3,6 +3,8 @@ from PIL import Image,ImageOps,ImageStat
 import imghdr
 import numpy as np
 import re
+import filecmp
+import glob
 
 # class for pre-processing training and test images
 class Process():
@@ -37,6 +39,27 @@ class Process():
                 f0 = f0.replace(a,a0)
                 os.rename(os.path.join(di,f),os.path.join(di,f0))
 
+    # occasional use, remove any duplicates
+    def removedupl(self):
+        ret = False
+        for di in [self.adir,self.bdir]:
+            flist = os.listdir(di)
+            for i,f1 in enumerate(flist):
+                for f2 in flist[i+1:]:
+                    fpath1 = os.path.join(di,f1)
+                    fpath2 = os.path.join(di,f2)
+                    if filecmp.cmp(fpath1,fpath2):
+                        os.remove(fpath1)
+                        ret = True
+                        break
+        return ret
+
+    def clearprocessed(self):
+        for di in [self.adir_processed,self.bdir_processed]:
+            files = glob.glob(di+'/*')
+            for f in files:
+                os.remove(f)
+
     # main method
     def runprocess(self):
         for (di,do) in zip([self.adir,self.bdir],[self.adir_processed,self.bdir_processed]):
@@ -48,11 +71,14 @@ class Process():
                 if img_ext != 'png':
                     pass
                 img_name,img_ext2 = f.split('.')
+                opath = os.path.join(do,img_name)
+                if os.path.exists(opath):
+                    continue
                 im = Image.open(ipath)
                 if any(ext in im.mode for ext in ['RGB','CMY','HSV','YCbCr']):
                     im = self.rgb2g(im)
                 im = self.resize(im)
-                im.save(os.path.join(do,img_name),format='png')
+                im.save(opath,format='png')
                 continue
         return
 

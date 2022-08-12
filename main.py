@@ -45,11 +45,22 @@ def runScrape():
 
 def runProcess():
     p = Process(pad=False)
+    ret = p.removedupl()
+    if ret:
+        p.clearprocessed()
     p.runprocess()
 
 def runProfile():
-    p = Profile()
+    p = Profile(kfold=4,modelname='profile_model_adam',domodel=True)
     p.dotrain()
+
+def plotProfile():
+    p = Profile(kfold=4,modelname='profile_model_adam',domodel=False)
+    p.plot()
+
+def predictProfile():
+    p = Profile(kfold=4,modelname='profile_model_adam',domodel=True)
+    p.dopredict()
 
 
 if __name__=='__main__':
@@ -65,9 +76,15 @@ if __name__=='__main__':
     parser.add_argument("--scrape",action="store_true",default=False)
     parser.add_argument("--process",action="store_true",default=False)
     parser.add_argument("--trainprofile",action="store_true",default=False)
+    parser.add_argument("--plotprofile",action="store_true",default=False)
+    parser.add_argument("--predictprofile",action="store_true",default=False)
     
     args =  parser.parse_args()
     
+    if args.predictprofile:
+        predictProfile()
+    if args.plotprofile:
+        plotProfile()
     if args.trainprofile:
         runProfile()
     if args.process:

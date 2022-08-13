@@ -173,6 +173,10 @@ class Profile():
         self.y = np.concatenate((self.nlabels, self.plabels),axis=0)
         self.y = keras.utils.to_categorical(self.y,self.num_classes)
         self.x = np.concatenate((self.ndata,self.pdata),axis=0)
+        self.preprocess()
+
+    # np array
+    def preprocess(self):   
         # order
         if K.image_data_format() == 'channels_first':
             self.x = np.transpose(self.x,axes=(0,3,1,2))
@@ -184,7 +188,6 @@ class Profile():
         idx = np.argsort(np.random.random(len(self.y)))
         self.x = self.x[idx,:,:,:]
         self.y = self.y[idx]
-
 
     # reprediction
     def dopredict(self):
@@ -202,6 +205,16 @@ class Profile():
         with open(self.mdata,'wb') as fp:
             pickle.dump((self.sdata,self.ldata,self.fpidx,self.fnidx),fp)
         self.plot()
+
+    # test one image
+    def test(self,img):
+        p = np.zeros(self.kfold,dtype=int)
+        for k in range(self.kfold):
+            filepath = os.path.join(self.mdir,self.modelname+'_kfold{:01d}'.format(self.k)+'_best.hdf5')
+            self.model.load_weights(filepath)
+            p[k] = np.argmax(self.model.predict(img)) # or use the softmax value?
+        p0 = int(np.round(np.mean(p)))
+        return p0
 
 
     # main method for training

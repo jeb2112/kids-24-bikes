@@ -1,6 +1,8 @@
 import os
+import io
 import requests
 from bs4 import BeautifulSoup
+import matplotlib.pyplot as plt
 import random
 import glob
 import re
@@ -8,9 +10,12 @@ import pickle
 import warnings
 import requests
 import imghdr
+import numpy as np
 from PIL import Image
 from ast import literal_eval
 from datetime import date
+from process.profile import Profile
+from process.process import Process
 
 
 class Scraper():
@@ -26,7 +31,8 @@ class Scraper():
         self.session = requests.Session()
         self.debug = debug
         self.year = date.today().year
-
+        self.profiler = Profile(kfold=4,modelname='profile_model_adam',domodel=True)
+        self.processor = Process(pad=False)
         return
 
     #############
@@ -66,10 +72,28 @@ class Scraper():
                 warnings.warn('No url found. continuing')
                 return
 
-        # go through the list and take the largest image
+        # go through the list and take the largest profile image
+        maxsize = 0
         for url in urls:
-            url = self.process_url(url)
-            self.getimage(url,self.fname)
+            url = self.process_url(url,b)
+            if url is None:
+                continue
+            imgurl,ext = self.getimage(url,dosave=False)
+            w,h = imgurl.size
+            img = self.processor.runsingle(imgurl)
+            img = np.array(img)/255. # norm
+            img = np.reshape(img,(1,self.processor.ty,self.processor.tx,1))
+            p0 = self.profiler.test(img)
+            if p0:
+                if w*h > maxsize:
+                    maxsize,maximgurl = w*h,imgurl
+                if maxsize > 1e6: # big enough, avoid hammering website
+                    break
+            else:
+                a=1
+                continue
+        self.saveimage(maximgurl,ext)
+
 
     #############
     # aux methods
@@ -167,38 +191,47 @@ class Scraper():
 
 
     
-    # download image and save it
-    def getimage(self,img_url):
-        img = requests.get(img_url,headers=self.headers,timeout=5)
+    # download image and optionally save it
+    def getimage(self,img_url,dosave=True):
+        imgraw = requests.get(img_url,headers=self.headers,timeout=5)
         img_ext = os.path.splitext(img_url)[1]
         if not img_ext:
             # imghdr deprecated, and a bytes object is not a byte stream, still easiest
             # way to handle this
             with open(self.fname,'wb') as fp:
-                fp.write(img.content)
+                fp.write(imgraw.content)
             img_ext = '.'+imghdr.what(self.fname)
             os.remove(self.fname)
-        with open(os.path.join(self.fname+img_ext),'wb') as fp:
-            fp.write(img.content)
-        # record image size
-        ibytes = len(img.content)
-        a=1
-        return
+        if dosave:
+            with open(os.path.join(self.fname+img_ext),'wb') as fp:
+                fp.write(imgraw.content)
+        img = Image.open(io.BytesIO(imgraw.content))
+        # rturns PIL Image
+        return img,img_ext
+    # save it later. PIL Image or raw
+    def saveimage(self,img,img_ext):
+        if 'PIL' in str(type(img)):
+            img.save(os.path.join(self.fname+img_ext))
+        else:
+            with open(os.path.join(self.fname+img_ext),'wb') as fp:
+                fp.write(img.content)
+
 
 
     # handle variations and tidy up the url syntax
-    def process_url(img_url):
+    def process_url(self,img_url,b):
         img_url = img_url.lstrip()
         img_url = re.sub(r'%3A',':',img_url)
         img_url = re.sub(r'%2F','/',img_url)
-        if img_url.startswith('//'):
+        if 'http' in img_url:
+            img_url = re.sub(r'^.*http','http',img_url)
+        elif img_url.startswith('//'):
             img_url = 'https:'+img_url
         elif img_url.startswith('/'):
             img_url = 'https://' + b['link'].split('/')[2] + img_url
-        elif 'http' in img_url:
-            img_url = re.sub(r'^.*http','http',img_url)
         else:
-            raise Exception('url prepending failed.')
+            warnings.warn('url prepending failed, skipping...')
+            return None
         # additionally remove any trailing characters after these common exts
         if any(ext in img_url for ext in [r'.gif',r'.png',r'.jpg',r'.jpeg']):
             img_url = re.sub(r'(\.gif|\.png|\.jpg|\.jpeg).*$',r'\1',img_url)

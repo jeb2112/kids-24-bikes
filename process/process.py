@@ -60,7 +60,7 @@ class Process():
             for f in files:
                 os.remove(f)
 
-    # main method
+    # main method, all input files
     def runprocess(self):
         for (di,do) in zip([self.adir,self.bdir],[self.adir_processed,self.bdir_processed]):
             flist = os.listdir(di)
@@ -82,6 +82,13 @@ class Process():
                 continue
         return
 
+    # process a single img
+    def runsingle(self,img):
+        if 'PIL' not in str(type(img)):
+            raise Exception('Expected PIL image')
+        img = self.rgb2g(img)
+        img = self.resize(img)
+        return img #PIL
 
     # convert to grayscale
     def rgb2g(self,I):

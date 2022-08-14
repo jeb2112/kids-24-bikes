@@ -75,6 +75,7 @@ class Process():
                 if os.path.exists(opath):
                     continue
                 im = Image.open(ipath)
+                im = self.remove_transparency(im)
                 if any(ext in im.mode for ext in ['RGB','CMY','HSV','YCbCr']):
                     im = self.rgb2g(im)
                 im = self.resize(im)
@@ -86,9 +87,24 @@ class Process():
     def runsingle(self,img):
         if 'PIL' not in str(type(img)):
             raise Exception('Expected PIL image')
+        #check for transparency
+        img = self.remove_transparency(img)
         img = self.rgb2g(img)
         img = self.resize(img)
         return img #PIL
+
+    # convert transparency, def white
+    def remove_transparency(self,img,bgcolor=(255,255,255)):
+        if img.mode in ('RGBA','LA') or (img.mode == 'P' and 'transparency' in img.info):
+            alpha = img.getchannel('A')
+            if 0 in np.array(alpha):
+                bg = Image.new('RGBA',img.size,bgcolor+(255,))
+                bg.paste(img,mask=alpha)
+                return bg
+            else:
+                return img
+        else:
+            return img
 
     # convert to grayscale
     def rgb2g(self,I):

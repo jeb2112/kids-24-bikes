@@ -42,7 +42,12 @@ class Scraper():
     def dosoup(self,b,debug=True):
 
         self.setpattern(b)
-        
+        # for dev: if already have the photo don't hammer the server
+        # TODO: check for fork with a different trail
+        if glob.glob(self.fname+'.*'):
+            warnings.warn('Photo already exists, returning...')
+            return
+
         ptext = self.getpage()
         soup = BeautifulSoup(ptext,'html.parser')
         imgs = soup.find_all('img')
@@ -51,29 +56,40 @@ class Scraper():
         urls = []
 
         # form a short list of candidate images
-        if len(imgs) == 0: # norco images served by jscrip? but hi-res appear hidden in meta
+        if len(imgs) > 0:
+            urls = self.get_imgurls(imgs)
+        if len(meta) > 0:
+            meta_urls = self.get_metaurls(meta)
+            if meta_urls is not None:
+                urls.append(meta_urls)
+        if len(urls) == 0:
+            warnings.warn('No img or meta urls found. continuing')
+            return
+
+            # some problem cases
+            # norco images served by jscrip? but hi-res appear hidden in meta
             # commencal served by jscrip? but only a med-res available in meta
             # lone peak profile is in meta, but has other images in img tags
-            img_url = self.process_meta(meta,self.model_pattern,self.build_pattern)
-            if img_url is not None:
-                urls.append(img_url)
             # offair5 profile image is in a link. off5 pofile image is in meta
             # recon no label-pattern anywhere, meta, alt or img
 
-        else:
-            urls = self.geturls(imgs)
-            # if no matches, try the meta tags
-            if urls is None:
-                img_url = self.process_meta(meta,self.model_pattern,self.build_pattern)
-                if img_url is not None:
-                    urls.append(img_url)
-            # if still no matches, skip and continue
-            if urls is None:
-                warnings.warn('No url found. continuing')
-                return
-
         # go through the list and take the largest profile image
+        profileimg_url,ext = self.search_urls(urls,b)
+
+        if profileimg_url is None:
+            warnings.warn('No profile image found, skipping...')
+            return
+        self.saveimage(profileimg_url,ext)
+
+
+    #############
+    # aux methods
+    #############
+
+    # process a list of urls and take largest profile image
+    def search_urls(self,urls,b):
         maxsize = 0
+        maximgurl = None
         for url in urls:
             url = self.process_url(url,b)
             if url is None:
@@ -92,15 +108,11 @@ class Scraper():
             else:
                 a=1
                 continue
-        self.saveimage(maximgurl,ext)
+        return maximgurl,ext
 
-
-    #############
-    # aux methods
-    #############
 
     # get a short list of candidate image urls
-    def geturls(self,imgs):
+    def get_imgurls(self,imgs):
         urls = []
         # start with build pattern, fallback on model pattern
         for p in [self.build_pattern,self.model_pattern]:
@@ -147,8 +159,6 @@ class Scraper():
                         continue
 
                 # other problem cases
-                # flowdown doesn't appear in src, but does in a wrong image, but could
-                # use data-widths > 1 as a clue to the unlabelled images
                 # cleary scout may be jscrip served? but the easily findable image
                 # in a tag appears to be mislabelled. scout 26 also broken
                 # creig 26 appears to be jscrip served? even though creig 24 was not
@@ -158,37 +168,53 @@ class Scraper():
                 # amulet 24,26 maybe another header tag needed? page response seems wrong-different than browser
                 # roscoe self.build_pattern is in meta, but this picks up a wrong image with self.model_pattern first
 
-                # this case for mec ace, but try to generalize it
-                # elif 'Ace' in b['label'] and 'px' in i.attrs.get('sizes',''):
-                #     img_url = self.process_srcset(i)
-                #     urls.append(img_url)
-            # if there are any build pattern images, don't bother with model pattern
             if len(urls):
                 break
+        return urls
+
+    # search meta tags for list of possible images
+    def get_metaurls(self,meta):
+        urls = []
+        for m in meta:
+            if m.attrs.get('content','').startswith("http"): # for now assume we have this
+                if re.search(self.model_pattern,m.attrs['content'],flags=re.I):
+                    if any(ext in m.attrs['content'] for ext in ['gif','jpg','png','webp']):
+                        img_url = m.attrs['content']
+                        urls.append(img_url)
+                        # return img_url
+                else: # for opus recon. risky but take any .png in a meta content
+                    if any(ext in m.attrs['content'] for ext in ['gif','jpg','png','webp']):
+                        img_url = m.attrs['content']
+                        urls.append(img_url)
+                        # return img_url
+        # no images found, repeat and take just a url. eg special riprock
+        if not len(urls):
+            for m in meta:
+                if m.attrs.get('content','').startswith('http'):
+                    if re.search(self.build_pattern,m.attrs['content'],flags=re.I):
+                        img_url = m.attrs['content'] # for special riprock, no ext but
+                                                        # can at least check build
+                        urls.append(img_url) 
+
         return urls
 
     
     # set re patterns and other data for current bike
     def setpattern(self,b):
-        self.fname = os.path.join('/home/src/kids-24-bikes/png/'+str(self.year),b['type'],b['label'])
+        self.fname = os.path.join('/home/src/kids-24-bikes/png/'+str(self.year),b['type'],b['label']+'_'+b['build'])
         self.fname = re.sub(' ','',self.fname)
-        # for multiple builds, if already have one photo don't repeat
-        # TODO: check for fork with a different trail
-        if glob.glob(self.fname+'.*'):
-            return
-
-        self.model_pattern = b['label'].replace(' ','.*?') # single space hard-coded
-        if b['build']:
-            # self.build_pattern = self.model_pattern+'.*?'+b['build']
-            # got one fail with .*?. try limiting to a small number of characters. should mostly be 1 or 0
-            self.build_pattern = self.model_pattern+'.{0,3}'+b['build']
-        else:
-            self.build_pattern = self.model_pattern
         # other attributes
-        self.pfile = os.path.join('/home/src/kids-24-bikes/tmp/page',b['type'],b['label']+'.pkl')
+        self.pfile = os.path.join('/home/src/kids-24-bikes/tmp/page',b['type'],b['label']+'_'+b['build']+'.pkl')
         self.referer = 'https://'+b['link'].split('/')[2]
         self.link = b['link']
-
+        self.model_pattern = b['label'].replace(' ','.{0,3}') # single space hard-coded,by convention in spreadsheet
+        if b['build']:
+            self.build_pattern = b['build'].replace(' ','{0,3}') # same
+            # self.build_pattern = self.model_pattern+'.*?'+b['build']
+            # got one fail with .*?. try limiting to a small number of characters. should mostly be 1 or 0
+            self.build_pattern = self.model_pattern+'.{0,3}'+self.build_pattern
+        else:
+            self.build_pattern = self.model_pattern
 
     
     # download image and optionally save it
@@ -217,7 +243,6 @@ class Scraper():
                 fp.write(img.content)
 
 
-
     # handle variations and tidy up the url syntax
     def process_url(self,img_url,b):
         img_url = img_url.lstrip()
@@ -242,32 +267,10 @@ class Scraper():
         print(img_url)
         return img_url
 
-    # search meta tags for an image
-    def process_meta(self,meta):
-        for m in meta:
-            if m.attrs.get('content','').startswith("http"): # for now assume we have this
-                if re.search(self.model_pattern,m.attrs['content'],flags=re.I):
-                    if any(ext in m.attrs['content'] for ext in ['gif','jpg','png','webp']):
-                        img_url = m.attrs['content']
-                        return img_url
-                else: # for opus recon. risky but take any .png in a meta content
-                    if any(ext in m.attrs['content'] for ext in ['gif','jpg','png','webp']):
-                        img_url = m.attrs['content']
-                        return img_url
-        # no images found, repeat and take just a url. eg special riprock
-        for m in meta:
-            if m.attrs.get('content','').startswith('http'):
-                if re.search(self.build_pattern,m.attrs['content'],flags=re.I):
-                    img_url = m.attrs['content'] # for special riprock, no ext but
-                                                    # can at least check build
-                    return img_url
- 
-
-        return None
 
     # process srcset attribute for the largest image, or take 'src' as default
     def process_srcset(self,p,i,defkey='src'):
-        llink = i.attrs[defkey] # default
+        llink = i.attrs.get(defkey,'') # default
         # starting this off as another hack for prevelo zulu
         for k in ['srcset','data-srcset']:
             if k in i.attrs.keys():

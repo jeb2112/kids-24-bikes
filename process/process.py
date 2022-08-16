@@ -95,7 +95,9 @@ class Process():
 
     # convert transparency, def white
     def remove_transparency(self,img,bgcolor=(255,255,255)):
-        if img.mode in ('RGBA','LA') or (img.mode == 'P' and 'transparency' in img.info):
+        if (img.mode == 'P' and 'transparency' in img.info):
+            img = img.convert('RGBA')
+        if img.mode in ('RGBA','LA'):
             alpha = img.getchannel('A')
             if 0 in np.array(alpha):
                 bg = Image.new('RGBA',img.size,bgcolor+(255,))

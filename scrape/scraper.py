@@ -1,5 +1,7 @@
 import os
 import io
+from ssl import SSL_ERROR_EOF
+from urllib3.exceptions import SSLError
 import requests
 from bs4 import BeautifulSoup
 import matplotlib.pyplot as plt
@@ -14,6 +16,7 @@ import numpy as np
 from PIL import Image
 from ast import literal_eval
 from datetime import date
+import time
 from process.profile import Profile
 from process.process import Process
 
@@ -49,6 +52,9 @@ class Scraper():
             return
 
         ptext = self.getpage()
+        if ptext is None:
+            warnings.warn('No page text retrieved, skipping...')
+            return
         soup = BeautifulSoup(ptext,'html.parser')
         imgs = soup.find_all('img')
         meta = soup.find_all('meta')
@@ -56,25 +62,24 @@ class Scraper():
         urls = []
 
         # form a short list of candidate images
-        if len(imgs) > 0:
-            urls = self.get_imgurls(imgs)
-        if len(meta) > 0:
-            meta_urls = self.get_metaurls(meta)
-            if meta_urls is not None:
-                urls.append(meta_urls)
-        if len(urls) == 0:
-            warnings.warn('No img or meta urls found. continuing')
-            return
+        profileimg_url = None
+        # start with full build pattern, then fall back to model pattern
+        for p in [self.build_pattern,self.model_pattern]:
 
-            # some problem cases
-            # norco images served by jscrip? but hi-res appear hidden in meta
-            # commencal served by jscrip? but only a med-res available in meta
-            # lone peak profile is in meta, but has other images in img tags
-            # offair5 profile image is in a link. off5 pofile image is in meta
-            # recon no label-pattern anywhere, meta, alt or img
+            if len(imgs) > 0:
+                urls = self.get_imgurls(imgs,p)
+            if len(meta) > 0:
+                meta_urls = self.get_metaurls(meta,p)
+                if meta_urls is not None:
+                    urls = urls + meta_urls
+            if len(urls) == 0:
+                warnings.warn('No img or meta urls found. continuing')
+                return
 
-        # go through the list and take the largest profile image
-        profileimg_url,ext = self.search_urls(urls,b)
+            # go through the list and take the largest profile image
+            profileimg_url,ext = self.search_urls(urls,b)
+            if profileimg_url:
+                break
 
         if profileimg_url is None:
             warnings.warn('No profile image found, skipping...')
@@ -95,6 +100,8 @@ class Scraper():
             if url is None:
                 continue
             imgurl,ext = self.getimage(url,dosave=False)
+            if imgurl is None:
+                continue
             w,h = imgurl.size
             img = self.processor.runsingle(imgurl)
             img = np.array(img)/255. # norm
@@ -112,72 +119,65 @@ class Scraper():
 
 
     # get a short list of candidate image urls
-    def get_imgurls(self,imgs):
+    def get_imgurls(self,imgs,p=None):
         urls = []
-        # start with build pattern, fallback on model pattern
-        for p in [self.build_pattern,self.model_pattern]:
-            for i in imgs:
-                # most generally look for name tag in the src attribute
-                if re.search(p,i.attrs.get('src',''),flags=re.I): # khs alite
+        if p == None:
+            p = self.build_pattern
+
+        for i in imgs:
+            # most generally look for name tag in the src attribute
+            if re.search(p,i.attrs.get('src',''),flags=re.I): # khs alite
+                img_url = self.process_srcset(p,i)
+                urls.append(img_url)
+                continue
+            
+            # also try the data-src attribute
+            # early seeker has src that is small, data-src with widths.
+            if re.search(p,i.attrs.get('data-src',''),flags=re.I): # khs alite
+                img_url = self.process_srcset(p,i,defkey='data-src')
+                urls.append(img_url)
+                continue
+
+            # next try the alt attribute
+            if re.search(p,i.attrs.get('alt',''),flags=re.I):
+                # dback pines doesn't have name in the 'src' attr, but it can be 
+                # inferred by a data-widths attr. meanwhile, lack of a lazyload
+                # method blocks the correct assignment. so this is just a kludge
+                # for now may or may not need to be permanent.
+                if 'data-widths' in i.attrs.keys():
                     img_url = self.process_srcset(p,i)
                     urls.append(img_url)
                     continue
-                
-                # also try the data-src attribute
-
-                # early seeker has src that is small, data-src with widths.
-                # cdale trail has a src masking the larger image in data-src
-                # Giant STP,XTC has no src, small data-src, large image jscrip served?? but in browser,
-                # a larger image is served. another missing header??
-
-                if re.search(p,i.attrs.get('data-src',''),flags=re.I): # khs alite
-                    img_url = self.process_srcset(p,i,defkey='data-src')
+                # TODO handle variations on 'src'
+                if 'src' in i.attrs.keys():
+                    img_url = i.attrs['src']
                     urls.append(img_url)
                     continue
 
-                # next try the alt attribute
-
-                # tairn has label in alt tag, not image src name
-                if re.search(p,i.attrs.get('alt',''),flags=re.I): # tairn
-                    # dback pines doesn't have name in the 'src' attr, but it can be 
-                    # inferred by a data-widths attr. meanwhile, lack of a lazyload
-                    # method blocks the correct assignment. so this is just a kludge
-                    # for now may or may not need to be permanent.
-                    if 'data-widths' in i.attrs.keys():
-                        img_url = self.process_srcset(p,i)
-                        urls.append(img_url)
-                        continue
+            # try the class attribute
+            if False:
+                if re.search(p,i.attrs.get('class',''),flags=re.I):
                     # not sure whether to use lazyload or not
                     # for MTB 69, it is needed to get the largest image
                     if 'lazyload' in i.attrs.get('class',''):
                         # TODO method to process a lazyload class
                         continue
-                    # TODO handle variations on 'src'
-                    if 'src' in i.attrs.keys():
-                        img_url = i.attrs['src']
-                        urls.append(img_url)
-                        continue
 
-                # other problem cases
-                # cleary scout may be jscrip served? but the easily findable image
-                # in a tag appears to be mislabelled. scout 26 also broken
-                # creig 26 appears to be jscrip served? even though creig 24 was not
-                # max 26 same. appears to be jscrip served even though max 24 was not
-                # tairn will need afurther algorithm to collect all the images and pick the right one
-                # vpace 26 can make no sense of imgs, they don't match what's on the page
-                # amulet 24,26 maybe another header tag needed? page response seems wrong-different than browser
-                # roscoe self.build_pattern is in meta, but this picks up a wrong image with self.model_pattern first
+            # other problem cases
+            # scout 26 also broken
+            # vpace max 24,26 same. getting only a small image. 
+            # amulet 24,26 maybe another header tag needed? page response seems wrong-different than browser
+            # roscoe profile image is by some lazyload class, don't pick up the <img>, 
+            # in inspector something about an event listener, may need selenium
 
-            if len(urls):
-                break
         return urls
 
     # search meta tags for list of possible images
-    def get_metaurls(self,meta):
+    def get_metaurls(self,meta,p):
         urls = []
         for m in meta:
             if m.attrs.get('content','').startswith("http"): # for now assume we have this
-                if re.search(self.model_pattern,m.attrs['content'],flags=re.I):
+                if re.search(p,m.attrs['content'],flags=re.I):
                     if any(ext in m.attrs['content'] for ext in ['gif','jpg','png','webp']):
                         img_url = m.attrs['content']
                         urls.append(img_url)
@@ -191,7 +191,7 @@ class Scraper():
         if not len(urls):
             for m in meta:
                 if m.attrs.get('content','').startswith('http'):
-                    if re.search(self.build_pattern,m.attrs['content'],flags=re.I):
+                    if re.search(p,m.attrs['content'],flags=re.I):
                         img_url = m.attrs['content'] # for special riprock, no ext but
                                                         # can at least check build
                         urls.append(img_url) 
@@ -201,10 +201,15 @@ class Scraper():
     
     # set re patterns and other data for current bike
     def setpattern(self,b):
-        self.fname = os.path.join('/home/src/kids-24-bikes/png/'+str(self.year),b['type'],b['label']+'_'+b['build'])
+        self.fname = os.path.join('/home/src/kids-24-bikes/png/'+str(self.year),b['type'],b['label'])
+        if len(b['build']):
+            self.fname += '_'+b['build']
         self.fname = re.sub(' ','',self.fname)
         # other attributes
-        self.pfile = os.path.join('/home/src/kids-24-bikes/tmp/page',b['type'],b['label']+'_'+b['build']+'.pkl')
+        self.pfile = os.path.join('/home/src/kids-24-bikes/tmp/page',b['type'],b['label'])
+        if len(b['build']):
+            self.pfile += '_'+b['build']
+        self.pfile += '.pkl'
         self.referer = 'https://'+b['link'].split('/')[2]
         self.link = b['link']
         self.model_pattern = b['label'].replace(' ','.{0,3}') # single space hard-coded,by convention in spreadsheet
@@ -220,6 +225,10 @@ class Scraper():
     # download image and optionally save it
     def getimage(self,img_url,dosave=True):
         imgraw = requests.get(img_url,headers=self.headers,timeout=5)
+        # screen for mistaken url that is not an image
+        if 'html' in str(imgraw.content):
+            warnings.warn('getimage() content is html, skipping...')
+            return None,None
         img_ext = os.path.splitext(img_url)[1]
         if not img_ext:
             # imghdr deprecated, and a bytes object is not a byte stream, still easiest
@@ -262,8 +271,12 @@ class Scraper():
             img_url = re.sub(r'(\.gif|\.png|\.jpg|\.jpeg).*$',r'\1',img_url)
         else:
             # raise Exception('no image extension in image url')
-            # precaliber is this case, left all the trailing chars
-            warnings.warn('No extension in image url ')
+            warnings.warn('No .extension in image url ')
+            # precaliber. has jpg but not .jpg. if cutting at jpg, lose image size params present in the url 
+            # after jpg, and get a small image. but image size params also include a space which breaks the request. 
+            # cut at that space, keep most of the image size params and it works
+            if ' ' in img_url:
+                img_url = img_url.split(' ')[0]
         print(img_url)
         return img_url
 
@@ -272,7 +285,7 @@ class Scraper():
     def process_srcset(self,p,i,defkey='src'):
         llink = i.attrs.get(defkey,'') # default
         # starting this off as another hack for prevelo zulu
-        for k in ['srcset','data-srcset']:
+        for k in ['srcset','data-srcset','data-src']:
             if k in i.attrs.keys():
                 if not re.search(p,i.attrs[k],flags=re.I):
                     continue
@@ -334,15 +347,27 @@ class Scraper():
             ptext = pickle.load(fp)
             fp.close()
         else:
-            self.session.get(self.referer,headers=self.headers)
-            # gtbicycles. missing intermediate cert probably can't ssl it
-            # is referer still a thing in 2022?? was needed for vitus
-            # may solve some earlier problems too? eg vpace 26
+            try:
+                self.session.get(self.referer,headers=self.headers)
+            except SSLError as e:
+                # gtbicycles. missing intermediate cert probably can't ssl it
+                # can't trap it here because it's not re-raised??
+                print(e)
+                return None
+            time.sleep(0.2)
             self.headers['referer'] = self.referer
             page = self.session.get(self.link,headers=self.headers,timeout=5)
             if 'META NAME=\"robots\"' in page.text: #scott has this
-                warnings.warn('Robot blocked page serve, skipping: {}'.format(self.link))
-                return
+                warnings.warn('Robot blocked page serve: {}'.format(self.link))
+                # this attempt copying header from firefox browser didn't work
+                if 'scott' in self.referer and False:
+                    self.headers['origin'] = self.referer
+                    self.headers['host'] = 'I.clarity.ms'
+                    self.headers['Sec-Fetch-Site'] = 'cross-site'
+                    self.headers['Sec-Fetch-Mode'] = 'cors'
+                    self.headers['Sec-Fetch-Dest'] = 'empty'
+                    page = self.session.get(self.link,headers=self.headers,timeout=5)
+                return None
             ptext = page.text
             if self.debug:
                 fp = open(self.pfile,'wb')

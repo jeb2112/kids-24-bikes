@@ -1,0 +1,218 @@
+GEOMETRY SPECTRAL WMN
+
+a |
+
+‘SEAT TUBE LENGTH (MM)
+
+385
+
+385
+
+426
+
+‘TOP TUBE LENGTH (MM)
+
+528
+
+648
+
+667
+
+HEAD TUBE LENGTH (MM)
+
+88
+
+88
+
+)
+
+mm
+
+HEAD TUBE ANGLE ()
+
+659
+
+659
+
+659
+
+659
+
+1h
+
+7
+
+ts
+
+th
+
+‘SEAT TUBE ANGLE ()
+
+CHAINSTAY LENGTH (MM)
+
+438
+
+438
+
+WHEELBASE (MM)
+
+1899
+
+ea
+
+1123
+
+‘STACK (MM)
+
+673
+
+bal
+
+608
+
+REACH (MM)
+
+378
+
+390
+
+STANDOVER HEIGHT CF
+
+5
+
+‘STANDOVER HEIGHT AL
+
+648
+
+8
+
+6%
+
+‘STANDOVER HEIGHT (1/3 REACH)
+
+686
+
+713
+
+m7
+
+7a
+
+fn
+
+BB OFFSET
+
+2
+
+1
+
+‘SPACERS (MM)
+
+28
+
+‘oN
+
+‘STEM (MM)
+
+58
+
+ZS
+
+\\
+
+HANDLEBAR WIDTH (MM)
+
+748
+
+78
+
+78
+
+748
+
+a
+
+178
+
+178
+
+178
+
+178
+
+W
+
+CRANK ARM LENGTH (MM)
+
+~Q
+
+Ze
+
+//
+
+‘SEATPOST DIAMETER (MM)
+
+309
+
+309
+
+38.9
+
+309
+
+f/
+
+\\
+
+‘SEATPOST LENGTH (MM)
+
+{f/f
+
+\\
+
+\\
+
+‘WHEEL SIZE
+
+as
+
+28
+
+25
+
+as
+
+a
+
+ZO
+
+\\
+
+SUSPENSION FRONT
+
+169
+
+i { Yip
+
+SUSPENSION REAR
+
+14a
+
+\\
+
+REAR AXLE WIDTH (MM)
+
+148
+
+Jf
+
+‘SHOCK LENGTH
+
+28
+
+28
+
+28
+
+ne
+

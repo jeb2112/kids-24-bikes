@@ -10,6 +10,9 @@ from scrape.gsheet import Gsheet
 from scrape.scraper import Scraper
 from process.process import Process
 from process.profile import Profile
+from process.gtable import GTable
+from process.gtableocr import GTableOCR
+# from process.detector import Detector
 
 def runCV(filename,mmpx):
     P = ProfilePhoto(filename,mmpx=mmpx)
@@ -43,24 +46,51 @@ def runScrape():
         sc.dosoup(b)
         b1 += 1
 
-def runProcess():
-    p = Process(pad=False)
+# dataset prep
+# profile images
+def runProcess(rootname,clear=True):
+    p = Process(pad=False,rootname=rootname,tx=320,ty=240)
     ret = p.removedupl()
-    if ret:
+    if clear:
         p.clearprocessed()
     p.runprocess()
+# ocr
+def runOCR(rootname,clear=True):
+    p = Process(pad=False,rootname=rootname,processname='ocr')
+    ret = p.removedupl()
+    if clear:
+        p.clearprocessed()
+    p.runocr()
 
+# training
+# profile photos
 def runProfile():
     p = Profile(kfold=4,modelname='profile_model_adam',domodel=True)
     p.dotrain()
 
-def plotProfile():
-    p = Profile(kfold=4,modelname='profile_model_adam',domodel=False)
-    p.plot()
+# ocr
+def trainOCR():
+    p = GTableOCR(kfold=4)
+    p.dotrain()
+
+
+def plotModel(modelname):
+    modelclasses = {'profile':Profile,'gtable':GTable}
+    modelclass = modelname.split('_')[0]
+    if modelclass in modelclasses.keys():
+        p = modelclasses[modelclass](kfold=4,modelname=modelname,domodel=False)
+        p.plot()
+    else:
+        return
 
 def predictProfile():
     p = Profile(kfold=4,modelname='profile_model_adam',domodel=True)
     p.dopredict()
+
+# geometry tables
+def runGTable():
+    g = GTable(kfold=4,modelname='gtable_model_adam',domodel=True)
+    g.dotrain()
 
 
 if __name__=='__main__':
@@ -75,20 +105,42 @@ if __name__=='__main__':
     parser.add_argument("--cv",action="store_true",default=False)
     parser.add_argument("--scrape",action="store_true",default=False)
     parser.add_argument("--process",action="store_true",default=False)
+    parser.add_argument("--processocr",action="store_true",default=False)
     parser.add_argument("--trainprofile",action="store_true",default=False)
-    parser.add_argument("--plotprofile",action="store_true",default=False)
+    parser.add_argument("--trainocr",action="store_true",default=False)
+    parser.add_argument("--plotmodel",action="store_true",default=False)
     parser.add_argument("--predictprofile",action="store_true",default=False)
+    parser.add_argument("--traingtable",action="store_true",default=False)
+    parser.add_argument("--plotgtable",action="store_true",default=False)
+    parser.add_argument("--predictgtable",action="store_true",default=False)
+    parser.add_argument("--rootname",type=str,help='root filename for image preprocessing',default=None)
+    parser.add_argument("--modelname",type=str,help='model filename for various',default=None)
     
     args =  parser.parse_args()
     
     if args.predictprofile:
         predictProfile()
-    if args.plotprofile:
-        plotProfile()
+    if args.plotmodel:
+        if args.modelname is None:
+            raise argparse.ArgumentError('No model name given')
+        plotModel(args.modelname)
     if args.trainprofile:
         runProfile()
+    if args.trainocr:
+        trainOCR()
+
+    if args.traingtable:
+        runGTable()
+
     if args.process:
-        runProcess()
+        if args.rootname is None:
+            raise argparse.ArgumentError('No filename given')
+        runProcess(args.rootname)
+    if args.processocr:
+        if args.rootname is None:
+            raise argparse.ArgumentError('No filename given')
+        runOCR(args.rootname)
+
     if args.annotate:
         if args.file:
             flist = readFile(args.file)

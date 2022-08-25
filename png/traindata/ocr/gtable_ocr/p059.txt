@@ -1,0 +1,136 @@
+BOMBTRACK’
+
+Bike Size
+
+Ss
+
+M
+
+L
+
+Seat Tube Length (C-T, mm)
+
+510
+
+540
+
+570
+
+600
+
+Horizontal TT length (mm)
+
+541
+
+558
+
+575
+
+592
+
+Seat Angle (’)
+
+72.5
+
+72.5
+
+72.5
+
+72.5
+
+Head Angle (°)
+
+70.3
+
+72.5
+
+Headtube Length (mm)
+
+110
+
+130
+
+150
+
+170
+
+BB Drop (mm)
+
+70
+
+70
+
+70
+
+70
+
+Chainstay Length (mm)
+
+425
+
+425
+
+425
+
+425
+
+Fork Offset (mm)
+
+438
+
+43
+
+48
+
+48
+
+Trail (mm)
+
+721
+
+673
+
+61
+
+578
+
+Wheelbase Length (mm)
+
+1010
+
+1021
+
+1028
+
+1039
+
+773
+
+789
+
+815
+
+840
+
+Standover (mm, center tt - ground)
+
+Reach (mm)
+
+370
+
+380
+
+389
+
+399
+
+Stack (mm)
+
+544,
+
+566
+
+589
+
+610
+

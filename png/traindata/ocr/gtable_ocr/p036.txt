@@ -1,0 +1,166 @@
+52
+
+58 61
+
+‘Stack (mm)
+
+‘530,
+
+547,
+
+Reach (mm)
+
+375,
+
+397,
+
+405
+
+415
+
+Head Tube Length (mm)
+
+100
+
+167
+
+190
+
+Head Tube Angle (&deg)
+
+705,
+
+7125
+
+nS
+
+72.25
+
+725
+
+284
+
+286
+
+BB Height (mm)
+
+BB Drop (mm)
+
+74
+
+74
+
+Trail (mm)
+
+74
+
+Fork Length, Full (mm)
+
+401
+
+Fork Rake/Offset (mm)
+
+Front Genter (mm)
+
+Chainstay Length (mm)
+
+425
+
+425
+
+425
+
+425
+
+425
+
+425
+
+1008
+
+1014
+
+1023
+
+1033
+
+Wheelbase (mm)
+
+Top Tube Length, Horizontal (mm)
+
+512
+
+549
+
+4
+
+Bike Standover Height (mm)
+
+749
+
+841
+
+A
+
+Ss
+
+a
+
+|
+
+Dn
+
+y
+
+‘Seat Tube Length (mm)
+
+496
+
+SB
+
+Seat Tube Angle (&deg)
+
+755
+
+74
+
+74
+
+735
+
+735
+
+735
+
+) mad
+
+Crank Length (mm)
+
+725
+
+W725
+
+Handlebar Width (mm)
+
+420
+
+420
+
+90
+
+‘Stem Length (mm)
+
+Saddle Width (mm)
+
+155
+
+143,
+
+143
+
+143
+
+143
+
+Seatpost Length (mm)
+

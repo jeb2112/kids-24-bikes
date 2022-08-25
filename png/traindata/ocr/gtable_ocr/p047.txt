@@ -1,0 +1,166 @@
+top oat
+
+RS GEOMETRY
+
+\
+
+reach
+
++}
+
+L——
+
+‘Size
+
+51
+
+56
+
+Gl
+
+Wheel Size
+
+7006
+
+To0e
+
+7006
+
+Too.
+
+7006
+
+reas be lng
+
+A
+
+Head Tube Angle
+
+72.
+
+73.1
+
+78
+
+73.
+
+73.
+
+ff
+
+BB Drop
+
+68
+
+68
+
+Head Tube Length
+
+108
+
+128
+
+148
+
+173
+
+199
+
+225
+
+/
+
+Front Gentre
+
+575
+
+577
+
+604
+
+620
+
+ha ane
+
+Rear Centre
+
+405
+
+405
+
+‘Stand Over Height
+
+693
+
+728
+
+753
+
+B15
+
+846
+
+28
+
+“Stack
+
+505
+
+530
+
+555
+
+630
+
+re]
+
+Reach
+
+360
+
+369
+
+596
+
+405
+
+trent cater
+
+le
+
+Fork Offset
+
+53
+
+53
+
+43
+
+43
+
+73.0"
+
+730°
+
+730°
+
+73.0"
+
+730°
+
+730°
+
+‘Seat Tube Angle
+
+Top Tube
+
+516
+
+531
+
+543564
+
+581
+
+597
+

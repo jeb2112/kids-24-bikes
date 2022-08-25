@@ -38,7 +38,19 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/main.py",
-            "args": ["--process"],
+            "args": ["--process",
+                    "--rootname","gtable"],
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "console": "integratedTerminal"
+        },        
+        {
+            "name": "process ocr",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/main.py",
+            "args": ["--processocr",
+                    "--rootname","gtable"],
             "cwd": "${workspaceRoot}",
             "justMyCode": false,
             "console": "integratedTerminal"
@@ -54,11 +66,22 @@
             "console": "integratedTerminal"
         },        
         {
-            "name": "plot profile",
+            "name": "train ocr",
             "type": "python",
             "request": "launch",
             "program": "${workspaceRoot}/main.py",
-            "args": ["--plotprofile"],
+            "args": ["--trainocr"],
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "console": "integratedTerminal"
+        },        
+        {
+            "name": "plot model",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/main.py",
+            "args": ["--plotmodel",
+                    "--modelname","gtable_model_adam"],
             "cwd": "${workspaceRoot}",
             "justMyCode": false,
             "console": "integratedTerminal"

@@ -1,29 +1,32 @@
 import os
 from PIL import Image,ImageOps,ImageStat
+from pytesseract import pytesseract
 import imghdr
 import numpy as np
 import re
 import filecmp
 import glob
+import tempfile
 
 # class for pre-processing training and test images
+# currently coded for two classes
 class Process():
-    def __init__(self,pad=False):
-        pngdir = '/home/src/kids-24-bikes/png'
-        self.a = 'nonprofile'
-        self.b = 'profile'
-        self.adir = os.path.join(pngdir,self.a)
-        self.bdir = os.path.join(pngdir,self.b)
-        self.a_processed = 'nonprofile_processed'
-        self.b_processed = 'profile_processed'
-        self.adir_processed = os.path.join(pngdir,self.a_processed)
-        self.bdir_processed = os.path.join(pngdir,self.b_processed)
-        self.tx = 160
-        self.ty = 120
+    def __init__(self,pad=False,rootname='profile',processname='processed',tx=160,ty=120):
+        pngdir = '/home/src/kids-24-bikes/png/traindata'
+        self.a = 'non'+rootname
+        self.b = rootname
+        self.adir = os.path.join(pngdir,'raw',self.a)
+        self.bdir = os.path.join(pngdir,'raw',self.b)
+        self.a_processed = self.a+'_'+processname
+        self.b_processed = self.b+'_'+processname
+        self.adir_processed = os.path.join(pngdir,processname,self.a_processed)
+        self.bdir_processed = os.path.join(pngdir,processname,self.b_processed)
+        self.tx = tx
+        self.ty = ty
         if not os.path.exists(self.adir_processed):
-            os.mkdir(self.adir_processed)
+            os.makedirs(self.adir_processed)
         if not os.path.exists(self.bdir_processed):
-            os.mkdir(self.bdir_processed)
+            os.makedirs(self.bdir_processed)
         if pad:
             self.padfilename()
 
@@ -60,7 +63,7 @@ class Process():
             for f in files:
                 os.remove(f)
 
-    # main method, all input files
+    # main method for images, all input files
     def runprocess(self):
         for (di,do) in zip([self.adir,self.bdir],[self.adir_processed,self.bdir_processed]):
             flist = os.listdir(di)
@@ -93,6 +96,34 @@ class Process():
         img = self.resize(img)
         return img #PIL
 
+    # main method for ocr
+    def runocr(self):
+        pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+        for (di,do) in zip([self.adir,self.bdir],[self.adir_processed,self.bdir_processed]):
+            flist = os.listdir(di)
+            flist.sort()
+            for i,f in enumerate(flist):
+                ipath = os.path.join(di,f)
+                img_name,img_ext = f.split('.')
+                opath = os.path.join(do,img_name+'.txt')
+                if os.path.exists(opath):
+                    continue
+                im = Image.open(ipath)
+                imdpifile = self.set_imagedpi(im)
+                im = Image.open(imdpifile)
+                os.remove(imdpifile)
+                # if any(ext in im.mode for ext in ['RGB','CMY','HSV','YCbCr']):
+                #     im = self.rgb2g(im)
+                im = self.remove_transparency(im)
+                bg = self.est_bg(im)
+                if np.mean(np.array(bg)) < 128: # tesseract only does dark text on light background
+                    if im.mode != 'P':
+                        im = ImageOps.invert(im)
+                tex = pytesseract.image_to_string(im,config='--psm 11')
+                if len(tex) > 40: # skip any failed
+                    with open(opath,'w') as fp:
+                        fp.write(tex)
+
     # convert transparency, def white
     def remove_transparency(self,img,bgcolor=(255,255,255)):
         if (img.mode == 'P' and 'transparency' in img.info):
@@ -102,9 +133,9 @@ class Process():
             if 0 in np.array(alpha):
                 bg = Image.new('RGBA',img.size,bgcolor+(255,))
                 bg.paste(img,mask=alpha)
-                return bg
+                return bg.convert('RGB')
             else:
-                return img
+                return img.convert('RGB')
         else:
             return img
 
@@ -137,3 +168,12 @@ class Process():
         Ir[ty_offset:ty_offset+ty,tx_offset:tx_offset+tx] = ir
         Ip = Image.fromarray(Ir.astype(np.uint8),mode='L')
         return Ip
+
+    # for ocr
+    # convert to 300 dpi. only works via save to disk?
+    def set_imagedpi(self,I,dpival=300):
+        image_dpi = I
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+        temp_filename = temp_file.name
+        image_dpi.save(temp_filename, dpi=(dpival, dpival))
+        return temp_filename     

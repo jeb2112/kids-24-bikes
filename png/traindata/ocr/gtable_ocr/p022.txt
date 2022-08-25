@@ -1,0 +1,342 @@
+—
+
+a>
+
+TES
+
+2
+
+(>
+
+J
+
+29
+
+BN
+
+v7
+
+=
+
+Sei
+
+>
+
+Frame Size
+
+a7
+
+so
+
+S52
+
+54
+
+56
+
+58
+
+60
+
+62
+
+A Stack
+
+SlOmm.
+
+S25mm
+
+S40mm
+
+SSOmm
+
+S7\mm
+
+S9Smm
+
+615mm.
+
+635mm
+
+B Reach
+
+370mm.
+
+375mm,
+
+380mm
+
+385mm
+
+390i
+
+397mm,
+
+407i
+
+420mm
+
+Head Tube Angle
+
+72.5 00g
+
+72S ce
+
+72.5 a0g
+
+73.009
+
+73S aeg
+
+73S aeg
+
+73S deg
+
+73S oeg
+
+D Seat Tube Angie
+
+75 deg
+
+74ceq
+
+74 deg
+
+73.5 deg
+
+73 deg
+
+73 deg
+
+73 aeq
+
+73 deg
+
+E Seat Tube Length
+
+435mm
+
+455mm,
+
+475mm
+
+SOOmm
+
+S25mm
+
+S45mm
+
+S65mm
+
+S8Smm
+
+F Wheelbase
+
+964mm
+
+SE9mm
+
+974mm
+
+984mm
+
+994mm
+
+1006mm
+
+102\mm
+
+1039mm
+
+G Chainstay Length
+
+405mm
+
+405mm
+
+405mm
+
+AOmm
+
+Simm.
+
+420mm
+
+425mm
+
+430mm
+
+H Trail
+
+S4mm
+
+S4mm
+
+S4mm
+
+S4mm
+
+S4mm
+
+1 BB Drop
+
+76mm
+
+76mm
+
+76mm
+
+76mm
+
+76mm,
+
+76mm
+
+76mm
+
+76mm
+
+263mm
+
+263mm
+
+263mm
+
+263mm
+
+263mm
+
+263mm
+
+263mm
+
+263mm
+
+J 8B Height
+
+KK Standover Height
+
+70Smm
+
+730mm
+
+743mm
+
+768mm
+
+73mm
+
+804mm
+
+818mm
+
+845mm
+
+L Front-Center
+
+SE9mm
+
+S74mm
+
+S79mm
+
+S84mm
+
+S89mmn
+
+S96mm
+
+606mm
+
+619mm
+
+Monocoque Bar
+
+100
+
+no
+
+120
+
+130
+
+'M Width at Grips.
+
+380mm
+
+400mm
+
+420mm
+
+440mm
+
+N Reach to Tops
+
+100mm
+
+TOmm
+
+120mm,
+
+130mm
+
+O Width at Hoods
+
+355mm
+
+37Smm
+
+395mm
+
+Simm
+
+P Rise
+
+-4 deg
+
+~4 029
+
+~4 00g
+
+-4 00g
+
+Q Flare
+
+S deg
+
+S deg
+
+S deg
+
+5 aeg
+
+100
+
+no
+
+120
+
+130
+
+Stem Length
+
+R Reach
+
+100mm
+
+NOmm
+
+120mm
+
+130mm
+
+S Rise
+
+~B deg
+
+~3 deg
+
+~Bdeg
+
+3B deg
+

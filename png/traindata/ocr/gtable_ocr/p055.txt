@@ -1,0 +1,190 @@
+Size
+
+s
+
+M
+
+L
+
+XL
+
+15
+
+17
+
+19
+
+20.5
+
+Bike Size(in)
+
+370
+
+420
+
+470
+
+521
+
+A Seat Tube, Center to Top
+
+C Top Tube, Effective
+
+585
+
+610
+
+635
+
+666
+
+D Head Tube Length
+
+100
+
+100
+
+120
+
+130
+
+E Seat Tube Angle
+
+they
+
+74.5°
+
+74°
+
+74°
+
+G Head Tube Angle
+
+67.7°
+
+67.7°
+
+67.7°
+
+67.7°
+
+H Chainstay Length
+
+450
+
+450
+
+450
+
+450
+
+I Wheelbase
+
+1136
+
+1162
+
+1177
+
+1209
+
+72
+
+70
+
+70
+
+70
+
+J Bottom Bracket Drop
+
+K Fork Offset
+
+46
+
+46
+
+46
+
+46
+
+M Stack
+
+610
+
+609
+
+627
+
+632
+
+N Reach
+
+421
+
+441
+
+455
+
+484
+
+O Standover
+
+765.5
+
+785.5
+
+811.5
+
+839.3
+
+Stem mm
+
+45
+
+45
+
+45
+
+65
+
+Handlebar Width cm
+
+780
+
+780
+
+780
+
+780
+
+Crank mm
+
+170
+
+WS
+
+175
+
+175
+
+Wheel Size
+
+29
+
+29
+
+29
+
+2g,
+
+Seat Post Diameter mm
+
+30.9
+
+30.9
+
+30.9
+
+30.9
+

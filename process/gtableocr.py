@@ -35,6 +35,7 @@ class GTableOCR():
 
         self.words = []
         self.numbers = []
+        self.tags = []
 
         self.maindir = '/home/src/kids-24-bikes/png/traindata/ocr'
         self.mdir = '/media/jbishop/WD4/kids-24-bikes/models'
@@ -82,10 +83,31 @@ class GTableOCR():
         nfp = len(self.fpidx)
         nplot = len(fpfnlist)
         nfn = nplot-nfp
-        for i in range(nplot):
-            pass
+        print('fp: {}'.format(self.fpidx))
+        print('fn: {}'.format(self.fnidx))
         a=1
 
+    def plot_features(self):
+        fkeys=[]
+        dictkeys = list(self.featuresets[0][0].keys())
+        for i,f in enumerate(dictkeys):
+            fkeys.append(re.search('[0-9]+',f).group(0))
+        fpos = np.zeros((len(fkeys),))
+        fneg = np.zeros((len(fkeys),))
+        for f in self.featuresets:
+            if f[1] == 1:
+                fpos += np.array(list(f[0].values()))
+            elif f[1] == 0:
+                fneg += np.array(list(f[0].values()))
+        barx = np.arange(np.shape(fpos)[0])
+        w = 0.2
+        fig,ax = plt.subplots()
+        plt.bar(barx-w/2,fpos,w,label='pos')
+        plt.bar(barx+w/2,fneg,w,label='neg')
+        ax.set_xticks(barx,fkeys)
+        ax.legend()
+        plt.show()
+        return
 
     def loaddata(self):
         self.raw_ds = tf.keras.preprocessing.text_dataset_from_directory(
@@ -104,54 +126,61 @@ class GTableOCR():
             txt = e[0][0].decode('utf-8').lower()
             tkns = nltk.word_tokenize(txt)
             self.x.append(tkns)
-            self.y[i] = e[1][0]
+            self.y[i] = 1 - e[1][0]
         if False: # don't need categorical for nltk?
             self.y = keras.utils.to_categorical(self.y,self.num_classes)
         self.preprocess()
+        # self.plot_features()
         return
 
     def features(self):
         for d in self.x:
-            self.words += [w for w in d if re.fullmatch('[a-z]{2,}',w,flags=re.IGNORECASE)]
-            self.numbers = [n for n in d if re.fullmatch('[0-9]+',n)]
+            self.words += [w for w in d if re.fullmatch('[a-z]{1,}',w,flags=re.IGNORECASE)]
+            self.numbers += [n for n in d if re.fullmatch('[0-9]+',n)]
+            # self.tags += [t for t in d if re.fullmatch('[dp][0-9]+',t,flags=re.IGNORECASE)]
+        # round numbers to single significant digit
+        # self.numbers = [str(np.around(int(x),decimals=-(len(x)-1))) for x in self.numbers]
+        # 1,2 letter words restricted to this list
+        # self.words = [x for x in self.words if len(x)>1 or x in ['m','l','s']]
+        # self.words = [x for x in self.words if len(x)>2 or x in ['cm','mm','bb','xs','xl','wb','ht','so']]
         # freq dist for word features
         all_words = nltk.FreqDist(self.flatten(self.words))
         all_numbers = nltk.FreqDist(self.flatten(self.numbers))
-        self.word_features = list(all_words)[:100]
-        self.num_features = list(all_numbers)[:100]
-        self.featuresets = [(self.document_features(d),lbl) for (d,lbl) in zip(self.x,self.y)]
+        self.word_features = list(all_words)[:50]
+        self.num_features = list(all_numbers)[:50]
 
     def document_features(self,d):
         features = {}
-        for t in self.word_features:
-            features['contains({})'.format(t)] = (t in d)
+        # for t in self.tags:
+        #     if t in d:
+        #         features['tag'] = t
         for t in self.num_features:
-            features['contains({})'.format(t)] = (t in d)
+            features['contains({})'.format(t)] = d.count(t)
+        for t in self.word_features:
+            features['contains({})'.format(t)] = d.count(t)
         return features
 
     def preprocess(self):
         # randomize the data
         np.random.seed(self.npseed)
-        idx = np.argsort(np.random.random(len(self.y)))
-        self.x = [x for x,_ in sorted(zip(self.x,idx),key=lambda v:v[1])]
-        self.y = self.y[idx]
+        self.idx = np.argsort(np.random.random(len(self.y)))
+        self.x = [x for x,_ in sorted(zip(self.x,self.idx),key=lambda v:v[1])]
+        self.y = self.y[np.argsort(self.idx)]
+        # self.y = self.y[self.idx]
         # extract the corpus features and create feature_sets
         self.features()
+        self.featuresets = [(self.document_features(d),lbl) for (d,lbl) in zip(self.x,self.y)]
 
     def traintest(self,testfrac=0.2,valfrac=0.0):
         rollk = self.k*self.nfold
         xyroll = self.list_roll(self.featuresets,rollk)
-        # yroll = np.roll(self.y,rollk,axis=0)
         trainfrac = 1-testfrac-valfrac
         ntrn = int(trainfrac*len(self.y))
         ntest = int(testfrac*len(self.y))
         nval = len(self.y)-ntrn-ntest
         self.trn = xyroll[:ntrn]
-        # self.ytrn = yroll[:ntrn]
         self.val = xyroll[ntrn:(ntrn+nval)]
-        # self.yval = yroll[ntrn:(ntrn+nval)]
         self.test = xyroll[(ntrn+nval):]
-        # self.ytest = yroll[(ntrn+nval):]
         # make a note of where the test data start
         self.testidx0 = np.remainder(len(self.y)+ntrn+nval-rollk,len(self.y))
 

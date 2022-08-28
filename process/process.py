@@ -1,12 +1,16 @@
 import os
-from PIL import Image,ImageOps,ImageStat
+from PIL import Image,ImageOps,ImageStat,ImageFont
 from pytesseract import pytesseract
 import imghdr
 import numpy as np
+import matplotlib.pyplot as plt
 import re
 import filecmp
 import glob
 import tempfile
+import nltk
+import warnings
+
 
 # class for pre-processing training and test images
 # currently coded for two classes
@@ -97,12 +101,16 @@ class Process():
         return img #PIL
 
     # main method for ocr
-    def runocr(self):
+    def runocr(self,doplot=False,debugstart=None):
         pytesseract.tesseract_cmd = '/usr/bin/tesseract'
         for (di,do) in zip([self.adir,self.bdir],[self.adir_processed,self.bdir_processed]):
             flist = os.listdir(di)
             flist.sort()
             for i,f in enumerate(flist):
+                print(i)
+                if debugstart is not None: # quick check for debugging
+                    if i <= debugstart or di == self.adir:
+                        continue
                 ipath = os.path.join(di,f)
                 img_name,img_ext = f.split('.')
                 opath = os.path.join(do,img_name+'.txt')
@@ -119,10 +127,60 @@ class Process():
                 if np.mean(np.array(bg)) < 128: # tesseract only does dark text on light background
                     if im.mode != 'P':
                         im = ImageOps.invert(im)
+                    elif im.mode == 'P':
+                        im = im.convert('L')
+                        im = ImageOps.invert(im)
+                if True:
+                    imscale=4
+                    im = im.resize((imscale*im.size[0],imscale*im.size[1]),resample=Image.Resampling(1))
                 tex = pytesseract.image_to_string(im,config='--psm 11')
-                if len(tex) > 40: # skip any failed
-                    with open(opath,'w') as fp:
-                        fp.write(tex)
+                tex = self.preprocessocr(tex)
+                if len(tex) == 0:
+                    warnings.warn('Found no text: {}'.format(img_name))
+                    continue
+                with open(opath,'w') as fp:
+                    tex = img_name + ' ' + tex
+                    fp.write(tex)
+                if doplot:
+                    plt.figure(figsize=(12,4))
+                    plt.subplot(1,2,1)
+                    plt.imshow(im)
+                    plt.title(img_name)
+                    plt.subplot(1,2,2)
+                    plt.tick_params(axis='both',which='both',bottom=False,top=False,left=False,right=False,
+                            labelbottom=False,labelleft=False)
+                    plt.box(False)
+                    if di == self.adir:
+                        font_size = 14
+                    elif di == self.bdir:
+                        font_size = 12
+                    teststring =  ' '.join(tex.split('\n'))
+                    teststring = self.wraptext(teststring,width=3,fontsize=font_size)
+                    plt.text(0,0.0,teststring,wrap=False,fontsize=font_size)
+                    plt.show()
+                    a=1
+
+    def preprocessocr(self,txt):
+        shortwords = set(['m','l','s','cm','mm','bb','xs','xl','wb','tt','st','ht','so','cc','ct','c-c','c-t','cs','soh','sa','ha'])
+        words = set(nltk.corpus.words.words())
+        txt = txt.replace('\n',' ')
+        txt = txt.replace('\\','')
+        tkns = nltk.word_tokenize(txt)
+        new_txt = ''
+        for w in tkns:
+            # in case a frame dimension is parsed in mm units with no blank, just want the number
+            if re.fullmatch('[0-9]+mm',w,flags=re.IGNORECASE):
+                w = w.replace('mm','')
+            # round all numbers to single significant digit
+            if re.fullmatch('[0-9]+',w):
+                w = str(np.around(int(w),decimals=-(len(w)-1)))
+            # general match
+            if (w.lower() in words and len(w.lower()) == 3) or \
+                w.lower() in shortwords or \
+                re.fullmatch('[0-9]+',w) or \
+                re.fullmatch('[a-z]{4,}',w,flags=re.IGNORECASE):
+                new_txt += w.lower() + ' '
+        return new_txt
 
     # convert transparency, def white
     def remove_transparency(self,img,bgcolor=(255,255,255)):
@@ -146,6 +204,8 @@ class Process():
 
     # crude estimate background for padding
     def est_bg(self,I):
+        if I.mode == 'P':
+            I = I.convert('L')
         stat = ImageStat.Stat(I)
         return stat.median
 
@@ -177,3 +237,17 @@ class Process():
         temp_filename = temp_file.name
         image_dpi.save(temp_filename, dpi=(dpival, dpival))
         return temp_filename     
+
+    # quick hack for printing wrapped text in a plt figure box
+    def wraptext(self,teststring,width=3,fontsize=14):
+        currentfont = 'DejaVuSans' # matplotlib default
+        mydpi = 96 # screen resolution
+        testfont = ImageFont.truetype(currentfont,fontsize)
+        stringsize = np.array(testfont.getsize(teststring)) / mydpi
+        rowsize = int(width / stringsize[0] * len(teststring))
+        rindex=0
+        while rindex+rowsize < len(teststring):
+            ri = teststring.rfind(' ',0,rindex+rowsize)
+            teststring = teststring[:ri] + '\n' + teststring[ri+1:]
+            rindex += rowsize
+        return teststring

@@ -1,16 +1,1 @@
-7
-
-~*1
-
-=
-
-HEIGHT
-
-BRACKET
-
-Oo
-
-WHEELBASE
-
-Zyingletrackn
-
+d045 7 1 bottom bracket height wheelbase lpingletrack 

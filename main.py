@@ -70,7 +70,7 @@ def runProfile():
 
 # ocr
 def trainOCR():
-    p = GTableOCR(kfold=4)
+    p = GTableOCR(kfold=5)
     p.dotrain()
 
 

@@ -34,6 +34,16 @@
             "console": "integratedTerminal"
         },        
         {
+            "name": "scrape geo",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/main.py",
+            "args": ["--geoscrape"],
+            "cwd": "${workspaceRoot}",
+            "justMyCode": false,
+            "console": "integratedTerminal"
+        },        
+        {
             "name": "process",
             "type": "python",
             "request": "launch",

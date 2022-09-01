@@ -7,7 +7,8 @@ from geo.photo import ProfilePhoto
 from geo.misc import *
 from geo.geometry import CVGeometry,AnnoGeometry
 from scrape.gsheet import Gsheet
-from scrape.scraper import Scraper
+from scrape.imgscraper import ImgScraper
+from scrape.geoscraper import GeoScraper
 from process.process import Process
 from process.profile import Profile
 from process.gtable import GTable
@@ -35,8 +36,8 @@ def runAnnotate(flist):
         a=1
 
 def runScrape():
-    gs = Gsheet(online=True)
-    sc = Scraper()
+    gs = Gsheet(online=False)
+    sc = ImgScraper(scrapedir='png')
     bcol = 'CC' # starting column for debugging
     b1 = ord(bcol[-1])-64-4
     if len(bcol)==2:
@@ -45,6 +46,19 @@ def runScrape():
         print('item# {}, {}, {}'.format(b1,b['label'],b['build']))
         sc.dosoup(b)
         b1 += 1
+
+def runGeoScrape():
+    gs = Gsheet(online=False)
+    gsc = GeoScraper(scrapedir='geodata')
+    bcol = 'E' # starting column for debugging
+    b1 = ord(bcol[-1])-64-4
+    if len(bcol)==2:
+        b1 += (ord(bcol[0])-64)*26
+    for b in gs.bikes[b1:]:
+        print('item# {}, {}, {}'.format(b1,b['label'],b['build']))
+        gsc.dosoup(b)
+        b1 += 1
+
 
 # dataset prep
 # profile images
@@ -104,6 +118,7 @@ if __name__=='__main__':
     parser.add_argument("--annotate",action="store_true",default=False)
     parser.add_argument("--cv",action="store_true",default=False)
     parser.add_argument("--scrape",action="store_true",default=False)
+    parser.add_argument("--geoscrape",action="store_true",default=False)
     parser.add_argument("--process",action="store_true",default=False)
     parser.add_argument("--processocr",action="store_true",default=False)
     parser.add_argument("--trainprofile",action="store_true",default=False)
@@ -147,6 +162,8 @@ if __name__=='__main__':
             runAnnotate(flist)
     elif args.scrape:
         runScrape()
+    elif args.geoscrape:
+        runGeoScrape()
     elif args.cv:
         if args.img:
             mmpx = args.mmpx

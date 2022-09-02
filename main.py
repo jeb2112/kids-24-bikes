@@ -50,12 +50,13 @@ def runScrape():
 def runGeoScrape():
     gs = Gsheet(online=False)
     gsc = GeoScraper(scrapedir='geodata')
-    bcol = 'E' # starting column for debugging
+    bcol = 'L' # starting column for debugging
     b1 = ord(bcol[-1])-64-4
     if len(bcol)==2:
         b1 += (ord(bcol[0])-64)*26
     for b in gs.bikes[b1:]:
         print('item# {}, {}, {}'.format(b1,b['label'],b['build']))
+        gsc.clear()
         gsc.dosoup(b)
         b1 += 1
 

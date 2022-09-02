@@ -1,5 +1,8 @@
+from inspect import stack
+from multiprocessing.sharedctypes import Value
 import os
 import io
+import copy
 from ssl import SSL_ERROR_EOF
 from urllib3.exceptions import SSLError
 import requests
@@ -10,6 +13,7 @@ import random
 import glob
 import re
 import pickle
+import json
 import warnings
 import requests
 import imghdr
@@ -30,10 +34,14 @@ class GeoScraper(Scraper):
         # self.profiler = Profile(kfold=4,modelname='profile_model_adam',domodel=True)
         # self.processor = Process(pad=False)
         # dict of internal keys for possible keywords found in different websites
-        self.geolbls = {'st':['seattube'],'tt':['toptube'],'ht':['headtube'],'reach':['reach'],'stack':['stack'],'cs':['chainstay'],\
+        self.geolbls = {'reach':['reach'],'stack':['stack'],\
+                        'st':['st','seattube','seattubelength'],'tt':['tt','toptube','toptubeeffective','toptubelength'],\
+                        'ht':['ht','headtube','headtubelength'],\
+                        'sa':['sa','sta','stangle','seattubeangle'],\
+                        'cs':['ca','chainstay'],\
                         'rc':['rearcentre','rearcenter'],\
-                        'bbdrop':['bottombracket','drop','bb'],'ha':['hta','htangle','headtubeangle'],\
-                        'sa':['sta','stangle','seattubeangle'],'fl':['forklength'],'fo':['forkoffset'],\
+                        'bbdrop':['bbh','bottombracket','drop','bb'],'ha':['ha','hta','htangle','headtubeangle'],\
+                        'fl':['forklength'],'fo':['forkoffset'],\
                         'wb':['wb','wheelbase'],'so':['soh','soheight','standoverheight'],'stem':['stem']}
         # dict of internal keys for possible keywords in different websites
         self.complbls = {'lb':['weight','lb'],'frame':['frame'],'fork':['fork'],'crankarm':['cranklength','crankarm'],\
@@ -53,32 +61,55 @@ class GeoScraper(Scraper):
         # for dev: if already have the photo don't hammer the server
         # TODO: check for fork with a different trail
         if glob.glob(self.fname+'.*'):
-            warnings.warn('Photo already exists, returning...')
+            warnings.warn('Photo already exists, returning...',stacklevel=2)
             return
 
         ptext = self.getpage()
         if ptext is None:
-            warnings.warn('No page text retrieved, skipping...')
+            warnings.warn('No page text retrieved, skipping...',stacklevel=2)
             return
         soup = BeautifulSoup(ptext,'html.parser')
-        tbls = pd.read_html(ptext)
+        try:
+            tbls = pd.read_html(ptext)
+        except ValueError as e:
+            warnings.warn('no tables in html',stacklevel=2)
+            return
         imgs = soup.find_all('img')
         meta = soup.find_all('meta')
         links = soup.find_all('a')
         urls = []
 
-        # form a short list of candidate images
-        geoimg_url = None
+        # start with html tables if any
+        # tables are identified by the table values, 
+        # but may also need model or build pattern??
+        # problem cases
+        # fuji page broken shows 12" column on a 24 bike page, no way to select 24 geom
+        if len(tbls) > 0:
+            geotbl = self.get_tbl(tbls)
+            if geotbl is not None:
+                geotbl = self.process_tbl(geotbl)
+                geotbl = self.select_col(geotbl)
+                res = self.read_tbl(geotbl)
+            else:
+                warnings.warn('no geom table in html',stacklevel=2)
+                return
+            if res:
+                self.save_tbl()
+                return
+            else:
+                warnings.warn('html table not parsed.',stacklevel=2)
+                return
+            # self.comps = self.get_comptbl(tbls)
+        else:
+            warnings.warn('No html tables found. continuing',stacklevel=2)
+            return
+
+        # TODO: if no html tables, search for imgs of tables   
         # start with full build pattern, then fall back to model pattern
+        # or may not need this loop for geo tables?
+        # form a short list of candidate images
+        tblimg_url = None
         for p in [self.build_pattern,self.model_pattern]:
-
-            # start with html tables if any
-            if len(tbls) > 0:
-                geotbl = self.get_tbl(tbls)
-                self.read_tbl(geotbl)
-                # self.comps = self.get_comptbl(tbls)
-
-            # if no tables, search for imgs    
             if len(imgs) > 0:
                 urls = self.get_imgurls(imgs,p)
             if len(meta) > 0:
@@ -86,18 +117,18 @@ class GeoScraper(Scraper):
                 if meta_urls is not None:
                     urls = urls + meta_urls
             if len(urls) == 0:
-                warnings.warn('No img or meta urls found. continuing')
+                warnings.warn('No img or meta urls found. continuing',stacklevel=2)
                 return
 
-            # go through the list and take the largest profile image
-            profileimg_url,ext = self.search_urls(urls,b)
-            if profileimg_url:
+            # go through the list and take the geometry table image
+            tblimg_url,ext = self.search_urls(urls,b)
+            if tblimg_url:
                 break
 
-        if profileimg_url is None:
-            warnings.warn('No profile image found, skipping...')
-            return
-        self.saveimage(profileimg_url,ext)
+            if tblimg_url is None:
+                warnings.warn('No geometry table image found, skipping...',stacklevel=2)
+                return
+            self.saveimage(tblimg_url,ext)
 
 
     #############
@@ -130,40 +161,81 @@ class GeoScraper(Scraper):
                 continue
         return maximgurl,ext
 
+    # if more than one data column, select best choice
+    def select_col(self,tbl):
+        for col in tbl.columns[1:]:
+            # may need more logic here
+            if type(col) == int:
+                continue # int cols have no info to choose from
+            elif type(col) == str:
+                if '24' in col:
+                    rtbl = tbl[[tbl.columns[0],col]]
+                    return rtbl
+            elif np.NaN in tbl.iloc[:,col]:
+                continue
+        # if nothing selected return entire table
+        return tbl
+
     # read geo table into the geo dict. or combine with get_tbl?
     # for now this assumes the first column after the labels are the geo values.
     # due to the overlap in text of the various tags like stack and sta (seattubeangle)
     # this function has some simple logic to end up with the correct match.
+    # some conflicts can be avoided by the order in which the geolbls are listed,
+    # if the conflict only occurs in one order, like stack before sta.
+    # therefore do reach,stack first as they are usually unambiguous
     def read_tbl(self,tbl):
+        # sort to do stack reach first
+        dfrs = tbl.apply(lambda x:x.str.contains('reach|stack',regex=True)).any(axis=1)
+        tbl = pd.concat([tbl.loc[dfrs],tbl.loc[dfrs.apply(lambda x:not(x))]])
+        # make local copy list to work with
+        geolblskeys = list(self.geolbls.keys())
+        
         for i in range(len(tbl.iloc[:,0])):
-            # quickly process. remove blanks, lowercase. may need more...
-            tblelement = tbl.iloc[i,0].lower().replace(' ','')
-            for k1 in self.geolbls.keys():
+            tblelement = tbl.iloc[i,0]
+            for k1 in geolblskeys:
                 # if table item is contained in one of the possible key values, it's a
                 # good match so save it directly with a len ratio of 1
                 if any(tblelement in x for x in self.geolbls[k1]):
                     self.geodata[k1] = (tbl.iloc[i,1],1)
+                    # then for each match, pop that key so don't search for it again
+                    geolblskeys.pop(geolblskeys.index(k1))
+                    break
                 # if one of the possible key values is contained in the table item, it's a less exact match
                 else:
                     for x in self.geolbls[k1]:
                         if x in tblelement:
                             # if the item is already populated, update if necessary
                             if k1 in self.geodata.keys():
-                                warnings.warn('More than one key match: {}, {}, {}'.format(tblelement,self.geolbls[k1],self.geodata[k1]))
+                                warnings.warn('More than one key match: {}, {}, {}'.format(tblelement,self.geolbls[k1],self.geodata[k1]),stacklevel=2)
                                 # update is based on ratio of length of the existing
                                 # possible key value to the item. if the new ratio is longer, it's a
                                 # better match, so use it.
                                 if len(x)/len(tblelement) > self.geodata[k1][1]:
-                                    warnings.warn('replacing: {}'.format(k1))
+                                    warnings.warn('replacing: {}'.format(k1),stacklevel=2)
                                     # also restore the new len ratio here, for later reference
                                     # in case of yet another better match
                                     self.geodata[k1] = (tbl.iloc[i,1],len(x)/len(tblelement))
+                                    break
+                                    # reread the table?
+                                    # self.redo_read_tbl(k1)
                             # if this is the first match, save the ratio of possible key value to item
                             # length here for later reference
                             else:
                                 self.geodata[k1] = (tbl.iloc[i,1],len(x)/len(tblelement))
+                                geolblskeys.pop(geolblskeys.index(k1))
+                                break
+                    else:
+                        continue
+                    break
 
-        return
+        return len(self.geodata.keys())
+        
+    # process string values in table for consistency. may need more processing...
+    def process_tbl(self,tbl):
+        for col in tbl:
+            if all(type(t) == str for t in tbl[col]):
+                tbl[col] = tbl[col].apply(lambda x:x.lower().replace(' ',''))
+        return tbl
 
     # get geo table from list of candidate tables
     def get_tbl(self,tbls):
@@ -211,6 +283,19 @@ class GeoScraper(Scraper):
                 a=1
                 
         return None
+
+    # save geomtables
+    def save_tbl(self):
+        if not os.path.exists(os.path.dirname(self.fname)):
+            os.makedirs(os.path.dirname(self.fname),exist_ok=True)
+        if True:
+            fname = self.fname + '_geom.json'
+            with open(fname,'w') as fp:
+                json.dump(self.geodata,fp,indent=4)
+        else:
+            fname = self.fname + '_geom.pkl'
+            with open(fname,'wb') as fp:
+                pickle.dump(self.geodata,fp)
 
     # get a short list of candidate image urls
     def get_imgurls(self,imgs,p=None):
@@ -409,3 +494,5 @@ class GeoScraper(Scraper):
 
         return llink
 
+    def clear(self):
+        self.geodata = {}

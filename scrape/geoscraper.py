@@ -69,14 +69,20 @@ class GeoScraper(Scraper):
             warnings.warn('No page text retrieved, skipping...',stacklevel=2)
             return
         soup = BeautifulSoup(ptext,'html.parser')
+        imgs = soup.find_all('img')
+        meta = soup.find_all('meta')
+        tbls1 = soup.find_all('table')
+        tbls2 = soup.find_all('geo_table')
+        links = soup.find_all('a')
+        scrip = soup.find_all('script')
+        self.get_scriptables(scrip)
         try:
             tbls = pd.read_html(ptext)
         except ValueError as e:
             warnings.warn('no tables in html',stacklevel=2)
+            with open(self.fname+'_.html','w') as fp:
+                fp.write(soup.prettify())
             return
-        imgs = soup.find_all('img')
-        meta = soup.find_all('meta')
-        links = soup.find_all('a')
         urls = []
 
         # start with html tables if any
@@ -135,31 +141,47 @@ class GeoScraper(Scraper):
     # aux methods
     #############
 
-    # process a list of urls and take largest profile image
-    def search_urls(self,urls,b):
-        maxsize = 0
-        maximgurl = None
-        for url in urls:
-            url = self.process_url(url,b)
-            if url is None:
+    # process scrips for table data
+    def get_scriptables(self,scrips):
+        # this pattern for norc fluid, may need adjustment
+        patrn = re.compile(r'\s+const\s+[a-zA-Z]+\s+=\s+(\{.*?\});\n')
+        # a shorter reliable list of keywords. or use self.geolbls values > len(3)
+        ktest = ['reach','stack'] 
+        for s in scrips:
+            if s.string is None:
                 continue
-            imgurl,ext = self.getimage(url,dosave=False)
-            if imgurl is None:
-                continue
-            w,h = imgurl.size
-            img = self.processor.runsingle(imgurl)
-            img = np.array(img)/255. # norm
-            img = np.reshape(img,(1,self.processor.ty,self.processor.tx,1))
-            p0 = self.profiler.test(img)
-            if p0:
-                if w*h > maxsize:
-                    maxsize,maximgurl = w*h,imgurl
-                if maxsize > 1e6: # big enough, avoid hammering website
-                    break
-            else:
-                a=1
-                continue
-        return maximgurl,ext
+            if any(k in s.string for k in ktest):
+                jstr = patrn.findall(s.string)
+                for j in jstr:
+                    if any(k in j for k in ktest):
+                        jdata = json.loads(j)
+                        jdict = self.recurse_dict(jdata,'Reach',val='Reach')
+                        return jdict
+
+    # iteratively walk a json dict for one of a list of keys or value
+    def recurse_dict(self,obj,key,val=None):
+        if key in obj: 
+            return obj[key]
+        if len(val) and val in list(obj.values()): # not worked
+            return obj
+        for k, v in obj.items():
+            if isinstance(v,dict):
+                item = self.recurse_dict(v, key, val=val)
+                if item is not None:
+                    return item
+            elif isinstance(v,list):
+                for litem in v:
+                    if isinstance(litem,dict):
+                        if key in litem:
+                            return litem[key]
+                        # ie norco fluid has geom data in a list of dicts, one dict per geom measurement
+                        # this will likely need generalizing
+                        if len(val) and val in list(litem.values()):
+                            return v
+                        item1 = self.recurse_dict(litem,key,val=val)
+                        if item1 is not None:
+                            return item1
+
 
     # if more than one data column, select best choice
     def select_col(self,tbl):
@@ -176,13 +198,13 @@ class GeoScraper(Scraper):
         # if nothing selected return entire table
         return tbl
 
-    # read geo table into the geo dict. or combine with get_tbl?
+    # read geo table into the geo dict.
     # for now this assumes the first column after the labels are the geo values.
     # due to the overlap in text of the various tags like stack and sta (seattubeangle)
     # this function has some simple logic to end up with the correct match.
     # some conflicts can be avoided by the order in which the geolbls are listed,
     # if the conflict only occurs in one order, like stack before sta.
-    # therefore do reach,stack first as they are usually unambiguous
+    # ie do reach,stack first as they are usually unambiguous
     def read_tbl(self,tbl):
         # sort to do stack reach first
         dfrs = tbl.apply(lambda x:x.str.contains('reach|stack',regex=True)).any(axis=1)
@@ -297,6 +319,33 @@ class GeoScraper(Scraper):
             with open(fname,'wb') as fp:
                 pickle.dump(self.geodata,fp)
 
+
+    # methods from image scraping
+    # process a list of urls and take largest profile image
+    def search_urls(self,urls,b):
+        maxsize = 0
+        maximgurl = None
+        for url in urls:
+            url = self.process_url(url,b)
+            if url is None:
+                continue
+            imgurl,ext = self.getimage(url,dosave=False)
+            if imgurl is None:
+                continue
+            w,h = imgurl.size
+            img = self.processor.runsingle(imgurl)
+            img = np.array(img)/255. # norm
+            img = np.reshape(img,(1,self.processor.ty,self.processor.tx,1))
+            p0 = self.profiler.test(img)
+            if p0:
+                if w*h > maxsize:
+                    maxsize,maximgurl = w*h,imgurl
+                if maxsize > 1e6: # big enough, avoid hammering website
+                    break
+            else:
+                a=1
+                continue
+        return maximgurl,ext
     # get a short list of candidate image urls
     def get_imgurls(self,imgs,p=None):
         urls = []

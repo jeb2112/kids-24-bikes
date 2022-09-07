@@ -34,15 +34,33 @@ class GeoScraper(Scraper):
         # self.profiler = Profile(kfold=4,modelname='profile_model_adam',domodel=True)
         # self.processor = Process(pad=False)
         # dict of internal keys for possible keywords found in different websites
-        self.geolbls = {'reach':['reach'],'stack':['stack'],\
-                        'st':['st','seattube','seattubelength'],'tt':['tt','toptube','toptubeeffective','toptubelength'],\
-                        'ht':['ht','headtube','headtubelength'],\
-                        'sa':['sa','sta','stangle','seattubeangle'],\
-                        'cs':['ca','chainstay'],\
+        # due to difficulty of handling both longform and shortform, shortforms are only keys
+        # and longforms are only values. note therefore have duplicates on the shortforms as duplicate keys
+        self.geolbls = {'r':['reach'],'s':['stack'],\
+                        'st':['seattube','seattubelength'],\
+                        'tt':['toptube','toptubeeffective','toptubelength'],\
+                        'ht':['headtube','headtubelength'],\
+                        'sa':['stangle','seattubeangle'],\
+                        'sta':['stangle','seattubeangle'],\
+                        'cs':['chainstay'],\
                         'rc':['rearcentre','rearcenter'],\
-                        'bbdrop':['bbh','bottombracket','drop','bb'],'ha':['ha','hta','htangle','headtubeangle'],\
+                        'bb':['bottombracketdrop','drop','bbdrop'],\
+                        'ha':['htangle','headtubeangle'],\
+                        'hta':['htangle','headtubeangle'],\
                         'fl':['forklength'],'fo':['forkoffset'],\
-                        'wb':['wb','wheelbase'],'so':['soh','soheight','standoverheight'],'stem':['stem']}
+                        'wb':['wheelbase'],\
+                        'soh':['soheight','standoverheight','standover'],\
+                        'so':['soheight','standoverheight','standover'],'stem':['stem']}
+        # dict of internal keys with default values
+        self.geodflts = {'r':350,'s':500,\
+                        'st':370,'tt':450,'ht':100,\
+                        'hta':73,'ha':73,\
+                        'sta':73,'sa':73,\
+                        'cs':410,\
+                        'rc':380,\
+                        'bb':40,\
+                        'fl':220,'fo':30,\
+                        'wb':950,'soh':400}
         # dict of internal keys for possible keywords in different websites
         self.complbls = {'lb':['weight','lb'],'frame':['frame'],'fork':['fork'],'crankarm':['cranklength','crankarm'],\
                         'rd':['rearderailleur','rearderailer','rd'],'spring':['spring'],\
@@ -71,18 +89,21 @@ class GeoScraper(Scraper):
         soup = BeautifulSoup(ptext,'html.parser')
         imgs = soup.find_all('img')
         meta = soup.find_all('meta')
-        tbls1 = soup.find_all('table')
-        tbls2 = soup.find_all('geo_table')
         links = soup.find_all('a')
-        scrip = soup.find_all('script')
-        self.get_scriptables(scrip)
         try:
             tbls = pd.read_html(ptext)
         except ValueError as e:
-            warnings.warn('no tables in html',stacklevel=2)
-            with open(self.fname+'_.html','w') as fp:
-                fp.write(soup.prettify())
-            return
+            warnings.warn('no tables in html, try json',stacklevel=2)
+            tbls = []
+            # try for a json dict
+            scrip = soup.find_all('script')
+            jgeotbl = self.get_scriptables(scrip)
+            if jgeotbl is None:
+                # output for debugging
+                warnings.warn('no tables in json',stacklevel=2)
+                with open(self.fname+'_.html','w') as fp:
+                    fp.write(soup.prettify())
+                return
         urls = []
 
         # start with html tables if any
@@ -91,14 +112,15 @@ class GeoScraper(Scraper):
         # problem cases
         # fuji page broken shows 12" column on a 24 bike page, no way to select 24 geom
         if len(tbls) > 0:
+            # this function can probably be reduced
             geotbl = self.get_tbl(tbls)
             if geotbl is not None:
                 geotbl = self.process_tbl(geotbl)
-                geotbl = self.select_col(geotbl)
-                res = self.read_tbl(geotbl)
+                # geotbl = self.select_col(geotbl)
+                # res = self.read_tbl(geotbl)
+                res = self.read_tbl2(geotbl)
             else:
-                warnings.warn('no geom table in html',stacklevel=2)
-                return
+                warnings.warn('no geom table in html tables',stacklevel=2)
             if res:
                 self.save_tbl()
                 return
@@ -106,11 +128,18 @@ class GeoScraper(Scraper):
                 warnings.warn('html table not parsed.',stacklevel=2)
                 return
             # self.comps = self.get_comptbl(tbls)
+
+        # then try json tables if any
+        elif len(jgeotbl) > 0:
+            jgeotbl = pd.DataFrame.from_dict(jgeotbl)
+            jgeotbl = self.process_tbl(jgeotbl)
+            res = self.read_tbl2(jgeotbl)
+
         else:
             warnings.warn('No html tables found. continuing',stacklevel=2)
             return
 
-        # TODO: if no html tables, search for imgs of tables   
+        # TODO: if no html or json tables, search for imgs of tables   
         # start with full build pattern, then fall back to model pattern
         # or may not need this loop for geo tables?
         # form a short list of candidate images
@@ -137,16 +166,17 @@ class GeoScraper(Scraper):
             self.saveimage(tblimg_url,ext)
 
 
-    #############
-    # aux methods
-    #############
+
+    ##############
+    # json methods
+    ##############
 
     # process scrips for table data
     def get_scriptables(self,scrips):
         # this pattern for norc fluid, may need adjustment
         patrn = re.compile(r'\s+const\s+[a-zA-Z]+\s+=\s+(\{.*?\});\n')
         # a shorter reliable list of keywords. or use self.geolbls values > len(3)
-        ktest = ['reach','stack'] 
+        ktest = ['Reach','Stack'] # case not handled yet
         for s in scrips:
             if s.string is None:
                 continue
@@ -155,8 +185,11 @@ class GeoScraper(Scraper):
                 for j in jstr:
                     if any(k in j for k in ktest):
                         jdata = json.loads(j)
-                        jdict = self.recurse_dict(jdata,'Reach',val='Reach')
-                        return jdict
+                        for kt in ktest:
+                            jdict = self.recurse_dict(jdata,kt,val=kt)
+                            if jdict is not None:
+                                return jdict
+                        return None
 
     # iteratively walk a json dict for one of a list of keys or value
     def recurse_dict(self,obj,key,val=None):
@@ -183,20 +216,91 @@ class GeoScraper(Scraper):
                             return item1
 
 
-    # if more than one data column, select best choice
-    def select_col(self,tbl):
-        for col in tbl.columns[1:]:
-            # may need more logic here
-            if type(col) == int:
-                continue # int cols have no info to choose from
-            elif type(col) == str:
-                if '24' in col:
-                    rtbl = tbl[[tbl.columns[0],col]]
-                    return rtbl
-            elif np.NaN in tbl.iloc[:,col]:
+
+    ##############
+    # html methods
+    ##############
+
+    # reattempt read_tbl more generally
+    # detection of labels has been separateed into long forms and abbreviations
+    # to resolve some matching confusions
+    def read_tbl2(self,tbl):
+
+        # start with labels col
+        # dict to keep track of matches
+        geolblcount = {}
+        for col in tbl:
+            # if a column with numbers detected, skip
+            if any(type(t)==int or type(t)==float for t in tbl[col]):
                 continue
-        # if nothing selected return entire table
-        return tbl
+            geocount = 0
+            geolblcount[col] = geocount
+            for k1 in self.geolbls.keys():
+                for item in tbl[col]:
+                    if item=='' or item==None:
+                        continue
+                    if type(item) == list:
+                        item = item[0] # might need better
+                    elif type(item) == dict or type(item) == bool:
+                        break # skip this column
+                    # long form, match key values
+                    if len(item) > 3:
+                        # exact match preferably
+                        if any(x == item for x in self.geolbls[k1]):
+                            geocount += 1
+                        # partial match longform
+                        elif any(x in item for x in self.geolbls[k1]):
+                            geocount += 1
+                    # short form, match keys
+                    else:
+                        # match shortform. only doing exact matches for now
+                        if item == k1:
+                            geocount += 1
+            geolblcount[col] = geocount
+
+        lblcol = max(geolblcount, key=lambda k:geolblcount[k])
+
+        # map lbls in identified lblcolumn to standard labels
+        locallbl = {}
+        for lbl in tbl[lblcol]:
+            for k1 in self.geolbls.keys():
+                for glbl in self.geolbls[k1]:
+                    if lbl in glbl or glbl in lbl:
+                        locallbl[lbl] = k1
+
+        # now assess each additional column as a possible data column
+        # new df to hold just fields and values
+        croptbl = pd.DataFrame(columns=['field'],data=tbl[lblcol])
+        croptbl['values'] = 0
+        max_valerror = 1e6
+        for col in tbl.loc[:,lblcol:]:
+            geovals = {}
+            val_error = 0
+            if col == lblcol:
+                continue
+            for l in locallbl.keys():
+                # get item from df according to the label2key mapping
+                item = tbl.query('field ==  @l')[col].iloc[0]
+                if type(item) == list:
+                    item = item[0] # might need better
+
+                if type(item) == str:
+                    if re.match('[0-9.]+',item):
+                        val = float(item)
+                    else:
+                        val = 0
+                elif type(item) == float or type(item) == int:
+                    val = item
+                val_error += abs((val - self.geodflts[locallbl[l]]))
+                geovals[locallbl[l]] = val
+            if val_error < max_valerror:
+                datacol = col
+                self.geodata = geovals
+                max_valerror = val_error
+
+        croptbl['values'] = tbl[datacol]
+
+        return croptbl
 
     # read geo table into the geo dict.
     # for now this assumes the first column after the labels are the geo values.
@@ -319,8 +423,13 @@ class GeoScraper(Scraper):
             with open(fname,'wb') as fp:
                 pickle.dump(self.geodata,fp)
 
+    #############
+    # aux methods
+    #############
 
-    # methods from image scraping
+
+    # methods from image scraping class.
+    # to delete most of them
     # process a list of urls and take largest profile image
     def search_urls(self,urls,b):
         maxsize = 0

@@ -50,7 +50,7 @@ def runScrape():
 def runGeoScrape():
     gs = Gsheet(online=False)
     gsc = GeoScraper(scrapedir='geodata')
-    bcol = 'N' # starting column for debugging
+    bcol = 'E' # starting column for debugging
     b1 = ord(bcol[-1])-64-4
     if len(bcol)==2:
         b1 += (ord(bcol[0])-64)*26

@@ -69,6 +69,8 @@ class Scraper():
     # set re patterns and other data for current bike
     def setpattern(self,b):
         self.fname = os.path.join('/home/src/kids-24-bikes',self.scrapedir,str(self.year),b['type'],b['label'])
+        if not os.path.exists(os.path.dirname(self.fname)):
+            os.makedirs(os.path.dirname(self.fname),exist_ok=True)
         if len(b['build']):
             self.fname += '_'+b['build']
         self.fname = re.sub(' ','',self.fname)
@@ -100,9 +102,8 @@ class Scraper():
         else:
             try:
                 self.session.get(self.referer,headers=self.headers)
-            except SSLError as e:
+            except requests.exceptions.SSLError as e:
                 # gtbicycles. missing intermediate cert probably can't ssl it
-                # can't trap it here because it's not re-raised??
                 print(e)
                 return None
             time.sleep(0.2)

@@ -1,0 +1,2915 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb# product: http://ogp.me/ns/product#">
+  <script>
+   var BASE_URL = 'https\u003A\u002F\u002Fwww.bmc\u002Dswitzerland.com\u002Fintl_en\u002F'; var require = { 'baseUrl': 'https\u003A\u002F\u002Fwww.bmc\u002Dswitzerland.com\u002Fstatic\u002Fversion1658770636\u002Ffrontend\u002FBMC\u002Fmakeover\u002Fen_US' };
+  </script>
+  <meta charset="utf-8"/>
+  <script type="text/javascript">
+   (window.NREUM||(NREUM={})).init={ajax:{deny_list:["bam.nr-data.net"]}};(window.NREUM||(NREUM={})).loader_config={licenseKey:"NRJS-d159f56f7404527dc53",applicationID:"501091244"};window.NREUM||(NREUM={}),__nr_require=function(t,e,n){function r(n){if(!e[n]){var i=e[n]={exports:{}};t[n][0].call(i.exports,function(e){var i=t[n][1][e];return r(i||e)},i,i.exports)}return e[n].exports}if("function"==typeof __nr_require)return __nr_require;for(var i=0;i<n.length;i++)r(n[i]);return r}({1:[function(t,e,n){function r(){}function i(t,e,n,r){return function(){return s.recordSupportability("API/"+e+"/called"),o(t+e,[u.now()].concat(c(arguments)),n?null:this,r),n?void 0:this}}var o=t("handle"),a=t(9),c=t(10),f=t("ee").get("tracer"),u=t("loader"),s=t(4),d=NREUM;"undefined"==typeof window.newrelic&&(newrelic=d);var p=["setPageViewName","setCustomAttribute","setErrorHandler","finished","addToTrace","inlineHit","addRelease"],l="api-",v=l+"ixn-";a(p,function(t,e){d[e]=i(l,e,!0,"api")}),d.addPageAction=i(l,"addPageAction",!0),d.setCurrentRouteName=i(l,"routeName",!0),e.exports=newrelic,d.interaction=function(){return(new r).get()};var m=r.prototype={createTracer:function(t,e){var n={},r=this,i="function"==typeof e;return o(v+"tracer",[u.now(),t,n],r),function(){if(f.emit((i?"":"no-")+"fn-start",[u.now(),r,i],n),i)try{return e.apply(this,arguments)}catch(t){throw f.emit("fn-err",[arguments,this,t],n),t}finally{f.emit("fn-end",[u.now()],n)}}}};a("actionText,setName,setAttribute,save,ignore,onEnd,getContext,end,get".split(","),function(t,e){m[e]=i(v,e)}),newrelic.noticeError=function(t,e){"string"==typeof t&&(t=new Error(t)),s.recordSupportability("API/noticeError/called"),o("err",[t,u.now(),!1,e])}},{}],2:[function(t,e,n){function r(t){if(NREUM.init){for(var e=NREUM.init,n=t.split("."),r=0;r<n.length-1;r++)if(e=e[n[r]],"object"!=typeof e)return;return e=e[n[n.length-1]]}}e.exports={getConfiguration:r}},{}],3:[function(t,e,n){var r=!1;try{var i=Object.defineProperty({},"passive",{get:function(){r=!0}});window.addEventListener("testPassive",null,i),window.removeEventListener("testPassive",null,i)}catch(o){}e.exports=function(t){return r?{passive:!0,capture:!!t}:!!t}},{}],4:[function(t,e,n){function r(t,e){var n=[a,t,{name:t},e];return o("storeMetric",n,null,"api"),n}function i(t,e){var n=[c,t,{name:t},e];return o("storeEventMetrics",n,null,"api"),n}var o=t("handle"),a="sm",c="cm";e.exports={constants:{SUPPORTABILITY_METRIC:a,CUSTOM_METRIC:c},recordSupportability:r,recordCustom:i}},{}],5:[function(t,e,n){function r(){return c.exists&&performance.now?Math.round(performance.now()):(o=Math.max((new Date).getTime(),o))-a}function i(){return o}var o=(new Date).getTime(),a=o,c=t(11);e.exports=r,e.exports.offset=a,e.exports.getLastTimestamp=i},{}],6:[function(t,e,n){function r(t,e){var n=t.getEntries();n.forEach(function(t){"first-paint"===t.name?l("timing",["fp",Math.floor(t.startTime)]):"first-contentful-paint"===t.name&&l("timing",["fcp",Math.floor(t.startTime)])})}function i(t,e){var n=t.getEntries();if(n.length>0){var r=n[n.length-1];if(u&&u<r.startTime)return;var i=[r],o=a({});o&&i.push(o),l("lcp",i)}}function o(t){t.getEntries().forEach(function(t){t.hadRecentInput||l("cls",[t])})}function a(t){var e=navigator.connection||navigator.mozConnection||navigator.webkitConnection;if(e)return e.type&&(t["net-type"]=e.type),e.effectiveType&&(t["net-etype"]=e.effectiveType),e.rtt&&(t["net-rtt"]=e.rtt),e.downlink&&(t["net-dlink"]=e.downlink),t}function c(t){if(t instanceof y&&!w){var e=Math.round(t.timeStamp),n={type:t.type};a(n),e<=v.now()?n.fid=v.now()-e:e>v.offset&&e<=Date.now()?(e-=v.offset,n.fid=v.now()-e):e=v.now(),w=!0,l("timing",["fi",e,n])}}function f(t){"hidden"===t&&(u=v.now(),l("pageHide",[u]))}if(!("init"in NREUM&&"page_view_timing"in NREUM.init&&"enabled"in NREUM.init.page_view_timing&&NREUM.init.page_view_timing.enabled===!1)){var u,s,d,p,l=t("handle"),v=t("loader"),m=t(8),g=t(3),y=NREUM.o.EV;if("PerformanceObserver"in window&&"function"==typeof window.PerformanceObserver){s=new PerformanceObserver(r);try{s.observe({entryTypes:["paint"]})}catch(h){}d=new PerformanceObserver(i);try{d.observe({entryTypes:["largest-contentful-paint"]})}catch(h){}p=new PerformanceObserver(o);try{p.observe({type:"layout-shift",buffered:!0})}catch(h){}}if("addEventListener"in document){var w=!1,b=["click","keydown","mousedown","pointerdown","touchstart"];b.forEach(function(t){document.addEventListener(t,c,g(!1))})}m(f)}},{}],7:[function(t,e,n){function r(t,e){if(!i)return!1;if(t!==i)return!1;if(!e)return!0;if(!o)return!1;for(var n=o.split("."),r=e.split("."),a=0;a<r.length;a++)if(r[a]!==n[a])return!1;return!0}var i=null,o=null,a=/Version\/(\S+)\s+Safari/;if(navigator.userAgent){var c=navigator.userAgent,f=c.match(a);f&&c.indexOf("Chrome")===-1&&c.indexOf("Chromium")===-1&&(i="Safari",o=f[1])}e.exports={agent:i,version:o,match:r}},{}],8:[function(t,e,n){function r(t){function e(){t(c&&document[c]?document[c]:document[o]?"hidden":"visible")}"addEventListener"in document&&a&&document.addEventListener(a,e,i(!1))}var i=t(3);e.exports=r;var o,a,c;"undefined"!=typeof document.hidden?(o="hidden",a="visibilitychange",c="visibilityState"):"undefined"!=typeof document.msHidden?(o="msHidden",a="msvisibilitychange"):"undefined"!=typeof document.webkitHidden&&(o="webkitHidden",a="webkitvisibilitychange",c="webkitVisibilityState")},{}],9:[function(t,e,n){function r(t,e){var n=[],r="",o=0;for(r in t)i.call(t,r)&&(n[o]=e(r,t[r]),o+=1);return n}var i=Object.prototype.hasOwnProperty;e.exports=r},{}],10:[function(t,e,n){function r(t,e,n){e||(e=0),"undefined"==typeof n&&(n=t?t.length:0);for(var r=-1,i=n-e||0,o=Array(i<0?0:i);++r<i;)o[r]=t[e+r];return o}e.exports=r},{}],11:[function(t,e,n){e.exports={exists:"undefined"!=typeof window.performance&&window.performance.timing&&"undefined"!=typeof window.performance.timing.navigationStart}},{}],ee:[function(t,e,n){function r(){}function i(t){function e(t){return t&&t instanceof r?t:t?u(t,f,a):a()}function n(n,r,i,o,a){if(a!==!1&&(a=!0),!l.aborted||o){t&&a&&t(n,r,i);for(var c=e(i),f=m(n),u=f.length,s=0;s<u;s++)f[s].apply(c,r);var p=d[w[n]];return p&&p.push([b,n,r,c]),c}}function o(t,e){h[t]=m(t).concat(e)}function v(t,e){var n=h[t];if(n)for(var r=0;r<n.length;r++)n[r]===e&&n.splice(r,1)}function m(t){return h[t]||[]}function g(t){return p[t]=p[t]||i(n)}function y(t,e){l.aborted||s(t,function(t,n){e=e||"feature",w[n]=e,e in d||(d[e]=[])})}var h={},w={},b={on:o,addEventListener:o,removeEventListener:v,emit:n,get:g,listeners:m,context:e,buffer:y,abort:c,aborted:!1};return b}function o(t){return u(t,f,a)}function a(){return new r}function c(){(d.api||d.feature)&&(l.aborted=!0,d=l.backlog={})}var f="nr@context",u=t("gos"),s=t(9),d={},p={},l=e.exports=i();e.exports.getOrSetContext=o,l.backlog=d},{}],gos:[function(t,e,n){function r(t,e,n){if(i.call(t,e))return t[e];var r=n();if(Object.defineProperty&&Object.keys)try{return Object.defineProperty(t,e,{value:r,writable:!0,enumerable:!1}),r}catch(o){}return t[e]=r,r}var i=Object.prototype.hasOwnProperty;e.exports=r},{}],handle:[function(t,e,n){function r(t,e,n,r){i.buffer([t],r),i.emit(t,e,n)}var i=t("ee").get("handle");e.exports=r,r.ee=i},{}],id:[function(t,e,n){function r(t){var e=typeof t;return!t||"object"!==e&&"function"!==e?-1:t===window?0:a(t,o,function(){return i++})}var i=1,o="nr@id",a=t("gos");e.exports=r},{}],loader:[function(t,e,n){function r(){if(!M++){var t=T.info=NREUM.info,e=m.getElementsByTagName("script")[0];if(setTimeout(u.abort,3e4),!(t&&t.licenseKey&&t.applicationID&&e))return u.abort();f(x,function(e,n){t[e]||(t[e]=n)});var n=a();c("mark",["onload",n+T.offset],null,"api"),c("timing",["load",n]);var r=m.createElement("script");0===t.agent.indexOf("http://")||0===t.agent.indexOf("https://")?r.src=t.agent:r.src=l+"://"+t.agent,e.parentNode.insertBefore(r,e)}}function i(){"complete"===m.readyState&&o()}function o(){c("mark",["domContent",a()+T.offset],null,"api")}var a=t(5),c=t("handle"),f=t(9),u=t("ee"),s=t(7),d=t(2),p=t(3),l=d.getConfiguration("ssl")===!1?"http":"https",v=window,m=v.document,g="addEventListener",y="attachEvent",h=v.XMLHttpRequest,w=h&&h.prototype,b=!1;NREUM.o={ST:setTimeout,SI:v.setImmediate,CT:clearTimeout,XHR:h,REQ:v.Request,EV:v.Event,PR:v.Promise,MO:v.MutationObserver};var E=""+location,x={beacon:"bam.nr-data.net",errorBeacon:"bam.nr-data.net",agent:"js-agent.newrelic.com/nr-1216.min.js"},O=h&&w&&w[g]&&!/CriOS/.test(navigator.userAgent),T=e.exports={offset:a.getLastTimestamp(),now:a,origin:E,features:{},xhrWrappable:O,userAgent:s,disabled:b};if(!b){t(1),t(6),m[g]?(m[g]("DOMContentLoaded",o,p(!1)),v[g]("load",r,p(!1))):(m[y]("onreadystatechange",i),v[y]("onload",r)),c("mark",["firstbyte",a.getLastTimestamp()],null,"api");var M=0}},{}],"wrap-function":[function(t,e,n){function r(t,e){function n(e,n,r,f,u){function nrWrapper(){var o,a,s,p;try{a=this,o=d(arguments),s="function"==typeof r?r(o,a):r||{}}catch(l){i([l,"",[o,a,f],s],t)}c(n+"start",[o,a,f],s,u);try{return p=e.apply(a,o)}catch(v){throw c(n+"err",[o,a,v],s,u),v}finally{c(n+"end",[o,a,p],s,u)}}return a(e)?e:(n||(n=""),nrWrapper[p]=e,o(e,nrWrapper,t),nrWrapper)}function r(t,e,r,i,o){r||(r="");var c,f,u,s="-"===r.charAt(0);for(u=0;u<e.length;u++)f=e[u],c=t[f],a(c)||(t[f]=n(c,s?f+r:r,i,f,o))}function c(n,r,o,a){if(!v||e){var c=v;v=!0;try{t.emit(n,r,o,e,a)}catch(f){i([f,n,r,o],t)}v=c}}return t||(t=s),n.inPlace=r,n.flag=p,n}function i(t,e){e||(e=s);try{e.emit("internal-error",t)}catch(n){}}function o(t,e,n){if(Object.defineProperty&&Object.keys)try{var r=Object.keys(t);return r.forEach(function(n){Object.defineProperty(e,n,{get:function(){return t[n]},set:function(e){return t[n]=e,e}})}),e}catch(o){i([o],n)}for(var a in t)l.call(t,a)&&(e[a]=t[a]);return e}function a(t){return!(t&&t instanceof Function&&t.apply&&!t[p])}function c(t,e){var n=e(t);return n[p]=t,o(t,n,s),n}function f(t,e,n){var r=t[e];t[e]=c(r,n)}function u(){for(var t=arguments.length,e=new Array(t),n=0;n<t;++n)e[n]=arguments[n];return e}var s=t("ee"),d=t(10),p="nr@original",l=Object.prototype.hasOwnProperty,v=!1;e.exports=r,e.exports.wrapFunction=c,e.exports.wrapInPlace=f,e.exports.argsToArray=u},{}]},{},["loader"]);
+  </script>
+  <meta content="Twostroke AL 24 Kids Mountain Bike" name="title"/>
+  <meta content="A lightweight aluminium frame, with a premium durable powder coating and a dedicated geometry to smaller riders. Featuring 24” wheels, an 8-speed SRAM groupset and TEKTRO brakes, with tailored ergonomics for a confidence inspired ride. Simple. Functional." name="description"/>
+  <meta content="INDEX,FOLLOW" name="robots"/>
+  <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+  <meta content="telephone=no" name="format-detection"/>
+  <title>
+   Twostroke AL 24 Kids Mountain Bike
+  </title>
+  <link href="https://www.bmc-switzerland.com/static/version1658770636/_cache/merged/a9195e94b471060041908c1b30b2eec4.min.css" media="all" rel="stylesheet" type="text/css"/>
+  <link href="https://www.bmc-switzerland.com/static/version1658770636/frontend/BMC/makeover/en_US/Anowave_Ec/css/ec.min.css" media="all" rel="stylesheet" type="text/css"/>
+  <link href="https://www.bmc-switzerland.com/static/version1658770636/frontend/BMC/makeover/en_US/css/styles-l.min.css" media="screen and (min-width: 768px)" rel="stylesheet" type="text/css"/>
+  <link href="https://www.bmc-switzerland.com/static/version1658770636/frontend/BMC/makeover/en_US/css/print.min.css" media="print" rel="stylesheet" type="text/css"/>
+  <link href="https://www.bmc-switzerland.com/static/version1658770636/frontend/BMC/makeover/en_US/BMC_Makeover_Frontend/css/main.css" rel="stylesheet" type="text/css"/>
+  <script src="https://www.bmc-switzerland.com/static/version1658770636/_cache/merged/9f3c2d0312dbda5cbdbbaa79c46bb61c.min.js" type="text/javascript">
+  </script>
+  <script defer="" src="https://www.bmc-switzerland.com/static/version1658770636/frontend/BMC/makeover/en_US/BMC_Makeover_Frontend/js/main.js" type="text/javascript">
+  </script>
+  <link as="font" crossorigin="anonymous" href="https://www.bmc-switzerland.com/static/version1658770636/frontend/BMC/makeover/en_US/fonts/MessinaSans/MessinaSans-Bold.woff" rel="preload"/>
+  <link as="font" crossorigin="anonymous" href="https://www.bmc-switzerland.com/static/version1658770636/frontend/BMC/makeover/en_US/fonts/MessinaSans/MessinaSans-Regular.woff" rel="preload"/>
+  <link as="font" crossorigin="anonymous" href="https://www.bmc-switzerland.com/static/version1658770636/frontend/BMC/makeover/en_US/fonts/MessinaSans/MessinaSans-Bold.woff2" rel="preload"/>
+  <link as="font" crossorigin="anonymous" href="https://www.bmc-switzerland.com/static/version1658770636/frontend/BMC/makeover/en_US/fonts/MessinaSans/MessinaSans-Regular.woff2" rel="preload"/>
+  <link href="https://www.bmc-switzerland.com/intl_en/twostroke-al-24.html" rel="canonical"/>
+  <link href="https://www.bmc-switzerland.com/media/favicon/default/Screenshot_2018-10-31_at_09.53.38.png" rel="icon" type="image/x-icon"/>
+  <link href="https://www.bmc-switzerland.com/media/favicon/default/Screenshot_2018-10-31_at_09.53.38.png" rel="shortcut icon" type="image/x-icon"/>
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-17292392-31">
+  </script>
+  <script>
+   window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+ 
+  gtag('config', 'UA-17292392-31');
+  </script>
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async="" src="https://www.googletagmanager.com/gtag/js?id=UA-17292392-1">
+  </script>
+  <script>
+   window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-17292392-1');
+  </script>
+  <!-- Facebook Pixel Code -->
+  <script>
+   !function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window,document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+ 
+fbq('init', '352937992073964'); 
+fbq('track', 'PageView');
+  </script>
+  <noscript>
+   <img height="1" src="https://www.facebook.com/tr?id=352937992073964&amp;ev=PageView
+&amp;noscript=1" width="1"/>
+  </noscript>
+  <!--— End Facebook Pixel Code ---->
+  <!-- Global site tag (gtag.js) - Google Ads: 807814183 -->
+  <script async="" src="https://www.googletagmanager.com/gtag/js?id=AW-807814183">
+  </script>
+  <script>
+   window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'AW-807814183');
+  </script>
+  <script type="text/x-magento-init">
+   {
+            "*": {
+                "Magento_PageCache/js/form-key-provider": {}
+            }
+        }
+  </script>
+  <style>
+   .ec-gtm-cookie-directive > div { background: #ffffff; color: #000000 } .ec-gtm-cookie-directive > div > div > div a.action.accept { color: #8bc53f } .ec-gtm-cookie-directive > div > div > div .ec-gtm-cookie-directive-note-toggle { color: #8bc53f } .ec-gtm-cookie-directive-segments > div input[type="checkbox"] + label:before { border:1px solid #000000 }
+  </style>
+  <script data-ommit="true">
+   /**
+	 * Magento 2 Google Tag Manager Enhanced Ecommerce (UA) Tracking
+	 *
+	 * @version 101.5.0	
+	 * @author Anowave
+	 * @see http://www.anowave.com/marketplace/magento-2-extensions/magento-2-google-tag-manager-enhanced-ecommerce-ua-tracking/
+	 * @copyright 2022 Anowave
+	 */
+
+	window.dataLayer = window.dataLayer || [];
+
+	 window.AEC = window.AEC || {};
+
+	 AEC.Const = 
+	{
+		TIMING_CATEGORY_ADD_TO_CART:		'Add To Cart Time',
+		TIMING_CATEGORY_REMOVE_FROM_CART:	'Remove From Cart Time',
+		TIMING_CATEGORY_PRODUCT_CLICK:		'Product Detail Click Time',
+		TIMING_CATEGORY_CHECKOUT:			'Checkout Time',
+		TIMING_CATEGORY_CHECKOUT_STEP:		'Checkout Step Time',
+		TIMING_CATEGORY_PRODUCT_WISHLIST:	'Add to Wishlist Time',
+		TIMING_CATEGORY_PRODUCT_COMPARE:	'Add to Compare Time'
+	};
+
+	AEC.Const.URL 					= 'https://www.bmc-switzerland.com/intl_en/';
+	AEC.Const.VARIANT_DELIMITER 	= '-';
+	AEC.Const.VARIANT_DELIMITER_ATT = ':';
+
+	 AEC.Const.CHECKOUT_STEP_SHIPPING 	= 1;
+	AEC.Const.CHECKOUT_STEP_PAYMENT  	= 2;
+	AEC.Const.CHECKOUT_STEP_ORDER  		= 3;
+
+	 AEC.Const.DIMENSION_SEARCH = 18;
+
+	 AEC.Const.COOKIE_DIRECTIVE 								= false;
+	AEC.Const.COOKIE_DIRECTIVE_CONSENT_GRANTED  			= false;
+	AEC.Const.COOKIE_DIRECTIVE_SEGMENT_MODE 				= false;
+	AEC.Const.COOKIE_DIRECTIVE_SEGMENT_MODE_EVENTS			= ["cookieConsentGranted"];	
+	AEC.Const.COOKIE_DIRECTIVE_CONSENT_GRANTED_EVENT 		= "cookieConsentGranted";
+	AEC.Const.COOKIE_DIRECTIVE_CONSENT_DECLINE_EVENT 		= "cookieConsentDeclined";
+
+	 AEC.Const.CATALOG_CATEGORY_ADD_TO_CART_REDIRECT_EVENT 	= "catalogCategoryAddToCartRedirect";
+
+	 AEC.Message = 
+	{
+		confirm: 			 true,
+		confirmRemoveTitle:  "Are you sure?",
+		confirmRemove: 		 "Are you sure you would like to remove this item from the shopping cart?"	};
+			
+	AEC.storeName 			= "English";
+	AEC.currencyCode	 	= "EUR";
+	AEC.useDefaultValues 	= false;
+	AEC.facebook 			= false;
+	AEC.facebookInitParams 	= [];
+	AEC.eventCallback		= false;
+
+	 AEC.SUPER = [{"id":"244","label":"Color","code":"color","options":[{"value_index":"5922","label":"GREY \/ BLACK","product_super_attribute_id":"41576","default_label":"GREY \/ BLACK","store_label":"GREY \/ BLACK","use_default_value":true},{"value_index":"6060","label":"RED GREY","product_super_attribute_id":"41576","default_label":"RED GREY","store_label":"RED GREY","use_default_value":true}]}];
+
+	 AEC.CONFIGURABLE_SIMPLES = {"13107":{"id":"30001128","name":"Twostroke AL 24 - GREY \/ BLACK","price":"0.000000"},"13110":{"id":"30001129","name":"Twostroke AL 24 - RED \/ GREY","price":"0.000000"}};
+
+	 AEC.BUNDLE = {"bundles":[],"options":[]};
+
+	 AEC.localStorage = true;
+
+	 AEC.summary = false;
+  </script>
+  <script data-ommit="true">
+   (summary => 
+    {
+    	if (summary)
+    	{
+        	let getSummary = (event) => 
+        	{
+            	AEC.Request.post("https:\/\/www.bmc-switzerland.com\/intl_en\/datalayer\/index\/cart\/",{ event:event }, (response) => 
+            	{
+                	dataLayer.push(response);
+               	});
+            };
+
+            ['ec.cookie.remove.item.data','ec.cookie.update.item.data','ec.cookie.add.data'].forEach(event => 
+            {
+            	AEC.EventDispatcher.on(event, (event => 
+            	{
+                	return () => 
+                	{
+                    	setTimeout(() => { getSummary(event); }, 2000);
+                    };
+                })(event));
+            });
+    	}
+    })(AEC.summary);
+  </script>
+  <script data-ommit="true">
+   /**
+ 	 * Define dataLayer[] object
+	 */
+	window.dataLayer = window.dataLayer || [];
+
+	/**
+	 * Define transport layer to use as fallback in case of Ad-Blockers
+	 * 
+	 * @copyright Anowave
+	 */
+	var dataLayerTransport = (function()
+	{
+		var data = [];
+		
+		return {
+			data:[],
+			push: function(data)
+			{
+				this.data.push(data);
+				
+				return this;
+			},
+			serialize: function()
+			{
+				return this.data;
+			}
+		}	
+	})();
+  </script>
+  <script data-ommit="true">
+   var EC = [];
+
+	/* Dynamic remarketing */
+	window.google_tag_params = window.google_tag_params || {};
+
+	/* Default pagetype */
+	window.google_tag_params.ecomm_pagetype = 'product';
+
+	/* Grouped products collection */
+	window.G = [];
+
+	/**
+	 * Global revenue 
+	 */
+	window.revenue = 0;
+
+	/**
+	 * DoubleClick
+	 */
+	window.DoubleClick = 
+	{
+		DoubleClickRevenue:	 	0,
+		DoubleClickTransaction: 0,
+		DoubleClickQuantity: 	0
+	};
+	
+	 AEC.Cookie.visitor({"visitorLoginState":"Logged out","visitorLifetimeValue":0,"visitorExistingCustomer":"No","visitorType":"NOT LOGGED IN","currentStore":"English"}).push(dataLayer, false);
+
+	 dataLayer.push({ pageType: "product"});
+  </script>
+  <script data-ommit="true">
+   window.google_tag_params.ecomm_pagetype 	= 'product';
+		window.google_tag_params.ecomm_category 	= 'BMC/Mountain/Kids/Twostroke Kids';
+		window.google_tag_params.ecomm_prodid		= 'BMC-22-10516-009';
+		window.google_tag_params.ecomm_totalvalue 	=  0;
+		window.google_tag_params.returnCustomer 	=  false;
+
+		  AEC.Cookie.detail({"ecommerce":{"currencyCode":"EUR","detail":{"products":[{"id":"BMC-22-10516-009","name":"Twostroke AL | 24","price":0,"brand":"BMC","category":"BMC\/Mountain\/Kids\/Twostroke Kids","dimension10":"In stock","quantity":1}]},"impressions":[{"list":"Related products","category":"Related products","id":"BMC-22-10516-010","name":"Twostroke AL | 20","brand":"BMC","price":0,"position":1},{"list":"Related products","category":"Related products","id":"BMC-22-10516-007","name":"Twostroke AL | FIVE","brand":"BMC","price":0,"position":2},{"list":"Related products","category":"Related products","id":"BMC-22-10516-006","name":"Twostroke AL | FOUR","brand":"BMC","price":0,"position":3},{"list":"Related products","category":"Related products","id":"BMC-22-10516-008","name":"Twostroke AL | SIX","brand":"BMC","price":0,"position":4}]},"currentStore":"English"}).push(dataLayer, false);
+
+		 dataLayerTransport.push({"ecommerce":{"currencyCode":"EUR","detail":{"products":[{"id":"BMC-22-10516-009","name":"Twostroke AL | 24","price":0,"brand":"BMC","category":"BMC\/Mountain\/Kids\/Twostroke Kids","dimension10":"In stock","quantity":1}]},"impressions":[{"list":"Related products","category":"Related products","id":"BMC-22-10516-010","name":"Twostroke AL | 20","brand":"BMC","price":0,"position":1},{"list":"Related products","category":"Related products","id":"BMC-22-10516-007","name":"Twostroke AL | FIVE","brand":"BMC","price":0,"position":2},{"list":"Related products","category":"Related products","id":"BMC-22-10516-006","name":"Twostroke AL | FOUR","brand":"BMC","price":0,"position":3},{"list":"Related products","category":"Related products","id":"BMC-22-10516-008","name":"Twostroke AL | SIX","brand":"BMC","price":0,"position":4}]},"currentStore":"English"});
+		
+		 window.G = [];
+  </script>
+  <!-- Google Tag Manager -->
+  <script>
+   (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-5TWV6RQ');
+  </script>
+  <!-- End Google Tag Manager -->
+  <script data-ommit="true">
+  </script>
+  <script data-ommit="true">
+   AEC.Bind.apply({"performance":false})
+  </script>
+  <meta content="product" property="og:type"/>
+  <meta content="Twostroke AL | 24" property="og:title"/>
+  <meta content="https://www.bmc-switzerland.com/media/catalog/product/cache/54c95b517a1ef415a769a6d8619d92a2/b/m/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png" property="og:image"/>
+  <meta content="A lightweight aluminium frame, with a premium durable powder coating and a dedicated geometry to smaller riders. Featuring 24” wheels, an 8-speed SRAM groupset and TEKTRO brakes, with tailored ergonomics for a confidence inspired ride. Simple. Functional. Fun." property="og:description"/>
+  <meta content="https://www.bmc-switzerland.com/intl_en/twostroke-al-24.html" property="og:url"/>
+  <meta content="0" property="product:price:amount"/>
+  <meta content="EUR" property="product:price:currency"/>
+ </head>
+ <body class="makeover-body page-product-configurable catalog-product-view product-twostroke-al-24 page-layout-empty" data-container="body" data-mage-init='{"loaderAjax": {}, "loader": { "icon": "https://www.bmc-switzerland.com/static/version1658770636/frontend/BMC/makeover/en_US/images/loader-2.gif"}}' id="html-body" itemscope="itemscope" itemtype="http://schema.org/Product">
+  <script type="text/x-magento-init">
+   {
+        "*": {
+            "Magento_PageBuilder/js/widget-initializer": {
+                "config": {"[data-content-type=\"slider\"][data-appearance=\"default\"]":{"Magento_PageBuilder\/js\/content-type\/slider\/appearance\/default\/widget":false},"[data-content-type=\"map\"]":{"Magento_PageBuilder\/js\/content-type\/map\/appearance\/default\/widget":false},"[data-content-type=\"row\"]":{"Magento_PageBuilder\/js\/content-type\/row\/appearance\/default\/widget":false},"[data-content-type=\"tabs\"]":{"Magento_PageBuilder\/js\/content-type\/tabs\/appearance\/default\/widget":false},"[data-content-type=\"slide\"]":{"Magento_PageBuilder\/js\/content-type\/slide\/appearance\/default\/widget":{"buttonSelector":".pagebuilder-slide-button","showOverlay":"hover","dataRole":"slide"}},"[data-content-type=\"banner\"]":{"Magento_PageBuilder\/js\/content-type\/banner\/appearance\/default\/widget":{"buttonSelector":".pagebuilder-banner-button","showOverlay":"hover","dataRole":"banner"}},"[data-content-type=\"buttons\"]":{"Magento_PageBuilder\/js\/content-type\/buttons\/appearance\/inline\/widget":false},"[data-content-type=\"products\"][data-appearance=\"carousel\"]":{"Magento_PageBuilder\/js\/content-type\/products\/appearance\/carousel\/widget":false},"[data-content-type=\"dotdigitalgroup_form\"]":{"Dotdigitalgroup_Enterprise\/js\/content-type\/dotdigitalgroup-form\/appearance\/default\/widget":false},"[data-content-type=\"n98-pb-accordion\"]":{"N98_PbAccordion\/js\/content-type\/n98-pb-accordion\/appearance\/default\/widget":false}},
+                "breakpoints": {"desktop":{"label":"Desktop","stage":true,"default":true,"class":"desktop-switcher","icon":"Magento_PageBuilder::css\/images\/switcher\/switcher-desktop.svg","conditions":{"min-width":"1024px"},"options":{"products":{"default":{"slidesToShow":"5"}}}},"tablet":{"conditions":{"max-width":"1024px","min-width":"768px"},"options":{"products":{"default":{"slidesToShow":"4"},"continuous":{"slidesToShow":"3"}}}},"mobile":{"label":"Mobile","stage":true,"class":"mobile-switcher","icon":"Magento_PageBuilder::css\/images\/switcher\/switcher-mobile.svg","media":"only screen and (max-width: 768px)","conditions":{"max-width":"768px","min-width":"640px"},"options":{"products":{"default":{"slidesToShow":"3"}}}},"mobile-small":{"conditions":{"max-width":"640px"},"options":{"products":{"default":{"slidesToShow":"2"},"continuous":{"slidesToShow":"1"}}}}}            }
+        }
+    }
+  </script>
+  <div class="cookie-status-message" id="cookie-status">
+   The store will not work correctly in the case when cookies are disabled.
+  </div>
+  <script type="text/x-magento-init">
+   {
+        "*": {
+            "cookieStatus": {}
+        }
+    }
+  </script>
+  <script type="text/x-magento-init">
+   {
+        "*": {
+            "mage/cookies": {
+                "expires": null,
+                "path": "\u002F",
+                "domain": ".www.bmc\u002Dswitzerland.com",
+                "secure": false,
+                "lifetime": "3600"
+            }
+        }
+    }
+  </script>
+  <noscript>
+   <div class="message global noscript">
+    <div class="content">
+     <p>
+      <strong>
+       JavaScript seems to be disabled in your browser.
+      </strong>
+      <span>
+       For the best experience on our site, be sure to turn on Javascript in your browser.
+      </span>
+     </p>
+    </div>
+   </div>
+  </noscript>
+  <script>
+   require.config({
+        map: {
+            '*': {
+                wysiwygAdapter: 'mage/adminhtml/wysiwyg/tiny_mce/tinymce4Adapter'
+            }
+        }
+    });
+  </script>
+  <!-- ko scope: 'company' -->
+  <div class="message company-warning _hidden" data-bind="css: { _hidden: !isCompanyBlocked() }">
+   <span>
+    <!-- ko i18n: 'Your company account is blocked and you cannot place orders. If you have questions, please contact your company administrator.' -->
+    <!-- /ko -->
+   </span>
+  </div>
+  <!-- /ko -->
+  <script type="text/x-magento-init">
+   {
+        "*": {
+            "Magento_Ui/js/core/app": {
+                "components": {
+                    "company": {
+                        "component": "Magento_Company/js/view/company",
+                        "logoutUrl": "https://www.bmc-switzerland.com/intl_en/customer/account/logout/"
+                    }
+                }
+            }
+        }
+    }
+  </script>
+  <style>
+   @media only screen and (min-width: 600px) { .table-parent { display:table; } .tbl-row { display:table-row; } .tbl-cell-left { display:table-cell; float:left; width: 80%; } .tbl-cell-right { display:table-cell; float:right; } }
+  </style>
+  <div class="message global cookie" id="notice-cookie-block" role="alertdialog" style="display: none;background-color:rgb(246,246,246,0.9);z-index:999;" tabindex="-1">
+   <div class="table-parent">
+    <div class="tbl-row">
+     <div class="content" role="document" tabindex="0">
+      <div class="tbl-cell-left">
+       <h3>
+        <strong>
+         We use cookies to make your experience better.
+        </strong>
+        <span>
+         To comply with the new e-Privacy directive, we need to ask for your consent to set the cookies.
+        </span>
+        <a href="https://www.bmc-switzerland.com/intl_en/privacy-policy-cookie-restriction-mode/">
+         Learn more
+        </a>
+        .
+       </h3>
+      </div>
+      <div class="actions tbl-cell-right">
+       <button class="action allow primary" id="btn-cookie-allow">
+        <span>
+         Allow Cookies
+        </span>
+       </button>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script type="text/x-magento-init">
+   {
+            "#notice-cookie-block": {
+                "cookieNotices": {
+                    "cookieAllowButtonSelector": "#btn-cookie-allow",
+                    "cookieName": "user_allowed_save_cookie",
+                    "cookieValue": {"1":1},
+                    "cookieLifetime": 31536000,
+                    "noCookiesUrl": "https\u003A\u002F\u002Fwww.bmc\u002Dswitzerland.com\u002Fintl_en\u002Fcookie\u002Findex\u002FnoCookies\u002F"
+                }
+            }
+        }
+  </script>
+  <script>
+   window.cookiesConfig = window.cookiesConfig || {}; window.cookiesConfig.secure = true;
+  </script>
+  <script>
+   require.config({
+        paths: {
+            googleMaps: 'https\u003A\u002F\u002Fmaps.googleapis.com\u002Fmaps\u002Fapi\u002Fjs\u003Fv\u003D3\u0026key\u003DAIzaSyBVy1MKqvRpVRO0n__RGCszOXpR9gYrZLk'
+        },
+        config: {
+            'Magento_PageBuilder/js/utils/map': {
+                style: ''
+            },
+            'Magento_PageBuilder/js/content-type/map/preview': {
+                apiKey: 'AIzaSyBVy1MKqvRpVRO0n__RGCszOXpR9gYrZLk',
+                apiKeyErrorMessage: 'You\u0020must\u0020provide\u0020a\u0020valid\u0020\u003Ca\u0020href\u003D\u0027https\u003A\u002F\u002Fwww.bmc\u002Dswitzerland.com\u002Fintl_en\u002Fadminhtml\u002Fsystem_config\u002Fedit\u002Fsection\u002Fcms\u002F\u0023cms_pagebuilder\u0027\u0020target\u003D\u0027_blank\u0027\u003EGoogle\u0020Maps\u0020API\u0020key\u003C\u002Fa\u003E\u0020to\u0020use\u0020a\u0020map.'
+            },
+            'Magento_PageBuilder/js/form/element/map': {
+                apiKey: 'AIzaSyBVy1MKqvRpVRO0n__RGCszOXpR9gYrZLk',
+                apiKeyErrorMessage: 'You\u0020must\u0020provide\u0020a\u0020valid\u0020\u003Ca\u0020href\u003D\u0027https\u003A\u002F\u002Fwww.bmc\u002Dswitzerland.com\u002Fintl_en\u002Fadminhtml\u002Fsystem_config\u002Fedit\u002Fsection\u002Fcms\u002F\u0023cms_pagebuilder\u0027\u0020target\u003D\u0027_blank\u0027\u003EGoogle\u0020Maps\u0020API\u0020key\u003C\u002Fa\u003E\u0020to\u0020use\u0020a\u0020map.'
+            },
+        }
+    });
+  </script>
+  <script>
+   require.config({
+        shim: {
+            'Magento_PageBuilder/js/utils/map': {
+                deps: ['googleMaps']
+            }
+        }
+    });
+  </script>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript>
+   <iframe height="0" src="https://www.googletagmanager.com/ns.html?id=GTM-5TWV6RQ" style="display:none;visibility:hidden" width="0">
+   </iframe>
+  </noscript>
+  <!-- End Google Tag Manager (noscript) -->
+  <script type="text/javascript">
+   /**
+     * Polyfill for Array.fill
+     *
+     * Chrome: 45, Edge: 12, Firefox: 31, IE: N/A, Opera: 21, Safari: 7.1
+     *
+     * @param {Number} value
+     *
+     * @return {Array}
+     */
+    Array.prototype.fill = Array.prototype.fill || function (value) {
+        if (this == null) {
+            throw new TypeError('this is null or not defined')
+        }
+
+        var O = Object(this)
+        var len = O.length >>> 0
+        var start = arguments[1]
+        var relativeStart = start >> 0
+        var k = relativeStart < 0 ? Math.max(len + relativeStart, 0) : Math.min(relativeStart, len)
+        var end = arguments[2]
+        var relativeEnd = end === undefined ? len : end >> 0
+        var final = relativeEnd < 0 ? Math.max(len + relativeEnd, 0) : Math.min(relativeEnd, len)
+
+        while (k < final) {
+            O[k] = value
+            k++
+        }
+
+        return O
+    }
+
+    /**
+     * Polyfill for Array.from
+     *
+     * Chrome: 45, Edge: 12, Firefox: 32, IE: N/A, Opera: 21, Safari: 9
+     *
+     * @param {Iterable} arrayLike
+     *
+     * @return {Array}
+     */
+    Array.from = Array.from || (function () {
+        var toStr = Object.prototype.toString;
+        var isCallable = function (fn) {
+            return typeof fn === 'function' || toStr.call(fn) === '[object Function]';
+        };
+        var toInteger = function (value) {
+            var number = Number(value);
+            if (isNaN(number)) { return 0; }
+            if (number === 0 || !isFinite(number)) { return number; }
+            return (number > 0 ? 1 : -1) * Math.floor(Math.abs(number));
+        };
+        var maxSafeInteger = Math.pow(2, 53) - 1;
+        var toLength = function (value) {
+            var len = toInteger(value);
+            return Math.min(Math.max(len, 0), maxSafeInteger);
+        };
+
+        
+        return function from(arrayLike/*, mapFn, thisArg */) {
+            
+            var C = this;
+
+            
+            var items = Object(arrayLike);
+
+            
+            if (arrayLike == null) {
+                throw new TypeError('Array.from requires an array-like object - not null or undefined');
+            }
+
+            
+            var mapFn = arguments.length > 1 ? arguments[1] : void undefined;
+            var T;
+            if (typeof mapFn !== 'undefined') {
+                
+                
+                if (!isCallable(mapFn)) {
+                    throw new TypeError('Array.from: when provided, the second argument must be a function');
+                }
+
+                
+                if (arguments.length > 2) {
+                    T = arguments[2];
+                }
+            }
+
+            
+            
+            var len = toLength(items.length);
+
+            
+            
+            
+            
+            var A = isCallable(C) ? Object(new C(len)) : new Array(len);
+
+            
+            var k = 0;
+            
+            var kValue;
+            while (k < len) {
+                kValue = items[k];
+                if (mapFn) {
+                    A[k] = typeof T === 'undefined' ? mapFn(kValue, k) : mapFn.call(T, kValue, k);
+                } else {
+                    A[k] = kValue;
+                }
+                k += 1;
+            }
+            
+            A.length = len;
+            
+            return A;
+        };
+    }());
+
+    /**
+     * Monkeypatch for Ruby's Number.times
+     *
+     * Chrome: N/A, Edge: N/A, Firefox: N/A, IE: N/A, Opera: N/A, Safari: N/A
+     *
+     * @param {Function} f
+     *
+     * @return {Array}
+     */
+    Number.prototype.times = Number.prototype.times || function (f) {
+        return Array(this.valueOf()).fill().map(function (_, i) { return f(i) })
+    }
+
+    /**
+     * Polyfill for Element.matches to provide IE support
+     *
+     * Chrome: 34, Edge: 12, Firefox: 34, IE: N/A, Opera: 21, Safari: 7.1
+     *
+     * @param {string} selector
+     *
+     * @return {boolean}
+     */
+    Element.prototype.matches = Element.prototype.matches || function (selector) {
+        var fn =
+            this.matchesSelector ||
+            this.msMatchesSelector ||
+            this.mozMatchesSelector ||
+            this.webkitMatchesSelector ||
+            this.oMatchesSelector
+
+        return fn.call(this, selector)
+    }
+
+    /**
+     * Polyfill for Element.closest to provide IE support
+     *
+     * Chrome: 41, Edge: 15, Firefox: 35, IE: N/A, Opera: 28, Safari: 9
+     *
+     * @param {string} selector
+     * @param {string} stopSelector
+     *
+     * @return {Element|null}
+     */
+    Element.prototype.closest = Element.prototype.closest || function (selector, stopSelector) {
+        var el = this
+
+        while (el) {
+            if (el.matches(selector)) {
+                return el
+            }
+
+            if (stopSelector && el.matches(stopSelector)) {
+                return
+            }
+
+            el = el.parentElement
+        }
+    }
+
+    /**
+     * Polyfill NodeList.foreach in IE
+     *
+     * Chrome: 51, Edge: N/A, Firefox: 50, IE: N/A, Opera: 38, Safari: 10
+     *
+     * @param {Function} cb
+     * @param {Function} thisArg
+     *
+     * @return {void}
+     */
+    NodeList.prototype.forEach = NodeList.prototype.forEach || function (cb, thisArg) {
+        return Array.prototype.forEach.call(this, cb, thisArg)
+    }
+
+    /**
+     * Polyfill for DOMTokenList.forEach in IE
+     *
+     * @param {Function} cb
+     * @param {Function} thisArg
+     *
+     * @return {void}
+     */
+    DOMTokenList.prototype.forEach = DOMTokenList.prototype.forEach || function (cb, thisArg) {
+        return Array.prototype.forEach.call(this, cb, thisArg)
+    }
+  </script>
+  <script type="text/x-magento-init">
+   {
+        "*": {
+            "image-lazy-loader": {},
+            "minicart": {},
+            "object-fit-images": {}
+        },
+        ".form": {
+            "forms": {}
+        },
+        ".messages": {
+            "messages": {}
+        }
+    }
+  </script>
+  <meta content="intl_en" name="store-code"/>
+  <div class="content-area">
+   <div data-component="StoreSwitcher" data-habitat-class="sticky-passthrough" data-props='{"stores":[{"code":"bmc","label":"BMC","link":"https:\/\/www.bmc-switzerland.com\/intl_en\/"},{"code":"adicta","label":"ADICTA LAB","link":"https:\/\/www.bmc-switzerland.com\/intl_en\/adicta-lab"}],"activeCode":"bmc"}'>
+   </div>
+   <div data-component="Makeover_PageHeader" data-habitat-class="sticky-navigation-header" data-prop-cart-url="https://www.bmc-switzerland.com/intl_en/checkout/cart/" data-prop-currency-switcher="1" data-prop-ecommerce="" data-prop-home-url="https://www.bmc-switzerland.com/intl_en/" data-prop-login-url="https://www.bmc-switzerland.com/intl_en/customer/account/login/" data-prop-navigation='{"main":[{"id":"main.road","name":"Road","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/road","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-01-road.jpg","children":[{"id":"1915","name":"Altitude","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/road\/altitude.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-02-road-altitude.jpg","children":[{"id":"1918","name":"Teammachine SLR","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/road\/altitude\/teammachine-slr.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/b\/m\/bmc-22-10611-009-bmc-teammachine-slr-five-road-bike-red-01.png"},{"id":"1921","name":"Teammachine ALR","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/road\/altitude\/teammachine-alr.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/b\/m\/bmc-22-10602-002-bmc-teammachine-alr-one-road-bike-petrol-0.png"}]},{"id":"1903","name":"Endurance","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/road\/endurance.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-03-road-endurance_1.jpg","children":[{"id":"1906","name":"Roadmachine","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/road\/endurance\/roadmachine.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/b\/m\/bmc-22-10604-007-bmc-roadmachine-01-five-road-bike-black-01.png"},{"id":"1909","name":"Roadmachine X","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/road\/endurance\/roadmachine-x.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/b\/m\/bmc-22-10607-003-bmc-roadmachine-x-al-one-road-bike-brown-01.png"},{"id":"1912","name":"Roadmachine AMP","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/road\/endurance\/roadmachine-amp.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/b\/m\/bmc-23-10303-005-roadmachine-amp-one-road-bike-petrol-01.jpg"}]},{"id":"1924","name":"Aero \/ Triathlon","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/road\/aero-triathlon.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-04-road-aero-triathlon.jpg","children":[{"id":"1927","name":"Timemachine Road","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/road\/aero-triathlon\/timemachine-road.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/b\/m\/bmc-22-10616-008-bmc-timemachine-road-01-mod-road-bike-black-01.png"},{"id":"1930","name":"Timemachine","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/road\/aero-triathlon\/timemachine.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/b\/m\/bmc-22-10613-006-bmc-timemachine-01-disc-frs-road-bike-green-01.png"}]},{"id":"1933","name":"Track","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/road\/track.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-05-road-track.jpg","children":[{"id":"1936","name":"Trackmachine","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/road\/track\/trackmachine.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/b\/m\/bmc-22-10617-001-bmc-trackmachine-01-frs-road-bike-black-01.png"}]}]},{"id":"main.gravel","name":"Gravel","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/gravel","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-06-gravel.jpg","children":[{"id":"1942","name":"Gravel","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/gravel\/gravel.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-07-gravel-gravel.jpg","children":[{"id":"1945","name":"URS","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/gravel\/gravel\/urs.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/b\/m\/bmc-22-10619-006-bmc-urs-01-one-gravel-bike-red-01.png"},{"id":"1948","name":"URS LT","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/gravel\/gravel\/urs-lt.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/b\/m\/bmc-22-10619-010-bmc-urs-lt-one-gravel-bike-yellow-01.png"}]}]},{"id":"main.mountain","name":"Mountain","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/mountain","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-08-mountain.jpg","children":[{"id":"1954","name":"Cross-Country","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/mountain\/cross-country.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-09-mountain-cross-country.jpg","children":[{"id":"1957","name":"Twostroke","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/mountain\/cross-country\/twostroke.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/b\/m\/bmc-22-10515-009-bmc-twostroke-01-five-mountain-bike-black-01.png"},{"id":"1960","name":"Fourstroke","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/mountain\/cross-country\/fourstroke.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/b\/m\/bmc-22-10503-008-bmc-fourstroke-01-one-mountain-bike-red-01.png"},{"id":"1963","name":"Fourstroke LT","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/mountain\/cross-country\/fourstroke-lt.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/b\/m\/bmc-22-10503-010-bmc-fourstroke-01-lt-one-mountain-bike-green-01.png"}]},{"id":"1966","name":"Trail","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/mountain\/trail.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-10-mountain-trail.jpg","children":[{"id":"1969","name":"Speedfox","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/mountain\/trail\/speedfox.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/b\/m\/bmc-22-10507-003-bmc-speedfox-al-one-mountain-bike-sand-01.png"}]},{"id":"1972","name":"Kids","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/mountain\/kids.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-11-mountain-kids.jpg","children":[{"id":"1975","name":"Twostroke Kids","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/mountain\/kids\/twostroke-kids.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/b\/m\/bmc-22-10516-010-bmc-twostroke-al-20-mountain-bike-green-01.png"}]}]},{"id":"main.active","name":"Active","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/active","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-12-active.jpg","children":[{"id":"2126","name":"Active","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/active\/active.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-13-active-active.jpg","children":[{"id":"1984","name":"Alpenchallenge","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/active\/active\/alpenchallenge.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/a\/l\/alpenchallenge_01_three_ocr_ocr_ocr.png"}]}]},{"id":"main.e-bike-amp","name":"E-Bike AMP","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/e-bike-amp.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-14-e-bike-amp.jpg","children":[{"id":"1993","name":"Endurance AMP","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/e-bike-amp\/endurance.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-14-e-bike-amp-endurance.jpg","children":[{"id":"1996","name":"Roadmachine AMP","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/e-bike-amp\/endurance\/roadmachine-amp.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/b\/m\/bmc-23-10303-005-roadmachine-amp-one-road-bike-petrol-01.jpg"}]}]},{"id":"main.masterpiece","name":"Masterpiece","url":"https:\/\/masterpiece.bmc-switzerland.com\/","image":""},{"id":"main.apparel","name":"Apparel","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/apparel.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-apparel.jpg","children":[{"id":"2171","name":"Clothing","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/apparel\/clothing.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-clothing.jpg"},{"id":"2168","name":"Accessories","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmc\/bmc\/apparel\/accessories.html","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/category\/navigation-bmc-01-accessories.jpg"}]}],"secondary":[{"id":"submenu.explore","name":"Explore","url":"","image":"","children":[{"id":"explore.inside_bmc","name":"Inside BMC","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/inside-bmc","image":"https:\/\/www.bmc-switzerland.com\/media\/\/cms\/page\/ps190716-5DIV-101701.jpg"},{"id":"explore.news_events","name":"News &amp; Events","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/newsandevents","image":"https:\/\/www.bmc-switzerland.com\/media\/\/cms\/page\/ps190718-5DIV-100050.jpg"},{"id":"explore.stories","name":"Stories","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/stories","image":"https:\/\/www.bmc-switzerland.com\/media\/\/cms\/page\/Story_Header.jpg"},{"id":"explore.racing-teams","name":"Teams &amp; Riders","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/teams-and-riders","image":"https:\/\/www.bmc-switzerland.com\/media\/\/cms\/page\/Teams_Header_Image_1_1.jpg"}]},{"id":"submenu.bike-reg","name":"Bike Registration","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/bmcbikeregistration\/index\/enquiry","image":""},{"id":"submenu.dealer-locator","name":"Shop Finder","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/dealer-locator","image":""}]}' data-prop-region-flag="https://www.bmc-switzerland.com/static/version1658770636/frontend/BMC/makeover/en_US/images/icons/flags/intl.svg" data-prop-search-form='{"searchURL":"https:\/\/www.bmc-switzerland.com\/intl_en\/catalogsearch\/result\/","translations":{"placeholder":"Search","submit":"Search","reset":"Reset"}}' data-prop-translations='{"changeLang":"Change language","cart":"My Cart","login":"Login","search":"Search","viewAll":"View All"}'>
+   </div>
+   <template id="currency-switcher-template">
+    <div class="switcher currency switcher-currency">
+     <div class="actions dropdown options switcher-options">
+      <div class="action toggle switcher-trigger" id="switcher-currency-trigger">
+       <strong class="language-CHF">
+        <span class="c_symb" style="font-size:13px;">
+         CHF
+        </span>
+        <div class="currency-code-div" style="font-size:12px;">
+         <span>
+          CHF
+         </span>
+        </div>
+       </strong>
+      </div>
+      <ul class="dropdown switcher-dropdown" data-target="dropdown">
+       <li class="currency-EUR switcher-option">
+        <a href="?currency=eur" value="eur">
+         <span class="c_symb">
+          €
+         </span>
+         EUR
+        </a>
+       </li>
+       <li class="currency-USD switcher-option">
+        <a href="?currency=usd" value="usd">
+         <span class="c_symb">
+          $
+         </span>
+         USD
+        </a>
+       </li>
+       <li class="currency-CAD switcher-option">
+        <a href="?currency=cad" value="cad">
+         <span class="c_symb">
+          CA$
+         </span>
+         CAD
+        </a>
+       </li>
+       <li class="currency-AUD switcher-option">
+        <a href="?currency=aud" value="aud">
+         <span class="c_symb">
+          A$
+         </span>
+         AUD
+        </a>
+       </li>
+       <li class="currency-SKA switcher-option">
+        <a href="?currency=sceur" value="sceur">
+         <span class="c_symb">
+          S€
+         </span>
+         SKA
+        </a>
+       </li>
+       <li class="currency-CHF switcher-option">
+        <a href="?currency=chf" value="chf">
+         <span class="c_symb">
+          CHF
+         </span>
+         CHF
+        </a>
+       </li>
+      </ul>
+     </div>
+    </div>
+   </template>
+   <script type="text/javascript">
+    window.addEventListener('DOMContentLoaded', function () {
+        const searchButton = document.querySelector("button.search");
+        const searchInput = document.getElementById('site-search');
+
+        searchButton.addEventListener('click', function () {
+            window.setTimeout(() => searchInput.focus(), 0);
+        });
+    })
+   </script>
+   <div data-component="Sticky_Link_Container" data-habitat-class="sticky-passthrough" data-prop-brand="makeover" data-prop-links='[{"text":"Support","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/purchase-guidance","icon":"chat"},{"text":"Shop Finder","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/dealer-locator","icon":"pin"}]'>
+   </div>
+   <main class="page-main" id="maincontent">
+    <div class="page messages">
+     <div data-placeholder="messages">
+     </div>
+     <div data-bind="scope: 'messages'">
+      <!-- ko if: cookieMessages && cookieMessages.length > 0 -->
+      <div aria-atomic="true" class="messages" data-bind="foreach: { data: cookieMessages, as: 'message' }" role="alert">
+       <div data-bind="attr: { class: 'message-' + message.type + ' ' + message.type + ' message', 'data-ui-id': 'message-' + message.type }">
+        <div data-bind="html: $parent.prepareMessageForHtml(message.text)">
+        </div>
+       </div>
+      </div>
+      <!-- /ko -->
+      <!-- ko if: messages().messages && messages().messages.length > 0 -->
+      <div aria-atomic="true" class="messages" data-bind="foreach: { data: messages().messages, as: 'message' }" role="alert">
+       <div data-bind="attr: { class: 'message-' + message.type + ' ' + message.type + ' message', 'data-ui-id': 'message-' + message.type }">
+        <div data-bind="html: $parent.prepareMessageForHtml(message.text)">
+        </div>
+       </div>
+      </div>
+      <!-- /ko -->
+     </div>
+     <script type="text/x-magento-init">
+      {
+        "*": {
+            "Magento_Ui/js/core/app": {
+                "components": {
+                        "messages": {
+                            "component": "Magento_Theme/js/view/messages"
+                        }
+                    }
+                }
+            }
+    }
+     </script>
+    </div>
+    <a id="contentarea" tabindex="-1">
+    </a>
+    <div class="columns">
+     <div class="column main">
+      <div class="breadcrumbs">
+       <ul class="items">
+        <li class="item home">
+         <a href="https://www.bmc-switzerland.com/intl_en/" title="Go to Home Page">
+          Home
+         </a>
+        </li>
+        <li class="item product">
+         <strong>
+          Twostroke AL | 24
+         </strong>
+        </li>
+       </ul>
+      </div>
+      <nav class="sticky-nav" data-mage-init='{ "sticky-nav": {} }'>
+       <ul class="sticky-nav__list">
+       </ul>
+      </nav>
+      <section class="page-title-block page-title-block--product">
+       <div class="page-title-block__container container">
+        <div class="page-title-block__content">
+         <h1 class="page-title-block__title">
+          <span class="product-title">
+           <h1 class="product-title__main">
+            Twostroke AL
+           </h1>
+           <h1 class="product-title__suffix">
+            24
+           </h1>
+          </span>
+         </h1>
+         <div class="product attribute overview">
+          <div class="value">
+           24" Wheels, 6-11 Years, 120-145cm
+           <br/>
+           Wide Range SRAM 1x8 Drivetrain, Ergonomic SDG Cockpit and Saddle
+           <br/>
+           High-Volume Kenda Booster 2.4” Tires
+          </div>
+         </div>
+         <div class="product-info-price-wrapper">
+          <!-- if ($product->isSaleable()): -->
+          <div class="product-info-price">
+           <div class="price-box price-final_price" data-role="priceBox">
+            <span class="normal-price">
+             <span class="price-container price-final_price tax weee" itemprop="offers" itemscope="" itemtype="http://schema.org/Offer">
+              <span class="price-wrapper" data-price-amount="799" data-price-type="finalPrice" id="product-price-15111">
+               <span class="price">
+                799.00CHF
+               </span>
+              </span>
+              <meta content="799" itemprop="price"/>
+              <meta content="CHF" itemprop="priceCurrency"/>
+             </span>
+             <details>
+              <summary style="display: list-item;text-transform:capitalize">
+               <b>
+                Other Currencies
+               </b>
+              </summary>
+              <span>
+               EURO €759
+              </span>
+              <br/>
+              <span>
+               CHF 799
+              </span>
+              <br/>
+              <span>
+               USD $759
+              </span>
+              <br/>
+              <span>
+               CAD C$1099
+              </span>
+              <br/>
+              <span>
+               AUD A$
+              </span>
+              <br/>
+              <span>
+               SCEuro €799
+              </span>
+              <br/>
+             </details>
+            </span>
+           </div>
+          </div>
+         </div>
+         <div class="product-info-main">
+          <script text="text/javascript">
+           require(['domReady!'], function () {
+    var _learnq = window._learnq || [];
+    _learnq.push(['track', 'Viewed Product', {"ProductID":"15111","Name":"Twostroke AL | 24","SKU":"BMC-22-10516-009","URL":"https:\/\/www.bmc-switzerland.com\/intl_en\/twostroke-al-24.html","Price":"0.00","FinalPrice":"0.00","Categories":["Twostroke AL 24","Twostroke Kids"],"ImageURL":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/54c95b517a1ef415a769a6d8619d92a2\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png"}]);
+    _learnq.push(['trackViewedItem', {"Title":"Twostroke AL | 24","ItemId":"15111","Url":"https:\/\/www.bmc-switzerland.com\/intl_en\/twostroke-al-24.html","Categories":["Twostroke AL 24","Twostroke Kids"],"Metadata":{"Price":"0.00"},"ImageURL":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/54c95b517a1ef415a769a6d8619d92a2\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png"}]);
+  });
+          </script>
+          <div class="product-add-form">
+           <form action="https://www.bmc-switzerland.com/intl_en/checkout/cart/add/uenc/aHR0cHM6Ly93d3cuYm1jLXN3aXR6ZXJsYW5kLmNvbS9pbnRsX2VuL3R3b3N0cm9rZS1hbC0yNC5odG1s/product/15111/" data-product-sku="BMC-22-10516-009" id="product_addtocart_form" method="post">
+            <input name="product" type="hidden" value="15111"/>
+            <input name="selected_configurable_option" type="hidden" value=""/>
+            <input id="related-products-field" name="related_product" type="hidden" value=""/>
+            <input name="form_key" type="hidden" value="MdO4V1zaKt7TINIr"/>
+            <!-- removed $_product->isSaleable() && from line below -->
+            <!-- removed $_product->isSaleable() && from line below -->
+            <div class="product-options-wrapper" id="product-options-wrapper">
+             <div class="fieldset" tabindex="0">
+              <div class="swatch-opt" data-role="swatch-options">
+              </div>
+              <script type="text/x-magento-init">
+               {
+        "[data-role=swatch-options]": {
+            "Magento_Swatches/js/swatch-renderer": {
+                "jsonConfig": {"attributes":{"244":{"id":"244","code":"color","label":"Color","options":[{"id":"5922","label":"GREY \/ BLACK","products":["13107"]},{"id":"6060","label":"RED GREY","products":["13110"]}],"position":"0"}},"template":"\u20ac<%- data.price %>","currencyFormat":"\u20ac%s","optionPrices":{"13107":{"baseOldPrice":{"amount":0},"oldPrice":{"amount":0},"basePrice":{"amount":0},"finalPrice":{"amount":0},"tierPrices":[],"msrpPrice":{"amount":0}},"13110":{"baseOldPrice":{"amount":0},"oldPrice":{"amount":0},"basePrice":{"amount":0},"finalPrice":{"amount":0},"tierPrices":[],"msrpPrice":{"amount":0}}},"priceFormat":{"pattern":"\u20ac%s","precision":2,"requiredPrecision":2,"decimalSymbol":".","groupSymbol":",","groupLength":3,"integerRequired":false},"prices":{"baseOldPrice":{"amount":0},"oldPrice":{"amount":0},"basePrice":{"amount":0},"finalPrice":{"amount":0}},"productId":"15111","chooseText":"Choose an Option...","images":{"13107":[{"thumb":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/3bb41487b7c0d066dc72260bd24804ed\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png","img":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/86a9a13297e2ff4b2d593e234876b106\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png","full":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/80cfa9e206fe9f91ae366fd8ef92a8fc\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png","caption":"Twostroke AL 24 Kids Mountain Bike","position":"1","isMain":true,"type":"image","videoUrl":null}],"13110":[{"thumb":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/3bb41487b7c0d066dc72260bd24804ed\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png","img":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/86a9a13297e2ff4b2d593e234876b106\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png","full":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/80cfa9e206fe9f91ae366fd8ef92a8fc\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png","caption":"Twostroke AL 24 Kids Mountain Bike","position":"1","isMain":true,"type":"image","videoUrl":null}]},"index":{"13107":{"244":"5922"},"13110":{"244":"6060"}},"channel":"website","salesChannelCode":"intl","sku":{"13107":"30001128","13110":"30001129"}},
+                "jsonSwatchConfig": {"244":{"5922":{"type":"1","value":"#3b383b","label":"GREY \/ BLACK"},"6060":{"type":"1","value":"#fa0505","label":"RED GREY"},"additional_data":"{\"swatch_input_type\":\"visual\",\"update_product_preview_image\":\"1\",\"use_product_image_for_swatch\":\"0\"}"}},
+                "mediaCallback": "https\u003A\u002F\u002Fwww.bmc\u002Dswitzerland.com\u002Fintl_en\u002Fswatches\u002Fajax\u002Fmedia\u002F",
+                "gallerySwitchStrategy": "replace",
+                "jsonSwatchImageSizeConfig": {"swatchImage":{"width":30,"height":20},"swatchThumb":{"height":90,"width":110}},
+                "showTooltip": 1            }
+        },
+        "*" : {
+            "Magento_Swatches/js/catalog-add-to-cart": {}
+        }
+    }
+              </script>
+              <script>
+               require([
+    'jquery',
+], function($){
+
+//<![CDATA[
+    $.extend(true, $, {
+        calendarConfig: {
+            dayNames: ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+            dayNamesMin: ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
+            monthNames: ["January","February","March","April","May","June","July","August","September","October","November","December"],
+            monthNamesShort: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+            infoTitle: 'About\u0020the\u0020calendar',
+            firstDay: 0,
+            closeText: 'Close',
+            currentText: 'Go\u0020Today',
+            prevText: 'Previous',
+            nextText: 'Next',
+            weekHeader: 'WK',
+            timeText: 'Time',
+            hourText: 'Hour',
+            minuteText: 'Minute',
+            dateFormat: "D, d M yy", // $.datepicker.RFC_2822
+            showOn: 'button',
+            showAnim: '',
+            changeMonth: true,
+            changeYear: true,
+            buttonImageOnly: null,
+            buttonImage: null,
+            showButtonPanel: true,
+            showWeek: true,
+            timeFormat: '',
+            showTime: false,
+            showHour: false,
+            showMinute: false
+        }
+    });
+
+    enUS = {"m":{"wide":["January","February","March","April","May","June","July","August","September","October","November","December"],"abbr":["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]}}; // en_US locale reference
+//]]>
+
+});
+              </script>
+              <script>
+               require([
+        'jquery',
+        'optionSwatches',
+        'uiRegistry'
+    ], function ($, optionSwatches, registry) {
+        var optionBase = registry.get('mageworxOptionBase');
+        if (optionBase) {
+            optionBase.addUpdater(20, optionSwatches({"isEnabledRedirectToCart":false}));
+        } else {
+            var updaters = registry.get('mageworxOptionUpdaters');
+            if (!updaters) {
+                updaters = {};
+            }
+            updaters[20] = optionSwatches({"isEnabledRedirectToCart":false});
+            registry.set('mageworxOptionUpdaters', updaters);
+        }
+    });
+              </script>
+              <script>
+               require([
+        'jquery',
+        'optionInventory',
+        'uiRegistry'
+    ], function ($, optionInventory, registry) {
+        var optionBase = registry.get('mageworxOptionBase');
+        if (optionBase) {
+            optionBase.addUpdater(30, optionInventory({"stock_message_url":"https:\/\/www.bmc-switzerland.com\/intl_en\/mageworx_optioninventory\/stockmessage\/update\/"}));
+        } else {
+            var updaters = registry.get('mageworxOptionUpdaters');
+            if (!updaters) {
+                updaters = {};
+            }
+            updaters[30] = optionInventory({"stock_message_url":"https:\/\/www.bmc-switzerland.com\/intl_en\/mageworx_optioninventory\/stockmessage\/update\/"});
+            registry.set('mageworxOptionUpdaters', updaters);
+        }
+    });
+              </script>
+              <script>
+               require([
+        'jquery',
+        'optionAdditionalImages',
+        'uiRegistry'
+    ], function ($, optionAdditionalImages, registry) {
+        var optionBase = registry.get('mageworxOptionBase');
+        if (optionBase) {
+            optionBase.addUpdater(60, optionAdditionalImages({"options":[],"option_types":["field","area","file","drop_down","radio","checkbox","multiple","date","date_time","time"],"render_images_for_option_types":["drop_down","radio","checkbox","multiple"],"option_gallery_type":{"disabled":0,"beside_option":1,"once_selected":2}}));
+        } else {
+            var updaters = registry.get('mageworxOptionUpdaters');
+            if (!updaters) {
+                updaters = {};
+            }
+            updaters[60] = optionAdditionalImages({"options":[],"option_types":["field","area","file","drop_down","radio","checkbox","multiple","date","date_time","time"],"render_images_for_option_types":["drop_down","radio","checkbox","multiple"],"option_gallery_type":{"disabled":0,"beside_option":1,"once_selected":2}});
+            registry.set('mageworxOptionUpdaters', updaters);
+        }
+    });
+              </script>
+              <script>
+               require([
+        'jquery',
+        'optionFeatures',
+        'optionFeaturesIsDefault',
+        'uiRegistry'
+    ], function ($, optionFeatures, optionFeaturesIsDefault, registry) {
+        var optionBase = registry.get('mageworxOptionBase');
+        if (optionBase) {
+            optionBase.addUpdater(
+                10,
+                optionFeatures({"question_image":"https:\/\/www.bmc-switzerland.com\/static\/version1658770636\/frontend\/BMC\/makeover\/en_US\/MageWorx_OptionFeatures\/image\/question.png","value_description_enabled":true,"option_description_enabled":true,"option_description_mode":"1","option_description_modes":{"disabled":0,"tooltip":1,"text":2},"product_price_display_mode":"disabled","additional_product_price_display_mode":"final_price","shareable_link_hint_text":"Get the link to the product with selected options"})
+            );
+            optionBase.addUpdater(
+                50,
+                optionFeaturesIsDefault({"is_default_values":[]})
+            );
+        } else {
+            var updaters = registry.get('mageworxOptionUpdaters');
+            if (!updaters) {
+                updaters = {};
+            }
+            updaters[10] = optionFeatures({"question_image":"https:\/\/www.bmc-switzerland.com\/static\/version1658770636\/frontend\/BMC\/makeover\/en_US\/MageWorx_OptionFeatures\/image\/question.png","value_description_enabled":true,"option_description_enabled":true,"option_description_mode":"1","option_description_modes":{"disabled":0,"tooltip":1,"text":2},"product_price_display_mode":"disabled","additional_product_price_display_mode":"final_price","shareable_link_hint_text":"Get the link to the product with selected options"});
+            updaters[50] = optionFeaturesIsDefault({"is_default_values":[]});
+            registry.set('mageworxOptionUpdaters', updaters);
+        }
+    });
+              </script>
+              <script type="text/x-magento-init">
+               {
+       "*": {
+           "selectionLimitValidationRule": {
+               "config": []           }
+       }
+   }
+              </script>
+              <script>
+               require([
+        'jquery',
+        'optionAdvancedPricing',
+        'uiRegistry'
+    ], function ($, optionAdvancedPricing, registry) {
+        var optionBase = registry.get('mageworxOptionBase');
+        if (optionBase) {
+            optionBase.addUpdater(
+                35,
+                optionAdvancedPricing({"optionTypes":[]})
+            );
+        } else {
+            var updaters = registry.get('mageworxOptionUpdaters');
+            if (!updaters) {
+                updaters = {};
+            }
+            updaters[35] = optionAdvancedPricing({"optionTypes":[]});
+            registry.set('mageworxOptionUpdaters', updaters);
+        }
+    });
+              </script>
+              <style>
+               .admin__field .note { float: left; margin-left: calc( (100%) * 0.25 + 30px ); }
+              </style>
+              <script>
+               require([
+        'jquery',
+        'dynamicOptions',
+        'uiRegistry'
+    ], function ($, dynamicOptions, registry) {
+        var optionBase = registry.get('mageworxOptionBase');
+        if (optionBase) {
+            optionBase.addUpdater(
+                5,
+                dynamicOptions({"options_data":[],"prices":{"oldPrice":{"amount":0},"basePrice":{"amount":0},"finalPrice":{"amount":0}}})
+            );
+        } else {
+            var updaters = registry.get('mageworxOptionUpdaters');
+            if (!updaters) {
+                updaters = {};
+            }
+            updaters[5] = dynamicOptions({"options_data":[],"prices":{"oldPrice":{"amount":0},"basePrice":{"amount":0},"finalPrice":{"amount":0}}});
+            registry.set('mageworxOptionUpdaters', updaters);
+        }
+    });
+              </script>
+              <script type="text/x-magento-init">
+               {
+       "*": {
+           "dynamicOptionMinValueValidationRule": {
+               "config": {"options_data":[],"prices":{"oldPrice":{"amount":0},"basePrice":{"amount":0},"finalPrice":{"amount":0}}}           },
+            "dynamicOptionMaxValueValidationRule": {
+               "config": {"options_data":[],"prices":{"oldPrice":{"amount":0},"basePrice":{"amount":0},"finalPrice":{"amount":0}}}           },
+            "dynamicOptionStepValidationRule": {
+               "config": {"options_data":[],"prices":{"oldPrice":{"amount":0},"basePrice":{"amount":0},"finalPrice":{"amount":0}}}           }
+       }
+   }
+              </script>
+             </div>
+            </div>
+            <div class="product-options-bottom">
+             <style>
+              /* The Modal (background) */ .tronog-modal { display: none; /* Hidden by default */ position: fixed; /* Stay in place */ z-index: 999; /* Sit on top */ padding-top: 100px; /* Location of the box */ left: 0; top: 0; width: 100%; /* Full width */ height: 100%; /* Full height */ overflow: auto; /* Enable scroll if needed */ background-color: rgb(0,0,0); /* Fallback color */ background-color: rgba(0,0,0,0.4); /* Black w/ opacity */ } /* Modal Content */ .tronog-modal-content { background-color: #fefefe; margin: auto; padding: 20px; border: 1px solid #888; width: 80%; } /* The Close Button */ .tronog-close { color: #aaaaaa; float: right; font-size: 28px; font-weight: bold; } .tronog-close:hover, .tronog-close:focus { color: #000; text-decoration: none; cursor: pointer; } .tronog-wrapper{ height: 75vh; width: 75vw; } .tronog-iframeclass { position: fixed; display: inline-block; height: 75%; width: 75%; border: none; } @media only screen and (max-width: 600px) { .tronog-modal { display: none; /* Hidden by default */ position: fixed; /* Stay in place */ z-index: 999; /* Sit on top */ padding-top: 0px; /* Location of the box */ left: 0; top: 0; width: 100%; /* Full width */ height: 100%; /* Full height */ overflow: auto; /* Enable scroll if needed */ background-color: rgb(0,0,0); /* Fallback color */ background-color: rgba(0,0,0,0.4); /* Black w/ opacity */ } /* Modal Content */ .tronog-modal-content { background-color: #fefefe; margin: auto; padding: 20px; border: 1px solid #888; width: 90%; } /* The Close Button */ .tronog-close { color: #aaaaaa; float: right; font-size: 28px; font-weight: bold; } .tronog-close:hover, .tronog-close:focus { color: #000; text-decoration: none; cursor: pointer; } .tronog-wrapper{ height: 75vh; width: 75vw; } .tronog-iframeclass { position: fixed; /* must be for IPAD or the swiping will move content around */ display: inline-block; height: 40%; width: 85%; border: none; } }
+             </style>
+             <!-- if ($_product->isSaleable()): -->
+             <div class="box-tocart">
+              <div class="fieldset">
+               <div class="actions">
+                <a class="button button--primary" href="/stockists">
+                 Find a dealer
+                </a>
+               </div>
+              </div>
+              <div>
+               <!--TRONOG 3D Trigger/Open The Modal -->
+              </div>
+             </div>
+             <!--php endif; -->
+             <script>
+              try {
+    var modal = document.getElementById("tronogModal");
+    var btn = document.getElementById("tronog3d");
+    var span = document.getElementsByClassName("tronog-close")[0];
+    btn.onclick = function () {
+        modal.style.display = "block";
+    }
+    span.onclick = function () {
+        modal.style.display = "none";
+    }
+    window.onclick = function (event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+  }
+  catch (exception) {}
+             </script>
+             <script>
+              require([
+        'jquery',
+        'optionDependency',
+        'uiRegistry'
+    ], function ($, optionDependency, registry) {
+        var optionBase = registry.get('mageworxOptionBase');
+        if (optionBase) {
+            optionBase.addUpdater(40, optionDependency({"isAdmin":false,"optionToValueMap":[],"valueToOptionMap":[],"optionTypes":[],"optionRequiredConfig":[],"selectedValues":[],"hiddenOptions":[],"hiddenValues":[],"dependencyRulesJson":"[]"}));
+        } else {
+            var updaters = registry.get('mageworxOptionUpdaters');
+            if (!updaters) {
+                updaters = {};
+            }
+            updaters[40] = optionDependency({"isAdmin":false,"optionToValueMap":[],"valueToOptionMap":[],"optionTypes":[],"optionRequiredConfig":[],"selectedValues":[],"hiddenOptions":[],"hiddenValues":[],"dependencyRulesJson":"[]"});
+            registry.set('mageworxOptionUpdaters', updaters);
+        }
+    });
+             </script>
+            </div>
+           </form>
+          </div>
+          <script>
+           require([
+        'jquery',
+        'priceBox'
+    ], function($){
+        var dataPriceBoxSelector = '[data-role=priceBox]',
+            dataProductIdSelector = '[data-product-id=15111]',
+            priceBoxes = $(dataPriceBoxSelector + dataProductIdSelector);
+
+        priceBoxes = priceBoxes.filter(function(index, elem){
+            return !$(elem).find('.price-from').length;
+        });
+
+        priceBoxes.priceBox({'priceConfig': {"productId":15111,"priceFormat":{"pattern":"\u20ac%s","precision":2,"requiredPrecision":2,"decimalSymbol":".","groupSymbol":",","groupLength":3,"integerRequired":false},"prices":{"baseOldPrice":{"amount":0,"adjustments":[]},"oldPrice":{"amount":0,"adjustments":[]},"basePrice":{"amount":0,"adjustments":[]},"finalPrice":{"amount":0,"adjustments":[]}},"idSuffix":"_clone","tierPrices":[],"calculationAlgorithm":"TOTAL_BASE_CALCULATION"}});
+    });
+          </script>
+          <div class="product attribute overview">
+           <div class="value" itemprop="description">
+            A lightweight aluminium frame, with a premium durable powder coating and a dedicated geometry to smaller riders. Featuring 24” wheels, an 8-speed SRAM groupset and TEKTRO brakes, with tailored ergonomics for a confidence inspired ride. Simple. Functional. Fun.
+           </div>
+          </div>
+          <div class="finder-information">
+           <div class="size-finder">
+            <p class="find-fit">
+             Find your fit
+            </p>
+            <div class="content-button">
+             <div class="size-finder-button modal-button">
+              <div data-component="SizeFinderButton" data-props='{"secret":"$oz_$fPU3zdgoICpBOGKZ.GC17ez3Rr0fK8oQuwjfqyEu76I5mEitOiMSm","url":"https:\/\/widgets.onlinesizing.bike\/loader.js","locale":"en","product":{"code":"7630027868913","name":"Twostroke AL 24 - GREY \/ BLACK","image":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/54c95b517a1ef415a769a6d8619d92a2\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png"}}'>
+              </div>
+             </div>
+            </div>
+           </div>
+           <div class="shop-locator">
+            See it instore
+            <div class="content-button">
+             <div class="shop-locator-button modal-button">
+              <a href="https://www.bmc-switzerland.com/intl_en/dealer-locator/" target="_blank">
+               Shop Finder
+              </a>
+             </div>
+            </div>
+           </div>
+          </div>
+         </div>
+         <!-- removed else here -->
+         <!-- echo $block->getChildHtml('product.info.price'); -->
+         <!-- echo $block->getChildHtml('product.info.main'); -->
+         <!-- echo $block->getChildHtml('product.info.stock.sku');-->
+         <!-- endif; -->
+        </div>
+        <div class="page-title-block__media image-warning">
+         <div class="page-title-block__media-wrapper">
+          <div class="page-title-block__media-container">
+           <div class="product media">
+            <a id="gallery-prev-area" tabindex="-1">
+            </a>
+            <div class="action-skip-wrapper">
+             <a class="action skip gallery-next-area" href="#gallery-next-area">
+              <span>
+               Skip to the end of the images gallery
+              </span>
+             </a>
+            </div>
+            <div class="gallery-placeholder _block-content-loading" data-gallery-role="gallery-placeholder">
+            </div>
+            <!--Fix for jumping content. Loader must be the same size as gallery.-->
+            <script>
+             var config = {
+            "width": 2000,
+            "thumbheight": 206,
+            "navtype": "slides",
+            "height": 1432        },
+        thumbBarHeight = 0,
+        loader = document.querySelectorAll('[data-gallery-role="gallery-placeholder"] [data-role="loader"]')[0];
+
+    if (config.navtype === 'horizontal') {
+        thumbBarHeight = config.thumbheight;
+    }
+    if(loader){
+        loader.style.paddingBottom = ( config.height / config.width * 100) + "%";
+    }
+            </script>
+            <script type="text/x-magento-init">
+             {
+        "[data-gallery-role=gallery-placeholder]": {
+            "mage/gallery/gallery": {
+                "mixins":["magnifier/magnify"],
+                "magnifierOpts": {"fullscreenzoom":"20","top":"","left":"","width":"","height":"","eventType":"hover","enabled":false},
+                "data": [{"thumb":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/3bb41487b7c0d066dc72260bd24804ed\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png","img":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/db486834651b8299de17894045ea7cde\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png","full":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/a2dadd9f9c305eddb25711595f651339\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png","caption":"Twostroke AL | 24","position":"1","isMain":true,"type":"image","videoUrl":null}],
+                "options": {
+                    "nav": "thumbs",
+                                            "loop": 1,
+                                             "keyboard": 1,
+                                             "arrows": 1,
+                                             "allowfullscreen": 1,
+                      "width": "2000",
+                    "height": "1432",
+                    "thumbwidth": "344",
+                                            "thumbheight": 206,
+                                             "transitionduration": 500,
+                     "transition": "slide",
+                                            "navarrows": 1,
+                     "navtype": "slides",
+                    "navdir": "horizontal"
+                },
+                "fullscreen": {
+                    "nav": "",
+                                            "loop": 1,
+                     "navdir": "horizontal",
+                     "navtype": "slides",
+                                              "transitionduration": 500,
+                     "transition": "dissolve"
+                },
+                "breakpoints": {"mobile":{"conditions":{"max-width":"767px"},"options":{"options":{"nav":"dots"}}}}            }
+        }
+    }
+            </script>
+            <script type="text/x-magento-init">
+             {
+        "[data-gallery-role=gallery-placeholder]": {
+            "Magento_ProductVideo/js/fotorama-add-video-events": {
+                "videoData": [{"mediaType":"image","videoUrl":null,"isBase":true}],
+                "videoSettings": [{"playIfBase":"0","showRelated":"0","videoAutoRestart":"0"}],
+                "optionsVideoData": {"13107":[{"mediaType":"image","videoUrl":null,"isBase":true}],"13110":[{"mediaType":"image","videoUrl":null,"isBase":true}]}            }
+        }
+    }
+            </script>
+            <div class="action-skip-wrapper">
+             <a class="action skip gallery-prev-area" href="#gallery-prev-area">
+              <span>
+               Skip to the beginning of the images gallery
+              </span>
+             </a>
+            </div>
+            <a id="gallery-next-area" tabindex="-1">
+            </a>
+           </div>
+          </div>
+         </div>
+        </div>
+       </div>
+      </section>
+      <section class="rte-content">
+       A lightweight aluminium frame, with a premium durable powder coating and a dedicated geometry to smaller riders. Featuring 24” wheels, an 8-speed SRAM groupset and TEKTRO brakes, with tailored ergonomics for a confidence inspired ride. Simple. Functional. Fun.
+      </section>
+      <input name="form_key" type="hidden" value="MdO4V1zaKt7TINIr"/>
+      <script type="text/x-magento-init">
+       {
+        "*": {
+            "Magento_Customer/js/section-config": {
+                "sections": {"stores\/store\/switch":["*"],"stores\/store\/switchrequest":["*"],"directory\/currency\/switch":["*"],"*":["messages","company","location"],"customer\/account\/logout":["*","recently_viewed_product","recently_compared_product","persistent"],"customer\/account\/loginpost":["*"],"customer\/account\/createpost":["*"],"customer\/account\/editpost":["*"],"customer\/ajax\/login":["checkout-data","cart","captcha"],"catalog\/product_compare\/add":["compare-products"],"catalog\/product_compare\/remove":["compare-products"],"catalog\/product_compare\/clear":["compare-products"],"sales\/guest\/reorder":["cart"],"sales\/order\/reorder":["cart"],"rest\/v1\/requisition_lists":["requisition"],"requisition_list\/requisition\/delete":["requisition"],"requisition_list\/item\/addtocart":["cart"],"checkout\/cart\/add":["cart","directory-data"],"checkout\/cart\/delete":["cart"],"checkout\/cart\/updatepost":["cart"],"checkout\/cart\/updateitemoptions":["cart"],"checkout\/cart\/couponpost":["cart"],"checkout\/cart\/estimatepost":["cart"],"checkout\/cart\/estimateupdatepost":["cart"],"checkout\/onepage\/saveorder":["cart","checkout-data","last-ordered-items","amasty-checkout-data"],"checkout\/sidebar\/removeitem":["cart"],"checkout\/sidebar\/updateitemqty":["cart"],"rest\/*\/v1\/carts\/*\/payment-information":["cart","last-ordered-items","captcha","instant-purchase","amasty-checkout-data"],"rest\/*\/v1\/guest-carts\/*\/payment-information":["cart","captcha","amasty-checkout-data"],"rest\/*\/v1\/guest-carts\/*\/selected-payment-method":["cart","checkout-data"],"rest\/*\/v1\/carts\/*\/selected-payment-method":["cart","checkout-data","instant-purchase"],"customer_order\/cart\/updatefaileditemoptions":["cart"],"checkout\/cart\/updatefaileditemoptions":["cart"],"customer_order\/cart\/advancedadd":["cart"],"checkout\/cart\/advancedadd":["cart"],"checkout\/cart\/removeallfailed":["cart"],"checkout\/cart\/removefailed":["cart"],"customer_order\/cart\/addfaileditems":["cart"],"checkout\/cart\/addfaileditems":["cart"],"customer_order\/sku\/uploadfile":["cart"],"wishlist\/index\/add":["wishlist"],"wishlist\/index\/remove":["wishlist"],"wishlist\/index\/updateitemoptions":["wishlist"],"wishlist\/index\/update":["wishlist"],"wishlist\/index\/cart":["wishlist","cart"],"wishlist\/index\/fromcart":["wishlist","cart"],"wishlist\/index\/allcart":["wishlist","cart"],"wishlist\/shared\/allcart":["wishlist","cart"],"wishlist\/shared\/cart":["cart"],"giftregistry\/index\/cart":["cart"],"giftregistry\/view\/addtocart":["cart"],"customer\/address\/*":["instant-purchase"],"customer\/account\/*":["instant-purchase"],"vault\/cards\/deleteaction":["instant-purchase"],"multishipping\/checkout\/overviewpost":["cart"],"wishlist\/index\/copyitem":["wishlist"],"wishlist\/index\/copyitems":["wishlist"],"wishlist\/index\/deletewishlist":["wishlist","multiplewishlist"],"wishlist\/index\/createwishlist":["multiplewishlist"],"wishlist\/index\/editwishlist":["multiplewishlist"],"wishlist\/index\/moveitem":["wishlist"],"wishlist\/index\/moveitems":["wishlist"],"wishlist\/search\/addtocart":["cart","wishlist"],"paypal\/express\/placeorder":["cart","checkout-data","amasty-checkout-data"],"paypal\/payflowexpress\/placeorder":["cart","checkout-data","amasty-checkout-data"],"paypal\/express\/onauthorization":["cart","checkout-data"],"rest\/*\/v1\/carts\/*\/po-payment-information":["cart","checkout-data","last-ordered-items"],"purchaseorder\/purchaseorder\/success":["cart","checkout-data","last-ordered-items"],"persistent\/index\/unsetcookie":["persistent"],"quickorder\/sku\/uploadfile\/":["cart"],"review\/product\/post":["review"],"subaccounts\/emulate\/login":["*"],"reclaim\/checkout\/reload":["cart"],"paymentservice\/checkout\/sessionhandler":["cart"]},
+                "clientSideSections": ["checkout-data","cart-data","amasty-checkout-data","chatData"],
+                "baseUrls": ["https:\/\/www.bmc-switzerland.com\/intl_en\/"],
+                "sectionNames": ["messages","customer","compare-products","last-ordered-items","requisition","cart","directory-data","captcha","wishlist","company","company_authorization","negotiable_quote","instant-purchase","loggedAsCustomer","multiplewishlist","purchase_order","persistent","review","chatData","location","checkout-data","recently_viewed_product","recently_compared_product","product_data_storage","paypal-billing-agreement"]            }
+        }
+    }
+      </script>
+      <script type="text/x-magento-init">
+       {
+        "*": {
+            "Magento_Customer/js/customer-data": {
+                "sectionLoadUrl": "https\u003A\u002F\u002Fwww.bmc\u002Dswitzerland.com\u002Fintl_en\u002Fcustomer\u002Fsection\u002Fload\u002F",
+                "expirableSectionLifetime": 60,
+                "expirableSectionNames": ["cart","persistent"],
+                "cookieLifeTime": "3600",
+                "updateSessionUrl": "https\u003A\u002F\u002Fwww.bmc\u002Dswitzerland.com\u002Fintl_en\u002Fcustomer\u002Faccount\u002FupdateSession\u002F"
+            }
+        }
+    }
+      </script>
+      <script type="text/x-magento-init">
+       {
+        "*": {
+            "Magento_Customer/js/invalidation-processor": {
+                "invalidationRules": {
+                    "website-rule": {
+                        "Magento_Customer/js/invalidation-rules/website-rule": {
+                            "scopeConfig": {
+                                "websiteId": "1"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+      </script>
+      <div class="block block-compare" data-bind="scope: 'compareProducts'" data-mage-init='{ "compare": {} }' data-role="compare-products-sidebar">
+       <div class="block-compare__sticky block-compare__sticky--hidden" data-bind="css: {'block-compare__sticky--hidden': !compareProducts().count}">
+        <a class="block-title" href="javascript:void(0)" id="product-compare-toggle">
+         <span class="counter qty no-display" data-bind="text: compareProducts().count, css: {'no-display': !compareProducts().count}">
+         </span>
+         <strong aria-level="2" id="block-compare-heading" role="heading">
+          Compare Bikes
+         </strong>
+        </a>
+        <!-- ko if: compareProducts().count -->
+        <div aria-labelledby="block-compare-heading" class="block-content no-display" data-bind="css: {'no-display': !compareProducts().count}">
+         <ol class="product-items product-items-names" data-bind="foreach: compareProducts().items" id="compare-items">
+          <li class="product-item">
+           <a class="product-item-link" data-bind="attr: {href: product_url}">
+            <figure class="product-item-image">
+             <img data-bind="attr: {src: image_url, alt: name}"/>
+            </figure>
+            <div class="product-item-details">
+             <input class="compare-item-id" data-bind="value: id" type="hidden"/>
+             <strong class="product-item-name" data-bind="html: name">
+             </strong>
+             <div class="price-box" data-bind="html: price">
+             </div>
+            </div>
+           </a>
+           <a class="action delete" data-bind="attr: {'data-post': remove_url}" href="#" title="Remove This Item">
+            <span>
+             Remove This Item
+            </span>
+           </a>
+          </li>
+         </ol>
+         <div class="actions-toolbar">
+          <div class="primary">
+           <a class="action compare primary" data-bind="attr: {'href': compareProducts().listUrl}">
+            <span>
+             Compare products
+            </span>
+           </a>
+          </div>
+         </div>
+        </div>
+        <!-- /ko -->
+        <!-- ko ifnot: compareProducts().count -->
+        <div class="empty">
+         You have no items to compare.
+        </div>
+        <!-- /ko -->
+       </div>
+      </div>
+      <script type="text/x-magento-init">
+       {"[data-role=compare-products-sidebar]": {"Magento_Ui/js/core/app": {"components":{"compareProducts":{"component":"Magento_Catalog\/js\/view\/compare-products"}}}}}
+      </script>
+      <script type="text/x-magento-init">
+       {
+        "body": {
+            "requireCookie": {"noCookieUrl":"https:\/\/www.bmc-switzerland.com\/intl_en\/cookie\/index\/noCookies\/","triggers":[".review .action.submit"],"isRedirectCmsPage":true}        }
+    }
+      </script>
+      <script type="text/x-magento-init">
+       {
+        "*": {
+                "Magento_Catalog/js/product/view/provider": {
+                    "data": {"items":{"15111":{"add_to_cart_button":{"post_data":"{\"action\":\"https:\\\/\\\/www.bmc-switzerland.com\\\/intl_en\\\/checkout\\\/cart\\\/add\\\/uenc\\\/%25uenc%25\\\/product\\\/15111\\\/\",\"data\":{\"product\":\"15111\",\"uenc\":\"%uenc%\"}}","url":"https:\/\/www.bmc-switzerland.com\/intl_en\/checkout\/cart\/add\/uenc\/%25uenc%25\/product\/15111\/","required_options":true},"add_to_compare_button":{"post_data":null,"url":"{\"action\":\"https:\\\/\\\/www.bmc-switzerland.com\\\/intl_en\\\/catalog\\\/product_compare\\\/add\\\/\",\"data\":{\"product\":\"15111\",\"uenc\":\"aHR0cHM6Ly93d3cuYm1jLXN3aXR6ZXJsYW5kLmNvbS9pbnRsX2VuL3R3b3N0cm9rZS1hbC0yNC5odG1s\"}}","required_options":null},"price_info":{"final_price":0,"max_price":0,"max_regular_price":0,"minimal_regular_price":0,"special_price":null,"minimal_price":0,"regular_price":0,"formatted_prices":{"final_price":"<span class=\"price\">\u20ac0.00<\/span>","max_price":"<span class=\"price\">\u20ac0.00<\/span>","minimal_price":"<span class=\"price\">\u20ac0.00<\/span>","max_regular_price":"<span class=\"price\">\u20ac0.00<\/span>","minimal_regular_price":null,"special_price":null,"regular_price":"<span class=\"price\">\u20ac0.00<\/span>"},"extension_attributes":{"msrp":{"msrp_price":"<span class=\"price\">\u20ac0.00<\/span>","is_applicable":"","is_shown_price_on_gesture":"","msrp_message":"","explanation_message":"Our price is lower than the manufacturer&#039;s &quot;minimum advertised price.&quot; As a result, we cannot show you the price in catalog or the product page. <br><br> You have no obligation to purchase the product once you know the price. You can simply remove the item from your cart."},"tax_adjustments":{"final_price":0,"max_price":0,"max_regular_price":0,"minimal_regular_price":0,"special_price":0,"minimal_price":0,"regular_price":0,"formatted_prices":{"final_price":"<span class=\"price\">\u20ac0.00<\/span>","max_price":"<span class=\"price\">\u20ac0.00<\/span>","minimal_price":"<span class=\"price\">\u20ac0.00<\/span>","max_regular_price":"<span class=\"price\">\u20ac0.00<\/span>","minimal_regular_price":null,"special_price":"<span class=\"price\">\u20ac0.00<\/span>","regular_price":"<span class=\"price\">\u20ac0.00<\/span>"}},"weee_attributes":[],"weee_adjustment":"<span class=\"price\">\u20ac0.00<\/span>"}},"images":[{"url":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/694f0a9c6706014fe95c53c09b27f8ac\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png","code":"recently_viewed_products_grid_content_widget","height":300,"width":240,"label":"Twostroke AL | 24","resized_width":240,"resized_height":300},{"url":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/25ba839ef9b1bde645ba9f85c10bfea0\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png","code":"recently_viewed_products_list_content_widget","height":270,"width":270,"label":"Twostroke AL | 24","resized_width":270,"resized_height":270},{"url":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/0d7b81b8583e278d79a05fc67f142596\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png","code":"recently_viewed_products_images_names_widget","height":90,"width":75,"label":"Twostroke AL | 24","resized_width":75,"resized_height":90},{"url":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/694f0a9c6706014fe95c53c09b27f8ac\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png","code":"recently_compared_products_grid_content_widget","height":300,"width":240,"label":"Twostroke AL | 24","resized_width":240,"resized_height":300},{"url":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/d6db92ea749999c0b8c0722c65179ed6\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png","code":"recently_compared_products_list_content_widget","height":207,"width":270,"label":"Twostroke AL | 24","resized_width":270,"resized_height":207},{"url":"https:\/\/www.bmc-switzerland.com\/media\/catalog\/product\/cache\/0d7b81b8583e278d79a05fc67f142596\/b\/m\/bmc-22-10516-009-bmc-twostroke-al-24-mountain-bike-grey-01.png","code":"recently_compared_products_images_names_widget","height":90,"width":75,"label":"Twostroke AL | 24","resized_width":75,"resized_height":90}],"url":"https:\/\/www.bmc-switzerland.com\/intl_en\/twostroke-al-24.html","id":15111,"name":"Twostroke AL | 24","type":"configurable","is_salable":"1","store_id":1,"currency_code":"EUR","extension_attributes":{"wishlist_button":{"post_data":null,"url":"{\"action\":\"https:\\\/\\\/www.bmc-switzerland.com\\\/intl_en\\\/wishlist\\\/index\\\/add\\\/\",\"data\":{\"product\":15111,\"uenc\":\"aHR0cHM6Ly93d3cuYm1jLXN3aXR6ZXJsYW5kLmNvbS9pbnRsX2VuL3R3b3N0cm9rZS1hbC0yNC5odG1s\"}}","required_options":null},"review_html":"  <div class=\"product-reviews-summary short empty\"><div class=\"reviews-actions\"><a class=\"action add\" href=\"https:\/\/www.bmc-switzerland.com\/intl_en\/twostroke-al-24.html#review-form\">Be the first to review this product<\/a><\/div><\/div>"},"is_available":true}},"store":"1","currency":"EUR","productCurrentScope":"website"}            }
+        }
+    }
+      </script>
+      <p>
+       <section aria-label="Innovation" class="product-innovation__main-container">
+        <div class="product-innovation__title">
+         Innovation
+        </div>
+        <div aria-label="Innovation" class="product-innovation__slider-wrapper" data-mage-init='{ "product-innovation": {} }'>
+         <div class="product-innovation__slide-wrapper">
+          <div class="product-innovation__content-container">
+           <div class="product-innovation__technology-title">
+            Lightweight Frame
+           </div>
+           <figure class="product-innovation__image-container">
+            <img data-src="https://www.bmc-switzerland.com/media//innovation/technology/innovation-twostroke-al-24-v2-01-lightweight-frame_1.jpg"/>
+           </figure>
+           <div class="product-innovation__technology-description">
+            <style>
+             #html-body [data-pb-style=HUHHTKG]{justify-content:flex-start;display:flex;flex-direction:column;background-position:left top;background-size:cover;background-repeat:no-repeat;background-attachment:scroll}
+            </style>
+            <div data-appearance="contained" data-content-type="row" data-element="main">
+             <div data-background-images="{}" data-background-type="image" data-element="inner" data-enable-parallax="0" data-parallax-speed="0.5" data-pb-style="HUHHTKG" data-video-fallback-src="" data-video-lazy-load="true" data-video-loop="true" data-video-play-only-visible="true">
+              <div data-appearance="default" data-content-type="text" data-element="main">
+               <p id="OT4YNFM">
+                Double butted tubes for a lightweight frame with a distinctive and premium look.
+               </p>
+              </div>
+             </div>
+            </div>
+           </div>
+          </div>
+          <figure class="product-innovation__image-container">
+           <img data-src="https://www.bmc-switzerland.com/media//innovation/technology/innovation-twostroke-al-24-v2-01-lightweight-frame_1.jpg"/>
+          </figure>
+         </div>
+         <div class="product-innovation__slide-wrapper">
+          <div class="product-innovation__content-container">
+           <div class="product-innovation__technology-title">
+            Tailored Ergonomics
+           </div>
+           <figure class="product-innovation__image-container">
+            <img data-src="https://www.bmc-switzerland.com/media//innovation/technology/innovation-twostroke-al-24-v2-02-ergonomics.jpg"/>
+           </figure>
+           <div class="product-innovation__technology-description">
+            <style>
+             #html-body [data-pb-style=GBKYKTH]{justify-content:flex-start;display:flex;flex-direction:column;background-position:left top;background-size:cover;background-repeat:no-repeat;background-attachment:scroll}
+            </style>
+            <div data-appearance="contained" data-content-type="row" data-element="main">
+             <div data-background-images="{}" data-background-type="image" data-element="inner" data-enable-parallax="0" data-parallax-speed="0.5" data-pb-style="GBKYKTH" data-video-fallback-src="" data-video-lazy-load="true" data-video-loop="true" data-video-play-only-visible="true">
+              <div data-appearance="default" data-content-type="text" data-element="main">
+               <p id="OT4YNFM">
+                Bars, levers, cranks and saddle are tailored for the ergonomics of young riders for a comfortable and custom-made ride.
+               </p>
+              </div>
+             </div>
+            </div>
+           </div>
+          </div>
+          <figure class="product-innovation__image-container">
+           <img data-src="https://www.bmc-switzerland.com/media//innovation/technology/innovation-twostroke-al-24-v2-02-ergonomics.jpg"/>
+          </figure>
+         </div>
+         <div class="product-innovation__slide-wrapper">
+          <div class="product-innovation__content-container">
+           <div class="product-innovation__technology-title">
+            Dedicated Geometry
+           </div>
+           <figure class="product-innovation__image-container">
+            <img data-src="https://www.bmc-switzerland.com/media//innovation/technology/innovation-twostroke-al-24-v2-03-geometry.jpg"/>
+           </figure>
+           <div class="product-innovation__technology-description">
+            <style>
+             #html-body [data-pb-style=BWQSMA8]{justify-content:flex-start;display:flex;flex-direction:column;background-position:left top;background-size:cover;background-repeat:no-repeat;background-attachment:scroll}
+            </style>
+            <div data-appearance="contained" data-content-type="row" data-element="main">
+             <div data-background-images="{}" data-background-type="image" data-element="inner" data-enable-parallax="0" data-parallax-speed="0.5" data-pb-style="BWQSMA8" data-video-fallback-src="" data-video-lazy-load="true" data-video-loop="true" data-video-play-only-visible="true">
+              <div data-appearance="default" data-content-type="text" data-element="main">
+               <p id="OT4YNFM">
+                Inspired by our MTB’s and adapted to smaller riders for intuitive and reliable riding.
+               </p>
+              </div>
+             </div>
+            </div>
+           </div>
+          </div>
+          <figure class="product-innovation__image-container">
+           <img data-src="https://www.bmc-switzerland.com/media//innovation/technology/innovation-twostroke-al-24-v2-03-geometry.jpg"/>
+          </figure>
+         </div>
+         <div class="product-innovation__slide-wrapper">
+          <div class="product-innovation__content-container">
+           <div class="product-innovation__technology-title">
+            Powder Coat Finish
+           </div>
+           <figure class="product-innovation__image-container">
+            <img data-src="https://www.bmc-switzerland.com/media//innovation/technology/innovation-twostroke-al-24-v2-04-powder-coat-finish.jpg"/>
+           </figure>
+           <div class="product-innovation__technology-description">
+            <style>
+             #html-body [data-pb-style=NG8YH4P]{justify-content:flex-start;display:flex;flex-direction:column;background-position:left top;background-size:cover;background-repeat:no-repeat;background-attachment:scroll}
+            </style>
+            <div data-appearance="contained" data-content-type="row" data-element="main">
+             <div data-background-images="{}" data-background-type="image" data-element="inner" data-enable-parallax="0" data-parallax-speed="0.5" data-pb-style="NG8YH4P" data-video-fallback-src="" data-video-lazy-load="true" data-video-loop="true" data-video-play-only-visible="true">
+              <div data-appearance="default" data-content-type="text" data-element="main">
+               <p id="OT4YNFM">
+                Powder coating is highly resistant to wear and reduces the impact on the environment with excess powder being reused rather than wasted: simply clever. A thin layer of gloss paint adds a premium finishing touch.
+               </p>
+              </div>
+             </div>
+            </div>
+           </div>
+          </div>
+          <figure class="product-innovation__image-container">
+           <img data-src="https://www.bmc-switzerland.com/media//innovation/technology/innovation-twostroke-al-24-v2-04-powder-coat-finish.jpg"/>
+          </figure>
+         </div>
+         <div class="product-innovation__slide-wrapper">
+          <div class="product-innovation__content-container">
+           <div class="product-innovation__technology-title">
+            Control and Safety
+           </div>
+           <figure class="product-innovation__image-container">
+            <img data-src="https://www.bmc-switzerland.com/media//innovation/technology/innovation-twostroke-al-24-v2-05-control-and-safety.jpg"/>
+           </figure>
+           <div class="product-innovation__technology-description">
+            <style>
+             #html-body [data-pb-style=CG5MYO3]{justify-content:flex-start;display:flex;flex-direction:column;background-position:left top;background-size:cover;background-repeat:no-repeat;background-attachment:scroll}
+            </style>
+            <div data-appearance="contained" data-content-type="row" data-element="main">
+             <div data-background-images="{}" data-background-type="image" data-element="inner" data-enable-parallax="0" data-parallax-speed="0.5" data-pb-style="CG5MYO3" data-video-fallback-src="" data-video-lazy-load="true" data-video-loop="true" data-video-play-only-visible="true">
+              <div data-appearance="default" data-content-type="text" data-element="main">
+               <p id="OT4YNFM">
+                Hydraulic brakes and high-volume tires provide control and safety on various surfaces with low rolling resistance.
+               </p>
+              </div>
+             </div>
+            </div>
+           </div>
+          </div>
+          <figure class="product-innovation__image-container">
+           <img data-src="https://www.bmc-switzerland.com/media//innovation/technology/innovation-twostroke-al-24-v2-05-control-and-safety.jpg"/>
+          </figure>
+         </div>
+         <div class="product-innovation__slide-wrapper">
+          <div class="product-innovation__content-container">
+           <div class="product-innovation__technology-title">
+            Sticker Kits
+           </div>
+           <figure class="product-innovation__image-container">
+            <img data-src="https://www.bmc-switzerland.com/media//innovation/technology/innovation-twostroke-al-24-v2-06-sticker-kits.jpg"/>
+           </figure>
+           <div class="product-innovation__technology-description">
+            <style>
+             #html-body [data-pb-style=PG30O7L]{justify-content:flex-start;display:flex;flex-direction:column;background-position:left top;background-size:cover;background-repeat:no-repeat;background-attachment:scroll}
+            </style>
+            <div data-appearance="contained" data-content-type="row" data-element="main">
+             <div data-background-images="{}" data-background-type="image" data-element="inner" data-enable-parallax="0" data-parallax-speed="0.5" data-pb-style="PG30O7L" data-video-fallback-src="" data-video-lazy-load="true" data-video-loop="true" data-video-play-only-visible="true">
+              <div data-appearance="default" data-content-type="text" data-element="main">
+               <p id="OT4YNFM">
+                The bike can be designed to your own taste with the Twostroke AL 24 sticker kits.
+               </p>
+              </div>
+             </div>
+            </div>
+           </div>
+          </div>
+          <figure class="product-innovation__image-container">
+           <img data-src="https://www.bmc-switzerland.com/media//innovation/technology/innovation-twostroke-al-24-v2-06-sticker-kits.jpg"/>
+          </figure>
+         </div>
+        </div>
+       </section>
+      </p>
+      <section aria-label="Technical Overview" class="technical-details">
+       <div class="technical-details__container container">
+        <h2 class="technical-details__title">
+         Technical Overview
+        </h2>
+        <div class="technical-details__main">
+         <div class="product info detailed">
+          <div class="product data items grid" data-mage-init='{"tabs":{"openedState":"active"}}'>
+           <div class="tab-titles">
+            <div aria-labeledby="tab-label-additional-title" class="data item title" data-role="collapsible" id="tab-label-additional">
+             <a class="data switch" data-toggle="switch" href="#additional" id="tab-label-additional-title" tabindex="-1">
+              Full Specifications
+             </a>
+            </div>
+            <div aria-labeledby="tab-label-product.info.geometry-title" class="data item title" data-role="collapsible" id="tab-label-product.info.geometry">
+             <a class="data switch" data-toggle="switch" href="#product.info.geometry" id="tab-label-product.info.geometry-title" tabindex="-1">
+              Geometry
+             </a>
+            </div>
+            <div aria-labeledby="tab-label-product.info.details.and.manuals-title" class="data item title" data-role="collapsible" id="tab-label-product.info.details.and.manuals">
+             <a class="data switch" data-toggle="switch" href="#product.info.details.and.manuals" id="tab-label-product.info.details.and.manuals-title" tabindex="-1">
+              Technical Details &amp; Manuals
+             </a>
+            </div>
+           </div>
+           <div class="tab-content">
+            <div class="data item content" data-role="content" id="additional">
+             <div class="product-attributes">
+              <ul class="product-attributes__list">
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Frame
+                </h3>
+                <span class="product-attributes__value">
+                 Twostroke AL 24" Lightweight Aluminium with Powder Coat Finish
+                 <br/>
+                 1 1/8" Head Tube
+                 <br/>
+                 BSA Threaded Bottom Bracket
+                 <br/>
+                 140mm Post Mount
+                 <br/>
+                 9X135mm QR
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Fork
+                </h3>
+                <span class="product-attributes__value">
+                 Twostroke AL 24" Lightweight Aluminium with Powder Coat Finish
+                 <br/>
+                 140mm Post Mount
+                 <br/>
+                 9X100mm QR
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Chainwheel
+                </h3>
+                <span class="product-attributes__value">
+                 Lightweight Forged Alloy Cranks 32T 1x Specific Narrow Wide Chainring 140mm
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Cassette
+                </h3>
+                <span class="product-attributes__value">
+                 SUNRACE 11-34T
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Chain
+                </h3>
+                <span class="product-attributes__value">
+                 SRAM 8spd
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Rear Derailleur
+                </h3>
+                <span class="product-attributes__value">
+                 SRAM X4 Medium Cage
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Shifters
+                </h3>
+                <span class="product-attributes__value">
+                 SRAM X4 8Spd Trigger
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Brakes
+                </h3>
+                <span class="product-attributes__value">
+                 TEKTRO HD-M286 Short Reach Levers 140mm Rotors
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Handlebar
+                </h3>
+                <span class="product-attributes__value">
+                 SDG Slater Handlebar  650mm Wide 20mm Rise  19mm Bar Ends 31.8mm Clamp.
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Stem
+                </h3>
+                <span class="product-attributes__value">
+                 BMC 40mm Length  ± 6 Angle
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Seatpost
+                </h3>
+                <span class="product-attributes__value">
+                 Alloy 27.2mm
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Saddle
+                </h3>
+                <span class="product-attributes__value">
+                 SDG Fly Jr
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Hubs
+                </h3>
+                <span class="product-attributes__value">
+                 CNC Machined Alloy Hub Body Sealed Bearings Quick Release
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Rims
+                </h3>
+                <span class="product-attributes__value">
+                 DD32
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Tires
+                </h3>
+                <span class="product-attributes__value">
+                 Kenda Booster 24x2.4"
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Tire Clearance
+                </h3>
+                <span class="product-attributes__value">
+                 58mm (Measured Width)
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Weight
+                </h3>
+                <span class="product-attributes__value">
+                 10.20kg / 22.49lb
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 Weight Limit
+                </h3>
+                <span class="product-attributes__value">
+                 60kg / 132lb
+                </span>
+               </li>
+               <li class="product-attributes__item grid">
+                <h3 class="product-attributes__label">
+                 ASTM Classification
+                </h3>
+                <span class="product-attributes__value">
+                 Level 3
+                </span>
+               </li>
+              </ul>
+             </div>
+            </div>
+            <div class="data item content" data-role="content" id="product.info.geometry">
+             <div class="grid">
+              <!-- This seems to be the picture -->
+              <div class="geometry__picture">
+               <p>
+                <img "="" alt="Twostroke AL 24 Kids Mountain Bike" data-src="https://www.bmc-switzerland.com/media/v2_widgets/geometry-bmc-twostroke-al-24.jpg"/>
+               </p>
+              </div>
+             </div>
+            </div>
+            <div class="data item content" data-role="content" id="product.info.details.and.manuals">
+             <!-- * @copyright Copyright (c) netz98 GmbH (https://www.netz98.de) */ -->
+             <div class="technical-description">
+              <p>
+               <strong>
+                Frameset
+               </strong>
+              </p>
+              <ul>
+               <li>
+                Twostroke AL lightweight aluminum with powder coat finish
+               </li>
+              </ul>
+              <br/>
+              <p>
+               <strong>
+                Technical Details
+               </strong>
+              </p>
+              <ul>
+               <li>
+                Powder coat finish
+               </li>
+               <li>
+                Internal cable routing
+               </li>
+               <li>
+                Molded chainstay guard
+               </li>
+               <li>
+                Waterbottle mount
+               </li>
+               <li>
+                ASTM level 3
+               </li>
+              </ul>
+              <br/>
+              <p>
+               <strong>
+                Sizes
+               </strong>
+              </p>
+              <p>
+               20" and 24"
+              </p>
+              <br/>
+              <p>
+               <strong>
+                Weight*
+               </strong>
+              </p>
+              <ul>
+               <li>
+                8.6 kg (Twostroke AL 20")
+               </li>
+               <li>
+                9.6 kg (Twostroke AL 24")
+               </li>
+              </ul>
+              <p>
+               <strong>
+                Min and Max Saddle Height**
+               </strong>
+              </p>
+              <p>
+               Min: 55/48/35 cm (Twostroke AL 20")
+              </p>
+              <p>
+               Max: 72/65/52 cm (Twostroke AL 20")
+              </p>
+              <p>
+               Min: 64/51/37 cm (Twostroke AL 24")
+              </p>
+              <p>
+               Max: 80/69/55 cm (Twostroke AL 24")
+              </p>
+              <p>
+               <strong>
+                Min and Max Inseam
+               </strong>
+              </p>
+              <p>
+               Min: 50 cm (Twostroke AL 20")
+              </p>
+              <p>
+               Max: 72 cm (Twostroke AL 20")
+              </p>
+              <p>
+               Min: 59 cm (Twostroke AL 24")
+              </p>
+              <p>
+               Max: 80 cm (Twostroke AL 24")
+              </p>
+              <br/>
+              <p>
+               <strong>
+                Compatibility
+               </strong>
+              </p>
+              <p>
+               <strong>
+                Frame, Fork and Seatpost
+               </strong>
+              </p>
+              <ul>
+               <li>
+                1 1/8" head tube with semi-integrated headset
+               </li>
+               <li>
+                1x drivetrain
+               </li>
+               <li>
+                BSA threaded bottom bracket
+               </li>
+               <li>
+                1 waterbottle mount
+               </li>
+               <li>
+                Alloy seatpost, 27.2 mm diameter
+               </li>
+              </ul>
+              <p>
+               <strong>
+                Brakes
+               </strong>
+              </p>
+              <ul>
+               <li>
+                Post mount, 140 mm
+               </li>
+              </ul>
+              <p>
+               <strong>
+                Wheels and Axles
+               </strong>
+              </p>
+              <ul>
+               <li>
+                20"/24" x 58 mm tire clearance
+               </li>
+              </ul>
+              <br/>
+              <p>
+               *Weight for the complete bike, w/out pedals
+              </p>
+              <p>
+               **Measured at ground/pedal/bottom bracket
+              </p>
+             </div>
+            </div>
+           </div>
+          </div>
+         </div>
+        </div>
+       </div>
+      </section>
+      <p>
+       <section class="video-cta video-iframe-container" data-video="https://www.youtube.com/embed/tL_TXibV4Zc?rel=0&amp;showinfo=0&amp;mute=1">
+       </section>
+      </p>
+      <p>
+       <div data-component="Story" data-props='{"headline":"","headlineColor":"","body":"","bodyColor":"","ctaLabel":"","ctaURL":"","ctaColor":"","pictures":[{"images":[{"query":"mq2","url":"https:\/\/www.bmc-switzerland.com\/media\/v2_widgets\/story-bmc-twostroke-kids-01.jpg"},{"query":"mq2","url":"https:\/\/www.bmc-switzerland.com\/media\/v2_widgets\/story-bmc-twostroke-kids-01.jpg"}],"alt":"Twostroke AL 24 Kids Mountain Bike"},{"images":[{"query":"mq2","url":"https:\/\/www.bmc-switzerland.com\/media\/v2_widgets\/story-bmc-twostroke-kids-02.jpg"},{"query":"mq2","url":"https:\/\/www.bmc-switzerland.com\/media\/v2_widgets\/story-bmc-twostroke-kids-02.jpg"}],"alt":"Twostroke AL 24 Kids Mountain Bike"},{"images":[{"query":"mq2","url":"https:\/\/www.bmc-switzerland.com\/media\/v2_widgets\/story-bmc-twostroke-kids-04.jpg"},{"query":"mq2","url":"https:\/\/www.bmc-switzerland.com\/media\/v2_widgets\/story-bmc-twostroke-kids-04.jpg"}],"alt":"Twostroke AL 24 Kids Mountain Bike"},{"images":[{"query":"mq2","url":"https:\/\/www.bmc-switzerland.com\/media\/v2_widgets\/story-bmc-twostroke-kids-03.jpg"},{"query":"mq2","url":"https:\/\/www.bmc-switzerland.com\/media\/v2_widgets\/story-bmc-twostroke-kids-03.jpg"}],"alt":"Twostroke AL 24 Kids Mountain Bike"}]}'>
+       </div>
+      </p>
+      <aside class="block grid -almost-full related">
+       <div class="block-title title">
+        <h2 aria-level="2" id="block-related-heading" role="heading">
+         Related Products
+        </h2>
+       </div>
+       <div aria-labelledby="block-related-heading" class="block-content content">
+        <div class="products wrapper products-grid products-related slideshow">
+         <ol class="products list items product-items grid slideshow__slides">
+          <li class="item product product-item" data-category="Twostroke Kids">
+           <div class="product-item-info">
+            <!-- related_products_list-->
+            <a class="product photo product-item-photo" data-attributes="[]" data-block="catalog.product.related" data-brand="BMC" data-category="BMC/Mountain/Kids/Twostroke Kids" data-click="" data-event="productClick" data-id="BMC-22-10516-010" data-list="Related products" data-name="Twostroke AL | 20" data-position="1" data-price="0" data-quantity="1" data-store="English" href="https://www.bmc-switzerland.com/intl_en/twostroke-al-20.html">
+             <figure class="product-item__image">
+              <img alt="Twostroke AL | 20" data-src="https://www.bmc-switzerland.com/media/catalog/product/cache/86a9a13297e2ff4b2d593e234876b106/b/m/bmc-22-10516-010-bmc-twostroke-al-20-mountain-bike-green-01.png"/>
+             </figure>
+            </a>
+            <div class="product details product-item-details">
+             <span class="category">
+              BMC
+             </span>
+             <span class="product name product-item-name">
+              <a class="product-item-link" href="https://www.bmc-switzerland.com/intl_en/twostroke-al-20.html" title="Twostroke AL | 20">
+               Twostroke AL
+               <br/>
+               20
+              </a>
+             </span>
+             <!-- INFO: the upsell products don't have prices maintained -->
+             <span class="price-wrapper">
+              <span class="price">
+               769.00CHF
+              </span>
+             </span>
+             <div class="product actions product-item-actions">
+              <div class="secondary-addto-links actions-secondary" data-role="add-to-links">
+               <div class="product-link">
+                <a aria-label="Learn more" class="action toproduct cta -black" href="https://www.bmc-switzerland.com/intl_en/twostroke-al-20.html" role="button" title="Learn more">
+                 <span class="text">
+                  Learn more
+                 </span>
+                </a>
+               </div>
+              </div>
+             </div>
+            </div>
+           </div>
+          </li>
+          <li class="item product product-item" data-category="Twostroke">
+           <div class="product-item-info">
+            <!-- related_products_list-->
+            <a class="product photo product-item-photo" data-attributes="[]" data-block="catalog.product.related" data-brand="BMC" data-category="BMC/Mountain/Cross-Country/Twostroke" data-click="" data-event="productClick" data-id="BMC-22-10516-007" data-list="Related products" data-name="Twostroke AL | FIVE" data-position="2" data-price="0" data-quantity="1" data-store="English" href="https://www.bmc-switzerland.com/intl_en/twostroke-al-five.html">
+             <figure class="product-item__image">
+              <img alt="Twostroke AL | FIVE" data-src="https://www.bmc-switzerland.com/media/catalog/product/cache/86a9a13297e2ff4b2d593e234876b106/b/m/bmc-22-10516-007-bmc-twostroke-al-five-mountain-bike-white-01.png"/>
+             </figure>
+            </a>
+            <div class="product details product-item-details">
+             <span class="category">
+              BMC
+             </span>
+             <span class="product name product-item-name">
+              <a class="product-item-link" href="https://www.bmc-switzerland.com/intl_en/twostroke-al-five.html" title="Twostroke AL | FIVE">
+               Twostroke AL
+               <br/>
+               FIVE
+              </a>
+             </span>
+             <!-- INFO: the upsell products don't have prices maintained -->
+             <span class="price-wrapper">
+              <span class="price">
+               1,299.00CHF
+              </span>
+             </span>
+             <div class="product actions product-item-actions">
+              <div class="secondary-addto-links actions-secondary" data-role="add-to-links">
+               <div class="product-link">
+                <a aria-label="Learn more" class="action toproduct cta -black" href="https://www.bmc-switzerland.com/intl_en/twostroke-al-five.html" role="button" title="Learn more">
+                 <span class="text">
+                  Learn more
+                 </span>
+                </a>
+               </div>
+              </div>
+             </div>
+            </div>
+           </div>
+          </li>
+          <li class="item product product-item" data-category="Twostroke">
+           <div class="product-item-info">
+            <!-- related_products_list-->
+            <a class="product photo product-item-photo" data-attributes="[]" data-block="catalog.product.related" data-brand="BMC" data-category="BMC/Mountain/Cross-Country/Twostroke" data-click="" data-event="productClick" data-id="BMC-22-10516-006" data-list="Related products" data-name="Twostroke AL | FOUR" data-position="3" data-price="0" data-quantity="1" data-store="English" href="https://www.bmc-switzerland.com/intl_en/twostroke-al-four.html">
+             <figure class="product-item__image">
+              <img alt="Twostroke AL | FOUR" data-src="https://www.bmc-switzerland.com/media/catalog/product/cache/86a9a13297e2ff4b2d593e234876b106/b/m/bmc-22-10516-006-bmc-twostroke-al-four-mountain-bike-red-01.png"/>
+             </figure>
+            </a>
+            <div class="product details product-item-details">
+             <span class="category">
+              BMC
+             </span>
+             <span class="product name product-item-name">
+              <a class="product-item-link" href="https://www.bmc-switzerland.com/intl_en/twostroke-al-four.html" title="Twostroke AL | FOUR">
+               Twostroke AL
+               <br/>
+               FOUR
+              </a>
+             </span>
+             <!-- INFO: the upsell products don't have prices maintained -->
+             <span class="price-wrapper">
+              <span class="price">
+               1,499.00CHF
+              </span>
+             </span>
+             <div class="product actions product-item-actions">
+              <div class="secondary-addto-links actions-secondary" data-role="add-to-links">
+               <div class="product-link">
+                <a aria-label="Learn more" class="action toproduct cta -black" href="https://www.bmc-switzerland.com/intl_en/twostroke-al-four.html" role="button" title="Learn more">
+                 <span class="text">
+                  Learn more
+                 </span>
+                </a>
+               </div>
+              </div>
+             </div>
+            </div>
+           </div>
+          </li>
+          <li class="item product product-item" data-category="Twostroke">
+           <div class="product-item-info">
+            <!-- related_products_list-->
+            <a class="product photo product-item-photo" data-attributes="[]" data-block="catalog.product.related" data-brand="BMC" data-category="BMC/Mountain/Cross-Country/Twostroke" data-click="" data-event="productClick" data-id="BMC-22-10516-008" data-list="Related products" data-name="Twostroke AL | SIX" data-position="4" data-price="0" data-quantity="1" data-store="English" href="https://www.bmc-switzerland.com/intl_en/twostroke-al-six.html">
+             <figure class="product-item__image">
+              <img alt="Twostroke AL | SIX" data-src="https://www.bmc-switzerland.com/media/catalog/product/cache/86a9a13297e2ff4b2d593e234876b106/b/m/bmc-22-10516-008-bmc-twostroke-al-six-mountain-bike-grey-01.png"/>
+             </figure>
+            </a>
+            <div class="product details product-item-details">
+             <span class="category">
+              BMC
+             </span>
+             <span class="product name product-item-name">
+              <a class="product-item-link" href="https://www.bmc-switzerland.com/intl_en/twostroke-al-six.html" title="Twostroke AL | SIX">
+               Twostroke AL
+               <br/>
+               SIX
+              </a>
+             </span>
+             <!-- INFO: the upsell products don't have prices maintained -->
+             <span class="price-wrapper">
+              <span class="price">
+               1,099.00CHF
+              </span>
+             </span>
+             <div class="product actions product-item-actions">
+              <div class="secondary-addto-links actions-secondary" data-role="add-to-links">
+               <div class="product-link">
+                <a aria-label="Learn more" class="action toproduct cta -black" href="https://www.bmc-switzerland.com/intl_en/twostroke-al-six.html" role="button" title="Learn more">
+                 <span class="text">
+                  Learn more
+                 </span>
+                </a>
+               </div>
+              </div>
+             </div>
+            </div>
+           </div>
+          </li>
+         </ol>
+        </div>
+       </div>
+      </aside>
+     </div>
+    </div>
+   </main>
+   <div class="video-lightbox" id="video-lightbox">
+    <div class="video-lightbox__container">
+     <figure class="video-lightbox__wrapper">
+      <a class="video-lightbox__close" href="javascript:void('')" id="video-lightbox-close">
+       <span class="screenreader-text">
+        Close Video
+       </span>
+      </a>
+     </figure>
+    </div>
+   </div>
+   <script type="text/x-magento-init">
+    {
+            "*": {
+                "Magento_Ui/js/core/app": {
+                    "components": {
+                        "storage-manager": {
+                            "component": "Magento_Catalog/js/storage-manager",
+                            "appendTo": "",
+                            "storagesConfiguration" : {"recently_viewed_product":{"requestConfig":{"syncUrl":"https:\/\/www.bmc-switzerland.com\/intl_en\/catalog\/product\/frontend_action_synchronize\/"},"lifetime":"1000","allowToSendRequest":null},"recently_compared_product":{"requestConfig":{"syncUrl":"https:\/\/www.bmc-switzerland.com\/intl_en\/catalog\/product\/frontend_action_synchronize\/"},"lifetime":"1000","allowToSendRequest":null},"product_data_storage":{"updateRequestConfig":{"url":"https:\/\/www.bmc-switzerland.com\/intl_en\/rest\/intl_en\/V1\/products-render-info"},"requestConfig":{"syncUrl":"https:\/\/www.bmc-switzerland.com\/intl_en\/catalog\/product\/frontend_action_synchronize\/"},"allowToSendRequest":null}}                        }
+                    }
+                }
+            }
+        }
+   </script>
+   <script async="" src="https://static.klaviyo.com/onsite/js/klaviyo.js?company_id=XWHJ42" type="text/javascript">
+   </script>
+   <script data-ommit="true">
+    document.addEventListener("DOMContentLoaded", () => 
+    {
+    	let bind = () => 
+    	{
+    		Object.entries(
+	    	{
+	    		addToCart: event => 
+	    		{
+	    			AEC.ajax(event.currentTarget, dataLayer);
+	    		},
+	    		removeFromCart:event => 
+	    		{
+	    			AEC.remove(event.currentTarget, dataLayer);
+	    		},
+	    		productClick:event => 
+	    		{
+	    			AEC.click(event.currentTarget, dataLayer);	
+	    		},
+	    		addToWishlist:event => 
+	    		{
+	    			AEC.wishlist(event.currentTarget, dataLayer);
+	    		},
+	    		addToCompare:event => 
+	    		{
+	    			AEC.compare(event.currentTarget, dataLayer);
+	    		},
+	    		addToCartSwatch:event => 
+	    		{
+	    			AEC.ajaxSwatch(event.currentTarget, dataLayer);
+	    		}
+	        }).forEach(([event, callback]) => 
+	    	{
+	    	    [...document.querySelectorAll('[data-event]:not([data-bound])')].filter(element => { return element.dataset.event === event; }).forEach(element => 
+	        	{
+	            	element.addEventListener('click', callback);
+
+	            	element.dataset.bound = true;
+	        	});
+		  	});
+        };
+
+        bind();
+
+        if("PerformanceObserver" in window)
+        {
+        	const observer = new PerformanceObserver((items) => 
+        	{
+                items.getEntries().filter(({ initiatorType }) => initiatorType === "xmlhttprequest").forEach((entry) => 
+                {
+                    bind();
+                });
+      		});
+
+      		observer.observe(
+      		{
+          		entryTypes: ["resource"]
+      		});
+        }
+    });
+   </script>
+   <script data-ommit="true">
+    document.addEventListener("DOMContentLoaded", () => 
+    {
+    	var PromotionTrack = ((dataLayer) => 
+	    {
+	        return {
+	            apply: () => 
+	            {
+	                var promotions = [], position = 0;
+	
+	                document.querySelectorAll('[data-promotion]').forEach((promotion) => 
+	                {
+	                    promotions.push(
+                        {
+                            id:      	promotion.dataset.promotionId,
+                            name:    	promotion.dataset.promotionName,
+                            creative:	promotion.dataset.promotionCreative,
+                            position:	promotion.dataset.promotionPosition
+                        });
+
+	                    promotion.addEventListener('click', (event) => 
+	                    {
+	                    	var data = 
+	                        {
+                       			'event': 'promotionClick',
+                                'ecommerce': 
+                                {
+                                    'promoClick': 
+                                    {
+                                        'promotions':
+                                        [
+                                            {
+                                                'id':       event.target.dataset.promotionId,
+                                                'name':     event.target.dataset.promotionName,
+                                                'creative': event.target.dataset.promotionCreative,
+                                                'position': event.target.dataset.promotionPosition
+                                            }
+                                        ]
+                                    }
+                                }
+			                };
+			                
+                            AEC.Cookie.promotionClick(data).push(dataLayer);
+
+                            /**
+                             * Save persistent data
+                             */
+                            AEC.Persist.push(AEC.Persist.CONST_KEY_PROMOTION,
+	                        {
+    	                        'promotion':data.ecommerce.promoClick.promotions[0]
+    	                    });
+		                });
+	                });
+	
+	                if (promotions.length)
+	                {
+		                AEC.Cookie.promotion(
+				        {
+	                        'event':'promoViewNonInteractive',
+                            'ecommerce':
+                            {
+                                'promoView':
+                                {
+                                    'promotions': promotions
+                                }
+                            }
+                        }).push(dataLayer);
+	                }
+	
+	                return this;
+	            }
+	        }
+	    })(dataLayer).apply();
+    });
+   </script>
+   <script data-ommit="true">
+    document.addEventListener("DOMContentLoaded", () => 
+    {
+    	(() => 
+    	{
+    		let map = {};
+    
+    		document.querySelectorAll('[data-widget]').forEach((element) => 
+            {
+                let widget = element.dataset.widget;
+                
+            	let entity = 
+    			{
+    				id: 				   element.dataset.id,
+    				name: 				   element.dataset.name,
+    				category:			   element.dataset.category,
+    				brand:				   element.dataset.brand,
+    				list:				   element.dataset.list,
+    				price:		parseFloat(element.dataset.price),
+    				position: 	parseFloat(element.dataset.position)
+            	};
+
+            	let attributes = element.dataset.attributes;
+                
+            	if (attributes)
+    	        {
+        	        Object.entries(JSON.parse(attributes)).forEach(([key, value]) => 
+        	        {
+            	        entity[key] = value;
+        	        });
+        	    }
+
+        	    if (!map.hasOwnProperty(widget))
+        	    {
+            	    map[widget] = [];
+        	    }
+
+        	    map[widget].push(entity);
+            });
+
+    		Object.entries(map).forEach(([key, value]) => 
+	        {
+		        if (value.length)
+		        {
+    		        let data = 
+    			    {
+    					event: 'widgetViewNonInteractive',
+    					ecommerce:
+    					{
+    						actionField:
+    						{
+    							list: 		  value.find(Boolean).category,
+    							currencyCode: "EUR"    						},
+    						impressions: value
+    					}
+    				};
+
+    		        if ('undefined' !== typeof dataLayer)
+    				{
+    					(function(callback)
+    					{
+    						if (AEC.Const.COOKIE_DIRECTIVE)
+    						{
+    							AEC.CookieConsent.queue(callback).process();
+    						}
+    						else 
+    						{
+    							callback.apply(window,[]);
+    						}
+    					})
+    					(
+    						(function(dataLayer, data)
+    						{
+    							return function()
+    							{
+    								dataLayer.push(data);
+    							}
+    						})(dataLayer, data)
+    					);
+    				}
+		        }
+	        });
+    	})();
+    });
+   </script>
+   <script data-ommit="true">
+    if (typeof dataLayer !== "undefined")
+	{
+		         AEC.EventDispatcher.on('ec.facebook.loaded', () => 
+		{
+			 });
+		
+		for (a = 0, b = EC.length; a < b; a++)
+		{
+			EC[a].apply(this,[dataLayer]);
+			EC[a].apply(this,[dataLayerTransport]);
+		}
+
+		 if (window.google_tag_params)
+		{
+			(function(callback)
+			{
+				if (AEC.Const.COOKIE_DIRECTIVE)
+				{
+					if (!AEC.Const.COOKIE_DIRECTIVE_CONSENT_GRANTED)
+					{
+						AEC.CookieConsent.queue(callback);
+					}
+					else
+					{
+						callback.apply(window,[]);
+					}
+				}
+				else 
+				{
+					callback.apply(window,[]);
+				}
+			})
+			(
+				(function(dataLayer)
+				{
+					return () => 
+					{
+						AEC.Cookie.remarketing({ event:'fireRemarketingTag', google_tag_params: window.google_tag_params }).push(dataLayer);
+					}
+				})(dataLayer)
+			);
+		}
+
+		  if (typeof FB !== 'undefined') 
+		{
+			FB.Event.subscribe('edge.create',function(href) 
+		 	{
+				dataLayer.push(
+				{
+					'event': 			'socialInt',
+					'socialNetwork': 	'Facebook',
+					'socialAction': 	'Like',
+					'socialTarget': 	href
+				});
+			});
+		}
+
+		if (typeof twttr !== 'undefined') 
+		{
+			twttr.ready(function (twttr) 
+			{
+				twttr.events.bind('click', function()
+				{
+					dataLayer.push(
+					{
+						'event': 			'socialInt',
+						'socialNetwork': 	'Twitter',
+						'socialAction': 	'tweet',
+						'socialTarget': 	window.location.href
+					});
+				}); 
+			});
+		}
+	}
+	else
+	{
+		console.log('dataLayer[] is not intialized. Check if GTM is installed properly');
+	}
+   </script>
+   <!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">-->
+   <aside class="store-switcher" data-mage-init='{ "store-switcher": { "popup_always": false, "default_site": "intl", "website_code": "intl", "store_code": "intl_en", "store_urls": {"scr_in_en":"https:\/\/www.scor-mtb.com\/scr_in_en\/twostroke-al-24.html?___from_store=intl_en","scr_in_de":"https:\/\/www.scor-mtb.com\/scr_in_de\/twostroke-al-24.html?___from_store=intl_en","scr_in_fr":"https:\/\/www.scor-mtb.com\/scr_in_fr\/twostroke-al-24.html?___from_store=intl_en","scr_in_it":"https:\/\/www.scor-mtb.com\/scr_in_it\/twostroke-al-24.html?___from_store=intl_en","scr_in_es":"https:\/\/www.scor-mtb.com\/scr_in_es\/twostroke-al-24.html?___from_store=intl_en","de":"https:\/\/www.bmc-switzerland.com\/de\/twostroke-al-24.html?___from_store=intl_en","intl_en":"https:\/\/www.bmc-switzerland.com\/intl_en\/twostroke-al-24.html?___from_store=intl_en","es":"https:\/\/www.bmc-switzerland.com\/es\/twostroke-al-24.html?___from_store=intl_en","fr":"https:\/\/www.bmc-switzerland.com\/fr\/twostroke-al-24.html?___from_store=intl_en","it":"https:\/\/www.bmc-switzerland.com\/it\/twostroke-al-24.html?___from_store=intl_en","eu_en":"https:\/\/www.bmc-switzerland.com\/eu_en\/twostroke-al-24.html?___from_store=intl_en","eu_de":"https:\/\/www.bmc-switzerland.com\/eu_de\/twostroke-al-24.html?___from_store=intl_en","eu_fr":"https:\/\/www.bmc-switzerland.com\/eu_fr\/twostroke-al-24.html?___from_store=intl_en","eu_it":"https:\/\/www.bmc-switzerland.com\/eu_it\/twostroke-al-24.html?___from_store=intl_en","eu_es":"https:\/\/www.bmc-switzerland.com\/eu_es\/twostroke-al-24.html?___from_store=intl_en","scr_ch_de":"https:\/\/www.scor-mtb.com\/scr_ch_de\/twostroke-al-24.html?___from_store=intl_en","scr_ch_fr":"https:\/\/www.scor-mtb.com\/scr_ch_fr\/twostroke-al-24.html?___from_store=intl_en","scr_ch_it":"https:\/\/www.scor-mtb.com\/scr_ch_it\/twostroke-al-24.html?___from_store=intl_en","scr_eu_en":"https:\/\/www.scor-mtb.com\/scr_eu_en\/twostroke-al-24.html?___from_store=intl_en","scr_eu_de":"https:\/\/www.scor-mtb.com\/scr_eu_de\/twostroke-al-24.html?___from_store=intl_en","scr_eu_fr":"https:\/\/www.scor-mtb.com\/scr_eu_fr\/twostroke-al-24.html?___from_store=intl_en","scr_eu_it":"https:\/\/www.scor-mtb.com\/scr_eu_it\/twostroke-al-24.html?___from_store=intl_en","scr_eu_es":"https:\/\/www.scor-mtb.com\/scr_eu_es\/twostroke-al-24.html?___from_store=intl_en","ch_de":"https:\/\/www.bmc-switzerland.com\/ch_de\/twostroke-al-24.html?___from_store=intl_en","ch_fr":"https:\/\/www.bmc-switzerland.com\/ch_fr\/twostroke-al-24.html?___from_store=intl_en","ch_it":"https:\/\/www.bmc-switzerland.com\/ch_it\/twostroke-al-24.html?___from_store=intl_en","scr_us_en":"https:\/\/www.scor-mtb.com\/scr_us_en\/twostroke-al-24.html?___from_store=intl_en","scr_us_es":"https:\/\/www.scor-mtb.com\/scr_us_es\/twostroke-al-24.html?___from_store=intl_en","us_en":"https:\/\/www.bmc-switzerland.com\/us_en\/twostroke-al-24.html?___from_store=intl_en","us_es":"https:\/\/www.bmc-switzerland.com\/us_es\/twostroke-al-24.html?___from_store=intl_en","b2b_eu_de":"https:\/\/b2b.bmc-switzerland.com\/b2b_eu_de\/twostroke-al-24.html?___from_store=intl_en","b2b_eu_en":"https:\/\/b2b.bmc-switzerland.com\/b2b_eu_en\/twostroke-al-24.html?___from_store=intl_en","b2b_eu_es":"https:\/\/b2b.bmc-switzerland.com\/b2b_eu_es\/twostroke-al-24.html?___from_store=intl_en","b2b_eu_fr":"https:\/\/b2b.bmc-switzerland.com\/b2b_eu_fr\/twostroke-al-24.html?___from_store=intl_en","b2b_eu_it":"https:\/\/b2b.bmc-switzerland.com\/b2b_eu_it\/twostroke-al-24.html?___from_store=intl_en","bus_en":"https:\/\/b2b.bmc-switzerland.com\/bus_en\/twostroke-al-24.html?___from_store=intl_en","bus_es":"https:\/\/b2b.bmc-switzerland.com\/bus_es\/twostroke-al-24.html?___from_store=intl_en","bus_fr":"https:\/\/b2b.bmc-switzerland.com\/bus_fr\/twostroke-al-24.html?___from_store=intl_en","bch_de":"https:\/\/b2b.bmc-switzerland.com\/bch_de\/twostroke-al-24.html?___from_store=intl_en","bch_fr":"https:\/\/b2b.bmc-switzerland.com\/bch_fr\/twostroke-al-24.html?___from_store=intl_en","bch_it":"https:\/\/b2b.bmc-switzerland.com\/bch_it\/twostroke-al-24.html?___from_store=intl_en","di_en":"https:\/\/b2b.bmc-switzerland.com\/di_en\/twostroke-al-24.html?___from_store=intl_en"} } }'>
+    <div class="store-switcher__wrapper">
+     <a class="store-switcher__close" href="javascript:void(0)">
+      <span class="screenreader-text">
+       Close popup
+      </span>
+     </a>
+     <div class="store-switcher__column store-switcher__column--location">
+      <h2 class="store-switcher__title">
+       Location
+      </h2>
+      <ul class="store-switcher__websites">
+       <li class="store-switcher__website intl">
+        <a class="store-switcher__website-link store-switcher__website-link--active" data-languages='  &lt;li class="store-switcher__language"&gt;&lt;a href="https://www.bmc-switzerland.com/de/twostroke-al-24.html?___from_store=intl_en" data-website-code="intl" data-store-code="de" class="store-switcher__language-link "&gt;Deutsch&lt;/a&gt;&lt;/li&gt;  &lt;li class="store-switcher__language"&gt;&lt;a href="https://www.bmc-switzerland.com/intl_en/twostroke-al-24.html?___from_store=intl_en" data-website-code="intl" data-store-code="intl_en" class="store-switcher__language-link  store-switcher__language-link--active "&gt;English&lt;/a&gt;&lt;/li&gt;  &lt;li class="store-switcher__language"&gt;&lt;a href="https://www.bmc-switzerland.com/es/twostroke-al-24.html?___from_store=intl_en" data-website-code="intl" data-store-code="es" class="store-switcher__language-link "&gt;Español&lt;/a&gt;&lt;/li&gt;  &lt;li class="store-switcher__language"&gt;&lt;a href="https://www.bmc-switzerland.com/fr/twostroke-al-24.html?___from_store=intl_en" data-website-code="intl" data-store-code="fr" class="store-switcher__language-link "&gt;Français&lt;/a&gt;&lt;/li&gt;  &lt;li class="store-switcher__language"&gt;&lt;a href="https://www.bmc-switzerland.com/it/twostroke-al-24.html?___from_store=intl_en" data-website-code="intl" data-store-code="it" class="store-switcher__language-link "&gt;Italiano&lt;/a&gt;&lt;/li&gt; ' href="javascript:void(0)">
+         <img class="store-switcher__website-flag" data-src="https://www.bmc-switzerland.com/static/version1658770636/frontend/BMC/makeover/en_US/images/icons/flags/intl.svg">
+          <span class="store-switcher__website-name">
+           International
+          </span>
+         </img>
+        </a>
+       </li>
+       <li class="store-switcher__website eu">
+        <a class="store-switcher__website-link" data-languages='  &lt;li class="store-switcher__language"&gt;&lt;a href="https://www.bmc-switzerland.com/eu_en/twostroke-al-24.html?___from_store=intl_en" data-website-code="eu" data-store-code="eu_en" class="store-switcher__language-link "&gt;English&lt;/a&gt;&lt;/li&gt;  &lt;li class="store-switcher__language"&gt;&lt;a href="https://www.bmc-switzerland.com/eu_de/twostroke-al-24.html?___from_store=intl_en" data-website-code="eu" data-store-code="eu_de" class="store-switcher__language-link "&gt;Deutsch&lt;/a&gt;&lt;/li&gt;  &lt;li class="store-switcher__language"&gt;&lt;a href="https://www.bmc-switzerland.com/eu_fr/twostroke-al-24.html?___from_store=intl_en" data-website-code="eu" data-store-code="eu_fr" class="store-switcher__language-link "&gt;Français&lt;/a&gt;&lt;/li&gt;  &lt;li class="store-switcher__language"&gt;&lt;a href="https://www.bmc-switzerland.com/eu_it/twostroke-al-24.html?___from_store=intl_en" data-website-code="eu" data-store-code="eu_it" class="store-switcher__language-link "&gt;Italiano&lt;/a&gt;&lt;/li&gt;  &lt;li class="store-switcher__language"&gt;&lt;a href="https://www.bmc-switzerland.com/eu_es/twostroke-al-24.html?___from_store=intl_en" data-website-code="eu" data-store-code="eu_es" class="store-switcher__language-link "&gt;Español&lt;/a&gt;&lt;/li&gt; ' href="javascript:void(0)">
+         <img class="store-switcher__website-flag" data-src="https://www.bmc-switzerland.com/static/version1658770636/frontend/BMC/makeover/en_US/images/icons/flags/eu.svg">
+          <span class="store-switcher__website-name">
+           Europe
+           <img src="https://bmc-switzerland.s3.amazonaws.com/shopping-cart.svg" style="height:15px;display:inline"/>
+          </span>
+         </img>
+        </a>
+       </li>
+       <li class="store-switcher__website ch">
+        <a class="store-switcher__website-link" data-languages='  &lt;li class="store-switcher__language"&gt;&lt;a href="https://www.bmc-switzerland.com/ch_de/twostroke-al-24.html?___from_store=intl_en" data-website-code="ch" data-store-code="ch_de" class="store-switcher__language-link "&gt;Deutsch&lt;/a&gt;&lt;/li&gt;  &lt;li class="store-switcher__language"&gt;&lt;a href="https://www.bmc-switzerland.com/ch_fr/twostroke-al-24.html?___from_store=intl_en" data-website-code="ch" data-store-code="ch_fr" class="store-switcher__language-link "&gt;Français&lt;/a&gt;&lt;/li&gt;  &lt;li class="store-switcher__language"&gt;&lt;a href="https://www.bmc-switzerland.com/ch_it/twostroke-al-24.html?___from_store=intl_en" data-website-code="ch" data-store-code="ch_it" class="store-switcher__language-link "&gt;Italiano&lt;/a&gt;&lt;/li&gt; ' href="javascript:void(0)">
+         <img class="store-switcher__website-flag" data-src="https://www.bmc-switzerland.com/static/version1658770636/frontend/BMC/makeover/en_US/images/icons/flags/ch.svg">
+          <span class="store-switcher__website-name">
+           Switzerland
+           <img src="https://bmc-switzerland.s3.amazonaws.com/shopping-cart.svg" style="height:15px;display:inline"/>
+          </span>
+         </img>
+        </a>
+       </li>
+       <li class="store-switcher__website us">
+        <a class="store-switcher__website-link" data-languages='  &lt;li class="store-switcher__language"&gt;&lt;a href="https://www.bmc-switzerland.com/us_en/twostroke-al-24.html?___from_store=intl_en" data-website-code="us" data-store-code="us_en" class="store-switcher__language-link "&gt;English&lt;/a&gt;&lt;/li&gt;  &lt;li class="store-switcher__language"&gt;&lt;a href="https://www.bmc-switzerland.com/us_es/twostroke-al-24.html?___from_store=intl_en" data-website-code="us" data-store-code="us_es" class="store-switcher__language-link "&gt;Español&lt;/a&gt;&lt;/li&gt; ' href="javascript:void(0)">
+         <img class="store-switcher__website-flag" data-src="https://www.bmc-switzerland.com/static/version1658770636/frontend/BMC/makeover/en_US/images/icons/flags/us.svg">
+          <span class="store-switcher__website-name">
+           USA
+           <img src="https://bmc-switzerland.s3.amazonaws.com/shopping-cart.svg" style="height:15px;display:inline"/>
+          </span>
+         </img>
+        </a>
+       </li>
+      </ul>
+     </div>
+     <div class="store-switcher__column store-switcher__column--languages">
+      <h2 class="store-switcher__title">
+       Language
+      </h2>
+      <ul class="store-switcher__languages" id="store-switcher-languages">
+       <li class="store-switcher__language">
+        <a class="store-switcher__language-link" data-store-code="de" data-website-code="intl" href="https://www.bmc-switzerland.com/de/twostroke-al-24.html?___from_store=intl_en">
+         Deutsch
+        </a>
+       </li>
+       <li class="store-switcher__language">
+        <a class="store-switcher__language-link store-switcher__language-link--active" data-store-code="intl_en" data-website-code="intl" href="https://www.bmc-switzerland.com/intl_en/twostroke-al-24.html?___from_store=intl_en">
+         English
+        </a>
+       </li>
+       <li class="store-switcher__language">
+        <a class="store-switcher__language-link" data-store-code="es" data-website-code="intl" href="https://www.bmc-switzerland.com/es/twostroke-al-24.html?___from_store=intl_en">
+         Español
+        </a>
+       </li>
+       <li class="store-switcher__language">
+        <a class="store-switcher__language-link" data-store-code="fr" data-website-code="intl" href="https://www.bmc-switzerland.com/fr/twostroke-al-24.html?___from_store=intl_en">
+         Français
+        </a>
+       </li>
+       <li class="store-switcher__language">
+        <a class="store-switcher__language-link" data-store-code="it" data-website-code="intl" href="https://www.bmc-switzerland.com/it/twostroke-al-24.html?___from_store=intl_en">
+         Italiano
+        </a>
+       </li>
+      </ul>
+     </div>
+    </div>
+   </aside>
+   <script type="application/ld+json">
+    {
+    "@context": "http://schema.org",
+    "@type": "Organization",
+    "name": "BMC Switzerland",
+    "url":"https://www.bmc-switzerland.com/",
+    "logo": "https://www.bmc-switzerland.com/static/version1658770636/frontend/BMC/makeover/en_US/images/logo.svg",
+    "telephone": "+41 32 654 14 54",
+    "email" : "info@bmc-switzerland.com",
+    "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Sporstrasse 49, ",
+        "addressLocality": "Grenchen",
+        "addressRegion" : "121",
+        "postalCode":"2540",
+        "addressCountry": "CH"
+    }
+}
+   </script>
+   <script>
+    (payload => 
+		{
+			dataLayer.push(payload);
+			
+		})([]);
+   </script>
+   <footer class="bmc-footer grid">
+    <div class="footer-content">
+     <div class="footer-col-group">
+      <div class="footer-col -socials">
+       <div class="footer-socials-wrapper">
+        <div class="footer-socials-headline">
+         Follow us
+        </div>
+       </div>
+       <div class="footer-socials-content">
+        <div class="footer-socials-icons">
+         <a href="https://www.instagram.com/ride_bmc/" target="_blank">
+          <svg aria-hidden="true" class="svg-inline--fa fa-instagram fa-w-6" data-fa-i2svg="" data-icon="instagram" data-prefix="fab" focusable="false" role="img" style="color: #353535;height:23px;width:23px;margin-right: 28px;" viewbox="0 0 448 512" xmlns="http://www.w3.org/2000/svg">
+           <path d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.8 0-184.8zM398.8 388c-7.8 19.6-22.9 34.7-42.6 42.6-29.5 11.7-99.5 9-132.1 9s-102.7 2.6-132.1-9c-19.6-7.8-34.7-22.9-42.6-42.6-11.7-29.5-9-99.5-9-132.1s-2.6-102.7 9-132.1c7.8-19.6 22.9-34.7 42.6-42.6 29.5-11.7 99.5-9 132.1-9s102.7-2.6 132.1 9c19.6 7.8 34.7 22.9 42.6 42.6 11.7 29.5 9 99.5 9 132.1s2.7 102.7-9 132.1z" fill="currentColor">
+           </path>
+          </svg>
+         </a>
+         <a href="https://www.youtube.com/channel/UC0w4MOUuzS6bxq_Qt9rEDfg" target="_blank">
+          <svg aria-hidden="true" class="svg-inline--fa fa-youtube-f fa-w-10 fa-3x" data-fa-i2svg="" data-icon="youtube-f" data-prefix="fab" focusable="false" role="img" style="color: #353535;height:23px;width:23px;margin-right: 28px;" viewbox="0 0 600 500" xmlns="http://www.w3.org/2000/svg">
+           <path d="M549.655 124.083c-6.281-23.65-24.787-42.276-48.284-48.597C458.781 64 288 64 288 64S117.22 64 74.629 75.486c-23.497 6.322-42.003 24.947-48.284 48.597-11.412 42.867-11.412 132.305-11.412 132.305s0 89.438 11.412 132.305c6.281 23.65 24.787 41.5 48.284 47.821C117.22 448 288 448 288 448s170.78 0 213.371-11.486c23.497-6.321 42.003-24.171 48.284-47.821 11.412-42.867 11.412-132.305 11.412-132.305s0-89.438-11.412-132.305zm-317.51 213.508V175.185l142.739 81.205-142.739 81.201z" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+           </path>
+          </svg>
+         </a>
+         <a href="https://www.facebook.com/bmcswitzerland" target="_blank">
+          <svg aria-hidden="true" class="svg-inline--fa fa-facebook-f fa-w-10 fa-3x" data-fa-i2svg="" data-icon="facebook-f" data-prefix="fab" focusable="false" role="img" style="color: #353535;height:23px;width:23px;" viewbox="0 0 320 512" xmlns="http://www.w3.org/2000/svg">
+           <path d="M279.14 288l14.22-92.66h-88.91v-60.13c0-25.35 12.42-50.06 52.24-50.06h40.42V6.26S260.43 0 225.36 0c-73.22 0-121.08 44.38-121.08 124.72v70.62H22.89V288h81.39v224h100.17V288z" fill="currentColor">
+           </path>
+          </svg>
+         </a>
+        </div>
+        <div class="footer-socials-newsletter">
+         <style>
+          #html-body [data-pb-style=P8R63WS]{justify-content:flex-start;display:flex;flex-direction:column;background-position:left top;background-size:cover;background-repeat:no-repeat;background-attachment:scroll}
+         </style>
+         <div data-appearance="contained" data-content-type="row" data-element="main">
+          <div data-background-images="{}" data-background-type="image" data-element="inner" data-enable-parallax="0" data-parallax-speed="0.5" data-pb-style="P8R63WS" data-video-fallback-src="" data-video-lazy-load="true" data-video-loop="true" data-video-play-only-visible="true">
+           <div data-appearance="default" data-content-type="text" data-element="main">
+            <p>
+             Newsletter Signup
+            </p>
+           </div>
+          </div>
+         </div>
+         <div data-appearance="default" data-content-type="html" data-decoded="true" data-element="main">
+          <script async="" src="https://static.klaviyo.com/onsite/js/klaviyo.js?company_id=XWHJ42" type="text/javascript">
+          </script>
+          <div class="klaviyo-form-Us9HY5" style="width: 350px;">
+          </div>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+     <div class="footer-col-group">
+      <ul class="footer-col -list">
+       <style>
+        #html-body [data-pb-style=DSR1U3M]{justify-content:flex-start;display:flex;flex-direction:column;background-position:left top;background-size:cover;background-repeat:no-repeat;background-attachment:scroll}
+       </style>
+       <div data-appearance="contained" data-content-type="row" data-element="main">
+        <div data-background-images="{}" data-background-type="image" data-element="inner" data-enable-parallax="0" data-parallax-speed="0.5" data-pb-style="DSR1U3M" data-video-fallback-src="" data-video-lazy-load="true" data-video-loop="true" data-video-play-only-visible="true">
+         <div data-appearance="default" data-content-type="text" data-element="main">
+          <ul>
+           <li>
+            Shop
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/road" tabindex="0">
+             Road
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/gravel" tabindex="0">
+             Gravel
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/mountain" tabindex="0">
+             Mountain
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/active" tabindex="0">
+             Active
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/bmc/bmc/e-bike-amp.html">
+             E-Bike AMP
+            </a>
+           </li>
+          </ul>
+         </div>
+        </div>
+       </div>
+      </ul>
+      <ul class="footer-col -list">
+       <style>
+        #html-body [data-pb-style=FJBCRD8]{justify-content:flex-start;display:flex;flex-direction:column;background-position:left top;background-size:cover;background-repeat:no-repeat;background-attachment:scroll}
+       </style>
+       <div data-appearance="contained" data-content-type="row" data-element="main">
+        <div data-background-images="{}" data-background-type="image" data-element="inner" data-enable-parallax="0" data-parallax-speed="0.5" data-pb-style="FJBCRD8" data-video-fallback-src="" data-video-lazy-load="true" data-video-loop="true" data-video-play-only-visible="true">
+         <div data-appearance="default" data-content-type="text" data-element="main">
+          <ul>
+           <li>
+            Purchase Advice
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/purchase-guidance" tabindex="0">
+             Purchase Guidance
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/size-guide">
+             Size Finder
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/bike-finder" tabindex="0">
+             Bike Finder
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/dealer-locator" tabindex="0">
+             Shop Finder
+            </a>
+           </li>
+          </ul>
+         </div>
+        </div>
+       </div>
+      </ul>
+     </div>
+     <div class="footer-col-group">
+      <ul class="footer-col -list">
+       <style>
+        #html-body [data-pb-style=NA6DSMB]{justify-content:flex-start;display:flex;flex-direction:column;background-position:left top;background-size:cover;background-repeat:no-repeat;background-attachment:scroll}
+       </style>
+       <div data-appearance="contained" data-content-type="row" data-element="main">
+        <div data-background-images="{}" data-background-type="image" data-element="inner" data-enable-parallax="0" data-parallax-speed="0.5" data-pb-style="NA6DSMB" data-video-fallback-src="" data-video-lazy-load="true" data-video-loop="true" data-video-play-only-visible="true">
+         <div data-appearance="default" data-content-type="text" data-element="main">
+          <ul>
+           <li>
+            Support
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/mechanical-support" tabindex="0">
+             Mechanical Support
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/spare-parts-and-service" tabindex="0">
+             Spare Parts &amp; Service
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/warranty-and-repairs" tabindex="0">
+             Warranty &amp; Repairs
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/bmcbikeregistration/index/enquiry" tabindex="0">
+             Bike Registration
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/contact" tabindex="0">
+             Contact
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/manuals" tabindex="0">
+             Manuals
+            </a>
+           </li>
+          </ul>
+         </div>
+        </div>
+       </div>
+      </ul>
+      <ul class="footer-col -list">
+       <style>
+        #html-body [data-pb-style=JW06DXL]{justify-content:flex-start;display:flex;flex-direction:column;background-position:left top;background-size:cover;background-repeat:no-repeat;background-attachment:scroll}
+       </style>
+       <div data-appearance="contained" data-content-type="row" data-element="main">
+        <div data-background-images="{}" data-background-type="image" data-element="inner" data-enable-parallax="0" data-parallax-speed="0.5" data-pb-style="JW06DXL" data-video-fallback-src="" data-video-lazy-load="true" data-video-loop="true" data-video-play-only-visible="true">
+         <div data-appearance="default" data-content-type="text" data-element="main">
+          <ul>
+           <li>
+            Explore
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/innovation" tabindex="0">
+             Technologies
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/stories" tabindex="0">
+             Stories
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/news" tabindex="0">
+             News
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/events" tabindex="0">
+             Events
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/teams-and-riders" tabindex="0">
+             Teams &amp; Riders
+            </a>
+           </li>
+          </ul>
+         </div>
+        </div>
+       </div>
+      </ul>
+     </div>
+     <div class="footer-col-group">
+      <ul class="footer-col -list">
+       <style>
+        #html-body [data-pb-style=HC58HG2]{justify-content:flex-start;display:flex;flex-direction:column;background-position:left top;background-size:cover;background-repeat:no-repeat;background-attachment:scroll}
+       </style>
+       <div data-appearance="contained" data-content-type="row" data-element="main">
+        <div data-background-images="{}" data-background-type="image" data-element="inner" data-enable-parallax="0" data-parallax-speed="0.5" data-pb-style="HC58HG2" data-video-fallback-src="" data-video-lazy-load="true" data-video-loop="true" data-video-play-only-visible="true">
+         <div data-appearance="default" data-content-type="text" data-element="main">
+          <ul>
+           <li>
+            Company
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/about-bmc" tabindex="0">
+             About BMC
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/careers">
+             Careers
+            </a>
+           </li>
+           <li id="DIY5TSY">
+            <a href="https://www.bmc-switzerland.com/intl_en/partners" tabindex="0">
+             Partners
+            </a>
+           </li>
+           <li>
+            <a href="https://www.bmc-switzerland.com/intl_en/archive" tabindex="0">
+             Bike Archive
+            </a>
+           </li>
+           <li>
+            <a href="https://b2b.bmc-switzerland.com/bch_de/customer/account/login/" rel="noopener" tabindex="0" target="_blank">
+             B2B Switzerland
+            </a>
+           </li>
+           <li>
+            <a href="https://b2b.bmc-switzerland.com/b2b_eu_en/customer/account/login/" rel="noopener" tabindex="0" target="_blank">
+             B2B Europe
+            </a>
+           </li>
+           <li>
+            <a href="https://b2b.bmc-switzerland.com/bus_en/customer/account/login/" rel="noopener" tabindex="0" target="_blank">
+             B2B North America
+            </a>
+           </li>
+           <li>
+            <a href="https://b2b.bmc-switzerland.com/di_en/customer/account/login/" rel="noopener" tabindex="0" target="_blank">
+             B2B Distributors
+            </a>
+           </li>
+          </ul>
+         </div>
+        </div>
+       </div>
+      </ul>
+     </div>
+    </div>
+    <div class="footer-bottom-row grid">
+     <svg class="bmc-logo" height="36px" viewbox="0 0 144 36" width="144px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+      <defs>
+       <polygon id="path-1" points="0 1.35525272e-19 143.588839 1.35525272e-19 143.588839 35.3948 0 35.3948">
+       </polygon>
+      </defs>
+      <g fill="none" fill-rule="evenodd" id="Symbols" stroke="none" stroke-width="1">
+       <g id="Group-3" transform="translate(0.000000, 0.000200)">
+        <mask fill="white" id="mask-2">
+         <use xlink:href="#path-1">
+         </use>
+        </mask>
+        <g id="Clip-2">
+        </g>
+        <path d="M58.7978,1.928 C59.2648,2.614 60.2978,3.178 61.0918,3.178 L89.8098,3.178 C90.6078,3.178 91.6458,3.734 92.1138,4.42 L96.2908,10.457 C96.7618,11.139 96.9858,12.372 96.7898,13.196 L91.8048,33.873 C91.6088,34.697 90.7958,35.371 89.9998,35.371 L84.1368,35.371 C83.3428,35.371 82.8578,34.697 83.0538,33.873 L88.2498,12.354 C88.4518,11.53 87.9648,10.854 87.1738,10.854 L80.6608,10.854 C79.8728,10.854 79.0588,11.53 78.8618,12.354 L73.6658,33.873 C73.4658,34.697 72.6538,35.371 71.8618,35.371 L66.0108,35.371 C65.2168,35.371 64.7308,34.697 64.9308,33.873 L70.1278,12.354 C70.3318,11.53 69.8488,10.854 69.0488,10.854 L62.5188,10.854 C61.7238,10.854 60.9108,11.53 60.7198,12.354 L55.5428,33.895 C55.3388,34.721 54.5338,35.395 53.7388,35.395 L47.8948,35.395 C47.0998,35.395 46.6158,34.721 46.8128,33.895 L52.3908,10.668 C52.5908,9.846 52.3688,8.613 51.8918,7.929 L51.3278,7.154 C50.8568,6.472 50.9948,5.499 51.6328,4.991 L56.4718,1.162 C57.1028,0.657 58.0068,0.805 58.4808,1.494 L58.7978,1.928 Z M112.9098,3.178 C112.1158,3.178 110.9468,3.592 110.3098,4.102 L103.4008,9.623 C102.7628,10.13 102.0778,11.223 101.8788,12.046 L98.4618,26.208 C98.2588,27.037 98.4858,28.268 98.9528,28.951 L102.5158,34.15 C102.9848,34.835 104.0178,35.395 104.8108,35.395 L134.7038,35.395 C135.4908,35.395 136.3088,34.723 136.5098,33.898 L137.6588,29.217 C137.8688,28.393 137.3778,27.719 136.5918,27.719 L109.8918,27.719 C109.1348,27.719 108.8498,27.379 108.6198,27.006 L107.8548,25.872 C107.4608,25.179 107.5058,24.841 107.7078,24.019 L110.5198,12.354 C110.7178,11.53 111.5318,10.854 112.3188,10.854 L140.6198,10.854 C141.4108,10.854 142.2198,10.181 142.4228,9.356 L143.5458,4.676 C143.7408,3.852 143.2548,3.178 142.4598,3.178 L112.9098,3.178 Z M42.6358,18.72 L46.2758,15.831 C47.7778,14.593 48.2208,12.056 47.1118,10.301 L43.0698,4.423 C42.6028,3.736 41.5648,3.174 40.7708,3.174 L17.6328,3.174 C16.8388,3.174 16.3538,2.502 16.5568,1.678 L16.5568,1.494 C16.7548,0.671 16.2698,0 15.4758,0 L9.6228,0.012 C8.8308,0.014 8.0838,0.446 7.8888,1.268 L0.0458,33.895 C-0.1572,34.721 0.3328,35.395 1.1198,35.395 L33.1818,35.395 C33.9738,35.395 35.1468,34.983 35.7828,34.475 L43.2888,28.533 C44.9658,27.14 45.1828,24.085 44.0518,22.424 C44.0518,22.424 42.4348,20.069 42.4208,20.047 C42.2308,19.721 42.2818,19.012 42.6358,18.72 L42.6358,18.72 Z M33.3308,22.602 C34.7498,22.602 35.0628,22.794 35.4928,23.264 C36.0918,23.922 36.3848,24.433 36.3848,24.826 C36.3848,25.31 35.3728,26.055 34.4818,26.717 L34.2388,26.893 C33.2748,27.609 32.7748,27.736 30.8888,27.736 L11.2488,27.736 C10.9738,27.736 10.7508,27.631 10.6138,27.441 C10.4758,27.243 10.4408,26.984 10.5048,26.703 L11.2018,23.81 C11.3578,23.158 12.0218,22.602 12.6538,22.602 L33.3308,22.602 Z M36.1388,10.815 C37.5598,10.815 37.8768,11.006 38.3088,11.475 C38.9078,12.135 39.2008,12.647 39.2008,13.04 C39.2008,13.519 38.1928,14.265 37.2968,14.926 L37.0468,15.107 C36.0868,15.824 35.5888,15.949 33.6968,15.949 L14.0918,15.949 C13.8148,15.949 13.5928,15.843 13.4538,15.652 C13.3138,15.463 13.2748,15.197 13.3488,14.915 L14.0388,12.023 C14.1948,11.368 14.8608,10.815 15.4938,10.815 L36.1388,10.815 Z" fill="#424241" id="Fill-1" mask="url(#mask-2)">
+        </path>
+       </g>
+      </g>
+     </svg>
+     <div class="bmc-copyright">
+      Copyright © 2022 BMC Switzerland AG. All rights reserved.
+     </div>
+     <div class="bmc-legals">
+      <style>
+       #html-body [data-pb-style=PXSTFNL]{justify-content:flex-start;display:flex;flex-direction:column;background-position:left top;background-size:cover;background-repeat:no-repeat no-repeat;background-attachment:scroll}
+      </style>
+      <div data-appearance="contained" data-content-type="row" data-element="main">
+       <div data-background-images="{}" data-background-type="image" data-element="inner" data-enable-parallax="0" data-parallax-speed="0.5" data-pb-style="PXSTFNL" data-video-fallback-src="" data-video-lazy-load="true" data-video-loop="true" data-video-play-only-visible="true">
+        <div data-appearance="default" data-content-type="text" data-element="main">
+         <ul>
+          <li id="ESDF840">
+           <a href="https://www.bmc-switzerland.com/intl_en/impressum" tabindex="0">
+            Impressum
+           </a>
+          </li>
+          <li>
+           <a href="https://www.bmc-switzerland.com/intl_en/disclaimer" tabindex="0">
+            Disclaimer
+           </a>
+          </li>
+          <li>
+           <a href="https://www.bmc-switzerland.com/intl_en/legal/privacy" tabindex="0">
+            Privacy
+           </a>
+          </li>
+         </ul>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </footer>
+  </div>
+  <script type="text/javascript">
+   window.NREUM||(NREUM={});NREUM.info={"beacon":"bam.nr-data.net","licenseKey":"NRJS-d159f56f7404527dc53","applicationID":"501091244","transactionName":"YAdWZUcHDEFVW0VYW1lNdVJBDw1cG1tQRVVbDVMeRRQNVkFbRR5CXgdD","queueTime":0,"applicationTime":3889,"atts":"TEBVEw8dH08=","errorBeacon":"bam.nr-data.net","agent":""}
+  </script>
+ </body>
+</html>

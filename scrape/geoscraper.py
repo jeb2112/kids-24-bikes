@@ -37,17 +37,19 @@ class GeoScraper(Scraper):
         # due to difficulty of handling both longform and shortform, shortforms are only keys
         # and longforms are only values. note therefore have duplicates on the shortforms as duplicate keys
         # reach and stack won't work if abbreviated to r and s.
+        # head seat angles are listed first, so there will never be a mistaken assignment to heat seat tube
         self.geolbls = {'rh':['reach'],'sk':['stack'],\
+                        'ha':['htangle','headtubeangle'],\
+                        'hta':['htangle','headtubeangle'],\
+                        'sa':['stangle','seattubeangle'],\
+                        'sta':['stangle','seattubeangle'],\
                         'st':['seattube','seattubelength'],\
                         'tt':['toptube','toptubeeffective','toptubelength'],\
                         'ht':['headtube','headtubelength'],\
-                        'sa':['stangle','seattubeangle'],\
-                        'sta':['stangle','seattubeangle'],\
                         'cs':['chainstay'],\
                         'rc':['rearcentre','rearcenter'],\
                         'bb':['bottombracketdrop','drop','bbdrop'],\
-                        'ha':['htangle','headtubeangle'],\
-                        'hta':['htangle','headtubeangle'],\
+                        'bbh':['bottombracketheight','bbheight'],\
                         'fl':['forklength'],'fo':['forkoffset'],\
                         'wb':['wheelbase'],\
                         'soh':['soheight','standoverheight','standover'],\
@@ -60,6 +62,7 @@ class GeoScraper(Scraper):
                         'cs':410,\
                         'rc':380,\
                         'bb':40,\
+                        'bbh':260,\
                         'fl':220,'fo':30,\
                         'wb':950,'soh':600,'so':600,'stm':70}
         # dict of internal keys for possible keywords in different websites
@@ -271,16 +274,28 @@ class GeoScraper(Scraper):
 
         # map lbls in identified lblcolumn to standard labels
         locallbl = {}
+        kflag = False
+        lflag = False
         for lbl in tbl[lblcol]:
+            # long form first
             for k1 in self.geolbls.keys():
                 for glbl in self.geolbls[k1]:
-                    # long form first
                     if lbl in glbl or glbl in lbl:
                         locallbl[lbl] = k1
+                        kflag = True
+                        if not any(x in lbl for x in ['reach','stack']):
+                            lflag = True # once a long form is matched, assume there are no short forms in table.
                         break
-                # short form. awkward kludge for reach stack
-                if k1 in lbl and not any(x in lbl for x in ['reach','stack']):
-                    locallbl[lbl] = k1
+                if kflag:
+                    kflag = False
+                    break
+            # short form. only check if no longform matches. this is another ad hoc check on non
+            # geom items in a geom table. kludge for reach stack should be unnecessary
+            if not lflag:
+                if lbl not in locallbl.keys():
+                    for k1 in self.geolbls.keys():
+                        if k1 in lbl and not any(x in lbl for x in ['reach','stack']):
+                            locallbl[lbl] = k1
                 
 
         # now assess each additional column as a possible data column
@@ -315,6 +330,8 @@ class GeoScraper(Scraper):
                 if type(item) == str:
                     # CubScout. check for multiple items in field. hardcoded take the first one only
                     item = item.split(' ')[0]
+                    # pineridge. split on left bracket for in/mm, but need proper in/mm detection. eg zulu
+                    item = item.split('(')[0]
                     if re.match('[0-9.-]+',item):
                         # re syntax. set negation ^ is inside set brackets. and speicals aren't escaped inside sets
                         item = re.sub('[^\d.-]','',item)
@@ -400,8 +417,8 @@ class GeoScraper(Scraper):
 
     # save geomtables
     def save_tbl(self):
-        if not os.path.exists(os.path.dirname(self.fname)):
-            os.makedirs(os.path.dirname(self.fname),exist_ok=True)
+        # if not os.path.exists(os.path.dirname(self.fname)):
+        #     os.makedirs(os.path.dirname(self.fname),exist_ok=True)
         if True:
             fname = self.fname + '_geom.json'
             with open(fname,'w') as fp:

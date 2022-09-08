@@ -36,7 +36,8 @@ class GeoScraper(Scraper):
         # dict of internal keys for possible keywords found in different websites
         # due to difficulty of handling both longform and shortform, shortforms are only keys
         # and longforms are only values. note therefore have duplicates on the shortforms as duplicate keys
-        self.geolbls = {'r':['reach'],'s':['stack'],\
+        # reach and stack won't work if abbreviated to r and s.
+        self.geolbls = {'rh':['reach'],'sk':['stack'],\
                         'st':['seattube','seattubelength'],\
                         'tt':['toptube','toptubeeffective','toptubelength'],\
                         'ht':['headtube','headtubelength'],\
@@ -50,9 +51,9 @@ class GeoScraper(Scraper):
                         'fl':['forklength'],'fo':['forkoffset'],\
                         'wb':['wheelbase'],\
                         'soh':['soheight','standoverheight','standover'],\
-                        'so':['soheight','standoverheight','standover'],'stem':['stem']}
+                        'so':['soheight','standoverheight','standover'],'stm':['stem']}
         # dict of internal keys with default values
-        self.geodflts = {'r':350,'s':500,\
+        self.geodflts = {'rh':350,'sk':500,\
                         'st':370,'tt':450,'ht':100,\
                         'hta':73,'ha':73,\
                         'sta':73,'sa':73,\
@@ -60,7 +61,7 @@ class GeoScraper(Scraper):
                         'rc':380,\
                         'bb':40,\
                         'fl':220,'fo':30,\
-                        'wb':950,'soh':400}
+                        'wb':950,'soh':600,'so':600,'stm':70}
         # dict of internal keys for possible keywords in different websites
         self.complbls = {'lb':['weight','lb'],'frame':['frame'],'fork':['fork'],'crankarm':['cranklength','crankarm'],\
                         'rd':['rearderailleur','rearderailer','rd'],'spring':['spring'],\
@@ -90,17 +91,19 @@ class GeoScraper(Scraper):
         imgs = soup.find_all('img')
         meta = soup.find_all('meta')
         links = soup.find_all('a')
+        scrip = soup.find_all('script')
+        tbls = []
+        # check html table tag
         try:
             tbls = pd.read_html(ptext)
         except ValueError as e:
-            warnings.warn('no tables in html, try json',stacklevel=2)
-            tbls = []
-            # try for a json dict
-            scrip = soup.find_all('script')
-            jgeotbl = self.get_scriptables(scrip)
-            if jgeotbl is None:
-                # output for debugging
-                warnings.warn('no tables in json',stacklevel=2)
+            warnings.warn('no table tags in html',stacklevel=2)
+        # check for a json dict
+        jtbls = self.get_scriptables(scrip)
+        if len(jtbls) == 0:
+            warnings.warn('no json tables in scrip tag',stacklevel=2)
+            # output for debugging
+            if len(tbls) == 0:
                 with open(self.fname+'_.html','w') as fp:
                     fp.write(soup.prettify())
                 return
@@ -116,27 +119,27 @@ class GeoScraper(Scraper):
             geotbl = self.get_tbl(tbls)
             if geotbl is not None:
                 geotbl = self.process_tbl(geotbl)
-                # geotbl = self.select_col(geotbl)
-                # res = self.read_tbl(geotbl)
-                res = self.read_tbl2(geotbl)
+                res = self.read_tbl(geotbl)
             else:
                 warnings.warn('no geom table in html tables',stacklevel=2)
-            if res:
+                res = None
+            if res is not None:
                 self.save_tbl()
                 return
             else:
                 warnings.warn('html table not parsed.',stacklevel=2)
-                return
             # self.comps = self.get_comptbl(tbls)
 
-        # then try json tables if any
-        elif len(jgeotbl) > 0:
-            jgeotbl = pd.DataFrame.from_dict(jgeotbl)
-            jgeotbl = self.process_tbl(jgeotbl)
-            res = self.read_tbl2(jgeotbl)
-
+        # then try json table. need get_jtbl variant if more than 1
+        if len(jtbls) == 1:
+            jtbls = pd.DataFrame.from_dict(jtbls)
+            jtbls = self.process_tbl(jtbls)
+            res = self.read_tbl(jtbls)
+            if res is None:
+                warnings.warn('json table not parsed.',stacklevel=2)
+                return
         else:
-            warnings.warn('No html tables found. continuing',stacklevel=2)
+            warnings.warn('No geom tables found. continuing',stacklevel=2)
             return
 
         # TODO: if no html or json tables, search for imgs of tables   
@@ -189,7 +192,7 @@ class GeoScraper(Scraper):
                             jdict = self.recurse_dict(jdata,kt,val=kt)
                             if jdict is not None:
                                 return jdict
-                        return None
+        return []
 
     # iteratively walk a json dict for one of a list of keys or value
     def recurse_dict(self,obj,key,val=None):
@@ -218,13 +221,19 @@ class GeoScraper(Scraper):
 
 
     ##############
-    # html methods
+    # table methods
     ##############
 
-    # reattempt read_tbl more generally
     # detection of labels has been separateed into long forms and abbreviations
     # to resolve some matching confusions
-    def read_tbl2(self,tbl):
+    # but still problems with reach,stack long versus short forms. this code may be needed
+    # # sort to do stack reach first
+    # dfrs = tbl.apply(lambda x:x.str.contains('reach|stack',regex=True)).any(axis=1)
+    # tbl = pd.concat([tbl.loc[dfrs],tbl.loc[dfrs.apply(lambda x:not(x))]])
+    # # make local copy list to work with
+    # geolblskeys = list(self.geolbls.keys())
+ 
+    def read_tbl(self,tbl):
 
         # start with labels col
         # dict to keep track of matches
@@ -265,12 +274,27 @@ class GeoScraper(Scraper):
         for lbl in tbl[lblcol]:
             for k1 in self.geolbls.keys():
                 for glbl in self.geolbls[k1]:
+                    # long form first
                     if lbl in glbl or glbl in lbl:
                         locallbl[lbl] = k1
+                        break
+                # short form. awkward kludge for reach stack
+                if k1 in lbl and not any(x in lbl for x in ['reach','stack']):
+                    locallbl[lbl] = k1
+                
 
         # now assess each additional column as a possible data column
-        # new df to hold just fields and values
-        croptbl = pd.DataFrame(columns=['field'],data=tbl[lblcol])
+        # TODO: add some logic for the column names
+
+        # make new cropped df to hold just fields and values
+        # incredibly, this instantiation syntax from data arg fails empty in some cases
+        try:
+            croptbl = pd.DataFrame(columns=['field'],data=tbl[lblcol])
+            if croptbl.empty:
+                raise ValueError
+        except ValueError:
+            croptbl = tbl[[lblcol]] # note syntax. requires explicit list to make df, otherwise its series
+            croptbl.columns = ['field']
         croptbl['values'] = 0
         max_valerror = 1e6
         for col in tbl.loc[:,lblcol:]:
@@ -280,17 +304,34 @@ class GeoScraper(Scraper):
                 continue
             for l in locallbl.keys():
                 # get item from df according to the label2key mapping
-                item = tbl.query('field ==  @l')[col].iloc[0]
+                # according to doc these are equivalent syntax, but they are not
+                try:
+                    item = tbl.query('@lblcol ==  @l')[col].iloc[0]
+                except KeyError:
+                    item = tbl[tbl[lblcol] == l][col].iloc[0]
                 if type(item) == list:
                     item = item[0] # might need better
 
                 if type(item) == str:
-                    if re.match('[0-9.]+',item):
-                        val = float(item)
+                    # CubScout. check for multiple items in field. hardcoded take the first one only
+                    item = item.split(' ')[0]
+                    if re.match('[0-9.-]+',item):
+                        # re syntax. set negation ^ is inside set brackets. and speicals aren't escaped inside sets
+                        item = re.sub('[^\d.-]','',item)
+                        try:
+                            val = float(item)
+                        # failure to convert could mean an improper match to a table item that isn't a geom quantity
+                        # otherwise don't have anything to catch a non-geom item in a geom table
+                        except ValueError:
+                            continue
                     else:
                         val = 0
-                elif type(item) == float or type(item) == int:
+                elif type(item) == np.int64:
+                    val = int(item)
+                elif type(item) == float or type(item) == int or type(item) == np.float64:
                     val = item
+                if pd.isna(val):
+                    val = 0
                 val_error += abs((val - self.geodflts[locallbl[l]]))
                 geovals[locallbl[l]] = val
             if val_error < max_valerror:
@@ -302,59 +343,6 @@ class GeoScraper(Scraper):
 
         return croptbl
 
-    # read geo table into the geo dict.
-    # for now this assumes the first column after the labels are the geo values.
-    # due to the overlap in text of the various tags like stack and sta (seattubeangle)
-    # this function has some simple logic to end up with the correct match.
-    # some conflicts can be avoided by the order in which the geolbls are listed,
-    # if the conflict only occurs in one order, like stack before sta.
-    # ie do reach,stack first as they are usually unambiguous
-    def read_tbl(self,tbl):
-        # sort to do stack reach first
-        dfrs = tbl.apply(lambda x:x.str.contains('reach|stack',regex=True)).any(axis=1)
-        tbl = pd.concat([tbl.loc[dfrs],tbl.loc[dfrs.apply(lambda x:not(x))]])
-        # make local copy list to work with
-        geolblskeys = list(self.geolbls.keys())
-        
-        for i in range(len(tbl.iloc[:,0])):
-            tblelement = tbl.iloc[i,0]
-            for k1 in geolblskeys:
-                # if table item is contained in one of the possible key values, it's a
-                # good match so save it directly with a len ratio of 1
-                if any(tblelement in x for x in self.geolbls[k1]):
-                    self.geodata[k1] = (tbl.iloc[i,1],1)
-                    # then for each match, pop that key so don't search for it again
-                    geolblskeys.pop(geolblskeys.index(k1))
-                    break
-                # if one of the possible key values is contained in the table item, it's a less exact match
-                else:
-                    for x in self.geolbls[k1]:
-                        if x in tblelement:
-                            # if the item is already populated, update if necessary
-                            if k1 in self.geodata.keys():
-                                warnings.warn('More than one key match: {}, {}, {}'.format(tblelement,self.geolbls[k1],self.geodata[k1]),stacklevel=2)
-                                # update is based on ratio of length of the existing
-                                # possible key value to the item. if the new ratio is longer, it's a
-                                # better match, so use it.
-                                if len(x)/len(tblelement) > self.geodata[k1][1]:
-                                    warnings.warn('replacing: {}'.format(k1),stacklevel=2)
-                                    # also restore the new len ratio here, for later reference
-                                    # in case of yet another better match
-                                    self.geodata[k1] = (tbl.iloc[i,1],len(x)/len(tblelement))
-                                    break
-                                    # reread the table?
-                                    # self.redo_read_tbl(k1)
-                            # if this is the first match, save the ratio of possible key value to item
-                            # length here for later reference
-                            else:
-                                self.geodata[k1] = (tbl.iloc[i,1],len(x)/len(tblelement))
-                                geolblskeys.pop(geolblskeys.index(k1))
-                                break
-                    else:
-                        continue
-                    break
-
-        return len(self.geodata.keys())
         
     # process string values in table for consistency. may need more processing...
     def process_tbl(self,tbl):

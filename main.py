@@ -1,7 +1,6 @@
 from operator import eq
 from ssl import PROTOCOL_TLSv1_1
 import os
-import matplotlib.pyplot as plt
 import argparse
 from geo.photo import ProfilePhoto
 from geo.misc import *
@@ -38,7 +37,7 @@ def runAnnotate(flist):
 def runScrape():
     gs = Gsheet(online=False)
     sc = ImgScraper(scrapedir='png')
-    bcol = 'CC' # starting column for debugging
+    bcol = 'F' # starting column for debugging
     b1 = ord(bcol[-1])-64-4
     if len(bcol)==2:
         b1 += (ord(bcol[0])-64)*26
@@ -50,7 +49,7 @@ def runScrape():
 def runGeoScrape():
     gs = Gsheet(online=False)
     gsc = GeoScraper(scrapedir='geodata')
-    bcol = 'AU' # starting column for debugging
+    bcol = 'F' # starting column for debugging
     b1 = ord(bcol[-1])-64-4
     if len(bcol)==2:
         b1 += (ord(bcol[0])-64)*26
